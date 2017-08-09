@@ -1,6 +1,9 @@
 'use strict';
 
 var AV = require('leanengine');
+var wechat_api = require('./mpFuncs').wechat_api
+var mpMenuFuncs = require('./mpFuncs/Menu')
+
 
 AV.init({
   appId: process.env.LEANCLOUD_APP_ID,
@@ -10,6 +13,15 @@ AV.init({
 
 // 如果不希望使用 masterKey 权限，可以将下面一行删除
 AV.Cloud.useMasterKey();
+
+//获取微信公众号api token &创建菜单
+wechat_api.getLatestToken(function (err, token) {
+  if(err) {
+    console.warn("获取微信公众号token失败", err)
+  } else {
+    mpMenuFuncs.createMenu();
+  }
+})
 
 var app = require('./app');
 

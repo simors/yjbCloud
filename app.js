@@ -8,6 +8,7 @@ var bodyParser = require('body-parser');
 var AV = require('leanengine');
 var GLOBAL_CONFIG = require('./config')
 var wechat = require('wechat');
+var mpServerFuncs = require('./mpFuncs/Server')
 
 
 // 加载云函数定义，你可以将云函数拆分到多个文件方便管理，但需要在主文件中加载它们
@@ -49,9 +50,7 @@ var wechatConfig = {
   encodingAESKey: GLOBAL_CONFIG.WECHAT_MP_AESKEY,
   checkSignature: true // 可选，默认为true。由于微信公众平台接口调试工具在明文模式下不发送签名，所以如要使用该测试工具，请将其设置为false
 };
-app.use('/wechat', wechat(wechatConfig, function (req, res, next) {
-  //todo 微信消息处理
-}))
+app.use('/wechat', wechat(wechatConfig, mpServerFuncs.wechatServer))
 
 app.use(function(req, res, next) {
   // 如果任何一个路由都没有返回响应，则抛出一个 404 异常给后续的异常处理器
