@@ -1,8 +1,18 @@
-var AV = require('leanengine');
+var AV = require('leanengine')
+var authFunc = require('./cloudFuncs/Auth')
+var activityFunc = require('./cloudFuncs/Activity')
+
 
 /**
- * 一个简单的云代码方法
+ * 云函数
  */
-AV.Cloud.define('hello', function(request) {
-  return 'Hello world!';
-});
+//用户
+AV.Cloud.define('authAuthFuncTest', authFunc.authFuncTest)
+
+//营销活动
+AV.Cloud.define('activityIncrActivityPageView', activityFunc.incrActivityPageView)
+AV.Cloud.define('activityCreateActivity', activityFunc.createActivity)
+AV.Cloud.define('activityDeleteActivity', activityFunc.deleteActivity)
+AV.Cloud.define('activityGetActivitiesList', activityFunc.getActivitiesList)
+
+module.exports = AV.Cloud;
