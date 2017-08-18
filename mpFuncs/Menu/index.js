@@ -10,14 +10,15 @@ function createMenu() {
   var memu = {
     "button":[
       {
-        "type":"view",
-        "name":"扫码开柜",
-        "url": GLOBAL_CONFIG.MP_CLIENT_DOMAIN
+        "type": "scancode_push",
+        "name": "扫码开柜",
+        "key": "openBox",
+        "sub_button": [ ]
       },
       {
         "type":"view",
         "name":"个人中心",
-        "url": GLOBAL_CONFIG.MP_CLIENT_DOMAIN
+        "url": GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine'
       },
       {
         "type":"view",

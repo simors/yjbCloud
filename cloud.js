@@ -8,6 +8,7 @@ var activityFunc = require('./cloudFuncs/Activity')
  */
 //用户
 AV.Cloud.define('authAuthFuncTest', authFunc.authFuncTest)
+AV.Cloud.define('authFetchWechatUserInfo', authFunc.fetchWechatUserInfo)
 
 //营销活动
 AV.Cloud.define('activityIncrActivityPageView', activityFunc.incrActivityPageView)
