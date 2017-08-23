@@ -20,7 +20,7 @@ function subscribeEvent(req, res, next) {
 
   res.reply({
     type: 'text',
-    content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/auth?deviceid=" + deviceId + "'>绑定手机号码</a>" +"使用衣家宝干衣柜。"
+    content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/bind?deviceid=" + deviceId + "'>绑定手机号码</a>" +"使用衣家宝干衣柜。"
   })
 }
 
@@ -40,7 +40,7 @@ function scanEvent(req, res, next) {
     } else {
       res.reply({
         type: 'text',
-        content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/auth?deviceid=" + deviceId + "'>绑定手机号码</a>" +"使用衣家宝干衣柜。"
+        content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/bind?deviceid=" + deviceId + "'>绑定手机号码</a>" +"使用衣家宝干衣柜。"
       })
     }
   }).catch((error) => {

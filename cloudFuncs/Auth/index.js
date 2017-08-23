@@ -4,24 +4,57 @@
 var AV = require('leanengine');
 var mpAuthFuncs = require('../../mpFuncs/Auth')
 
-function fetchWechatUserInfo(request, response) {
-  console.log("fetchWechatUserInfo params", request.params)
+function constructUserInfo(user) {
+  var userInfo = {}
+
+  userInfo.id = user.id
+  userInfo.mobilePhoneNumber = user.attributes.mobilePhoneNumber
+  userInfo.avatar = user.attributes.avatar
+  userInfo.nickname = user.attributes.nickname
+  userInfo.sex = user.attributes.sex
+  userInfo.language = user.attributes.language
+  userInfo.country = user.attributes.country
+  userInfo.province = user.attributes.province
+  userInfo.city = user.attributes.city
+
+  return userInfo
+}
+
+function getUserInfoByOpenid(openid) {
+  var query = new AV.Query('_User')
+  query.equalTo("authData.weixin.openid", openid)
+  return query.first().then((leanUser) => {
+    return constructUserInfo(leanUser)
+  }).catch((error) => {
+    throw error
+  })
+}
+
+function fetchUserInfo(request, response) {
+  console.log("fetchUserInfo params", request.params)
   var code = request.params.code
+  var openid = undefined
   var accessToken = undefined
   var expires_in = undefined
+  var isBind = false
 
   mpAuthFuncs.getAccessToken(code).then((result) => {
-    var openid = result.data.openid
-    accessToken = result.data.access_token;
+    openid = result.data.openid
+    accessToken = result.data.access_token
     expires_in = result.data.expires_in
 
+    return isUserSignIn(openid)
+  }).then((result) => {
+    isBind = result
     return mpAuthFuncs.getUserInfo(openid)
   }).then((userInfo) => {
+    userInfo.isBind = isBind
     userInfo.accessToken = accessToken
     userInfo.expires_in = expires_in
+
     response.success(userInfo)
   }).catch((error) => {
-    console.log("fetchWechatUserInfo::", error)
+    console.log("fetchUserInfo::", error)
     response.error(error)
   })
 }
@@ -49,7 +82,7 @@ function authFuncTest(request, response) {
 }
 
 var authFunc = {
-  fetchWechatUserInfo: fetchWechatUserInfo,
+  fetchUserInfo: fetchUserInfo,
   authFuncTest: authFuncTest,
   isUserSignIn: isUserSignIn,
 }
