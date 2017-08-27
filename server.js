@@ -4,6 +4,9 @@ var AV = require('leanengine');
 var wechat_api = require('./mpFuncs').wechat_api
 var mpMenuFuncs = require('./mpFuncs/Menu')
 
+var GLOBAL_CONFIG = require('./config')
+
+
 
 AV.init({
   appId: process.env.LEANCLOUD_APP_ID,
@@ -23,19 +26,28 @@ wechat_api.getLatestToken(function (err, token) {
   }
 })
 
-var app = require('./app');
+var server = require('./app')
 
-//websocket server
-var ws = require('./wsServer')
+//websocket
+var websocketIO = require('./websocketIO')
+var websocketFunc = require('./websocket')
+websocketIO.sockets.on('connection', websocketFunc.connectionEvent)
+
+//rabbitMQ
+var amqp = require('./amqp')
+// var amqp = require('amqplib')
+// var amqpFunc = require('./amqp')
+// amqp.connect(GLOBAL_CONFIG.RABBITMQ_URL).then(amqpFunc.connectEvent).catch(console.warn)
 
 //mqtt
 var mqtt = require('./mqtt')
+
 
 // 端口一定要从环境变量 `LEANCLOUD_APP_PORT` 中获取。
 // LeanEngine 运行时会分配端口并赋值到该变量。
 var PORT = parseInt(process.env.LEANCLOUD_APP_PORT || process.env.PORT || 3000);
 
-app.listen(PORT, function (err) {
+server.listen(PORT, function (err) {
   console.log('Node app is running on port:', PORT);
 
   // 注册全局未捕获异常处理器

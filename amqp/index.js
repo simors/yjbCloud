@@ -1,44 +1,21 @@
 /**
- * Created by wanpeng on 2017/8/7.
+ * Created by wanpeng on 2017/8/27.
  */
-var amqp = require('amqplib');
-var redis = require('redis');
-var GLOBAL_CONFIG = require('./config')
-var io = require('socket.io')(8080)
-var activityFunc = require('./cloudFuncs/Activity')
+var amqp = require('amqplib')
+var GLOBAL_CONFIG = require('../config')
+var websocketIO = require('../websocketIO')
+var activityFunc = require('../cloudFuncs/Activity')
 
-const namespace = io.of('/')
+var namespace = websocketIO.of('/')
 
 //活动请求&应答
 const ACTIVITY_REQUEST = 'activity_request'
 const ACTIVITY_RESPONSE = 'activity_response'
 
+amqp.connect(GLOBAL_CONFIG.RABBITMQ_URL).then(connectEvent).catch(console.warn)
 
-io.sockets.on('connection', function (socket) {
-  //接收到H5页面的活动请求
-  socket.on(ACTIVITY_REQUEST, function (data) {
-    console.log("收到请求：", data)
-    var activityId = data.activityId
-    var openid = data.openid
 
-    activityFunc.checkActivityRequest(activityId, openid).then((activity) => {
-      if(activity.pass) {
-        activityFunc.insertActivityMessage(socket.id, openid, activityId, activity.activityCategory).then((result) => {
-          console.log("活动请求消息入队成功")
-        }).catch((error) => {
-          console.log("活动请求消息入队失败", error)
-          socket.to(socket.id).emit(ACTIVITY_RESPONSE, {result: 'fail'})
-        })
-      } else {
-        socket.emit(ACTIVITY_RESPONSE, {result: activity.message})
-      }
-    })
-
-  })
-
-})
-
-amqp.connect(GLOBAL_CONFIG.RABBITMQ_URL).then(function(conn) {
+function connectEvent(conn) {
   return conn.createChannel().then(function(ch) {
     //抽奖
     ch.assertExchange('lottery', 'fanout', {durable: false}).then(() => {
@@ -76,8 +53,8 @@ amqp.connect(GLOBAL_CONFIG.RABBITMQ_URL).then(function(conn) {
       var activityId = message.activityId
       var activityCategory = message.activityCategory
 
-      namespace.clients((error, clients) => {
-        if(clients.indexOf(socketId) === -1) {
+      namespace.clients((error, client) => {
+        if(client.indexOf(socketId) === -1) {
           //doNothing 多节点情况下
         } else {
           activityFunc.handleActivityMessage(activityId, activityCategory, openid).then((result) => {
@@ -89,6 +66,5 @@ amqp.connect(GLOBAL_CONFIG.RABBITMQ_URL).then(function(conn) {
         }
       })
     }
-
-  });
-}).catch(console.warn)
+  })
+}

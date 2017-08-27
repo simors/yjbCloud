@@ -13,6 +13,7 @@ AV.Cloud.define('authFetchUserInfo', authFunc.fetchUserInfo)
 
 //设备
 AV.Cloud.define('deviceFetchDeviceInfo', deviceFunc.fetchDeviceInfo)
+AV.Cloud.define('deviceGetDeviceStatus', deviceFunc.getDeviceStatus)
 AV.Cloud.define('deviceFuncTest', deviceFunc.deviceFuncTest)
 
 

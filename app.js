@@ -88,4 +88,7 @@ app.use(function(err, req, res, next) {
   });
 });
 
-module.exports = app;
+var server = require('http').Server(app);
+
+
+module.exports = server
