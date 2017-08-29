@@ -5,13 +5,10 @@ var redis = require('redis');
 var activityFunc = require('../cloudFuncs/Activity')
 var turnOnDevice = require('../mqtt').turnOnDevice
 
-
-//活动请求&应答
-const ACTIVITY_REQUEST = 'activity_request'
+//websocket消息
+const ACTIVITY_REQUEST = 'activity_request'     //活动请求&应答
 const ACTIVITY_RESPONSE = 'activity_response'
-
-//设备开机请求&应答
-const TURN_ON_DEVICE = 'turn_on_device'
+const TURN_ON_DEVICE = 'turn_on_device'         //设备开机请求&应答
 const TURN_ON_DEVICE_SUCCESS = 'turn_on_device_success'
 const TURN_ON_DEVICE_FAILED = 'turn_on_device_failed'
 
@@ -40,16 +37,16 @@ function connectionEvent(socket) {
   //接收到微信客户端的设备开机请求
   socket.on(TURN_ON_DEVICE, (data, callback) => {
     console.log("收到设备开机请求：", data)
-    var deviceId = data.deviceId
+    var deviceNo = data.deviceNo
     var userId = data.userId
     var socketId = socket.id
     var ackData = {
-      deviceId: deviceId,
+      deviceNo: deviceNo,
       errorCode: 0,
       errorMessage: ""
     }
 
-    turnOnDevice(deviceId, userId, socketId).then((result) => {
+    turnOnDevice(deviceNo, userId, socketId).then((result) => {
       ackData.errorCode = result.errorCode
       ackData.errorMessage = result.errorMessage
       callback(ackData)
@@ -64,6 +61,11 @@ function connectionEvent(socket) {
 }
 
 var websocketFunc = {
+  ACTIVITY_REQUEST: ACTIVITY_REQUEST,
+  ACTIVITY_RESPONSE: ACTIVITY_RESPONSE,
+  TURN_ON_DEVICE: TURN_ON_DEVICE,
+  TURN_ON_DEVICE_SUCCESS: TURN_ON_DEVICE_SUCCESS,
+  TURN_ON_DEVICE_FAILED: TURN_ON_DEVICE_FAILED,
   connectionEvent: connectionEvent,
 }
 

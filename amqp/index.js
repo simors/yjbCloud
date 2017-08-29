@@ -5,12 +5,9 @@ var amqp = require('amqplib')
 var GLOBAL_CONFIG = require('../config')
 var websocketIO = require('../websocketIO')
 var activityFunc = require('../cloudFuncs/Activity')
+var websocketFunc = require('../websocket')
 
 var namespace = websocketIO.of('/')
-
-//活动请求&应答
-const ACTIVITY_REQUEST = 'activity_request'
-const ACTIVITY_RESPONSE = 'activity_response'
 
 amqp.connect(GLOBAL_CONFIG.RABBITMQ_URL).then(connectEvent).catch(console.warn)
 
@@ -58,7 +55,7 @@ function connectEvent(conn) {
           //doNothing 多节点情况下
         } else {
           activityFunc.handleActivityMessage(activityId, activityCategory, openid).then((result) => {
-            namespace.to(socketId).emit(ACTIVITY_RESPONSE, {result: result})
+            namespace.to(socketId).emit(websocketFunc.ACTIVITY_RESPONSE, {result: result})
             ch.ack(msg)
           }).catch((error) => {
             console.log("处理活动请求失败", error)

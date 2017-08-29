@@ -16,19 +16,12 @@ function constructUserInfo(user) {
   userInfo.country = user.attributes.country
   userInfo.province = user.attributes.province
   userInfo.city = user.attributes.city
+  userInfo.balance = user.attributes.balance
+  userInfo.deposit = user.attributes.deposit
 
   return userInfo
 }
 
-function getUserInfoByOpenid(openid) {
-  var query = new AV.Query('_User')
-  query.equalTo("authData.weixin.openid", openid)
-  return query.first().then((leanUser) => {
-    return constructUserInfo(leanUser)
-  }).catch((error) => {
-    throw error
-  })
-}
 
 function fetchUserInfo(request, response) {
   console.log("fetchUserInfo params", request.params)

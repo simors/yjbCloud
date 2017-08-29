@@ -6,19 +6,11 @@ var Promise = require('bluebird');
 var GLOBAL_CONFIG = require('../config')
 var client = require('mqtt').connect(GLOBAL_CONFIG.MQTT_SERVER_URL)
 var websocketIO = require('../websocketIO')
+var websocketFunc = require('../websocket')
+var deviceFunc = require('../cloudFuncs/Device')
+var orderFunc = require('../cloudFuncs/Order')
 
 const namespace = websocketIO.of('/')
-
-//设备开机请求&应答
-const TURN_ON_DEVICE = 'turn_on_device'
-const TURN_ON_DEVICE_SUCCESS = 'turn_on_device_success'
-const TURN_ON_DEVICE_FAILED = 'turn_on_device_failed'
-
-//设备状态
-const IDLE = 0  //空闲
-const OCCUPIED = 1 //使用中
-const OFFLINE = 2 //下线
-
 
 client.on('connect', connectEvent)
 client.on('message', messageEvent)
@@ -60,33 +52,34 @@ function handleDeviceOnline(message) {
   console.log("收到设备上线消息", message.toString())
 
   var Message = JSON.parse(message.toString())
-  var deviceId = Message.deviceId
+  var deviceNo = Message.deviceNo
   var onlineTime = Message.time
 
   var query = new AV.Query('Device')
-  query.equalTo('deviceId', deviceId)
+  query.equalTo('deviceNo', deviceNo)
 
   query.first().then((device) => {
     if(device) {
-      device.set('status', IDLE)
+      device.set('status', deviceFunc.IDLE)
       device.set('updateTime', new Date(onlineTime))
 
       return device.save()
     } else {
       var Device = AV.Object.extend('Device')
       var device = new Device()
-      device.set('deviceId', deviceId)
+      device.set('deviceNo', deviceNo)
       device.set('onlineTime', new Date(onlineTime))
       device.set('updateTime', new Date(onlineTime))
-      device.set('status', "")
+      device.set('deviceAddr', "")
+      device.set('status', deviceFunc.IDLE)
 
       return device.save()
     }
   }).then((device) => {
     var topics = []
-    topics.push('deviceStatus/' + deviceId)   //设备状态上报消息
-    topics.push('turnOnSuccess/' + deviceId)  //开机成功消息
-    topics.push('turnOnFailed/' + deviceId)   //开机失败消息
+    topics.push('deviceStatus/' + deviceNo)   //设备状态上报消息
+    topics.push('turnOnSuccess/' + deviceNo)  //开机成功消息
+    topics.push('turnOnFailed/' + deviceNo)   //开机失败消息
 
     client.subscribe(topics, function (error) {
       if(error) {
@@ -104,16 +97,16 @@ function handleDeviceOnline(message) {
 function handleDeviceOffline(message) {
   console.log("收到设备下线消息", message.toString())
   var Message = JSON.parse(message.toString())
-  var deviceId = Message.deviceId
+  var deviceNo = Message.deviceNo
   var offlineTime = Message.time
   var offlineMessage = Message.message
 
   var query = new AV.Query('Device')
-  query.equalTo('deviceId', deviceId)
+  query.equalTo('deviceNo', deviceNo)
 
   query.first().then((device) => {
     if(device) {
-      device.set('status', OFFLINE)
+      device.set('status', deviceFunc.OFFLINE)
       device.set('updateTime', new Date(offlineTime))
       return device.save()
     } else {
@@ -121,7 +114,7 @@ function handleDeviceOffline(message) {
     }
   }).then((leanDevice) => {
     if(leanDevice) {
-      client.unsubscribe('deviceStatus/' + deviceId)
+      client.unsubscribe('deviceStatus/' + deviceNo)
     }
   }).catch(() => {
     console.error("设备下线失败", error)
@@ -132,12 +125,12 @@ function handleDeviceOffline(message) {
 function handleDeviceStatus(message) {
   // console.log("收到设备状态更新消息", message.toString())
   var Message = JSON.parse(message.toString())
-  var deviceId = Message.deviceId
+  var deviceNo = Message.deviceNo
   var updateTime = Message.time
   var status = Message.status
 
   var query = new AV.Query('Device')
-  query.equalTo('deviceId', deviceId)
+  query.equalTo('deviceNo', deviceNo)
 
   query.first().then((device) => {
     if(device) {
@@ -151,24 +144,25 @@ function handleDeviceStatus(message) {
 }
 
 //开启设备
-function turnOnDevice(deviceId, userId, socketId) {
+function turnOnDevice(deviceNo, userId, socketId) {
   var query = new AV.Query('Device')
-  query.equalTo('deviceId', deviceId)
+  query.equalTo('deviceNo', deviceNo)
 
   return query.first().then((device) => {
     var currentStatus = device && device.attributes.status
 
 
     console.log("turnOnDevice currentStatus", currentStatus)
-    if(device && (currentStatus === IDLE)) {
+    if(device && (currentStatus === deviceFunc.IDLE)) {
       var turnOnMessage = {
         socketId: socketId,
-        deviceId: deviceId,
+        deviceNo: deviceNo,
+        userId: userId,
         time: Date.now()
       }
 
       return new Promise((resolve, reject) => {
-        client.publish('turnOn/' + deviceId, JSON.stringify(turnOnMessage), function (error) {
+        client.publish('turnOn/' + deviceNo, JSON.stringify(turnOnMessage), function (error) {
           if(error) {
             console.log("publish turnOn error:", error)
             resolve({
@@ -176,7 +170,7 @@ function turnOnDevice(deviceId, userId, socketId) {
               errorMessage: "设备请求失败"
             })
           } else {
-            console.log("publish success, topic:", 'turnOn/' + deviceId)
+            console.log("publish success, topic:", 'turnOn/' + deviceNo)
             resolve({
               errorCode: 0,
               errorMessage: ""
@@ -201,23 +195,29 @@ function handleTurnOnSuccess(message) {
   handleDeviceStatus(message)
   var Message = JSON.parse(message.toString())
   var socketId = Message.socketId
-  var deviceId = Message.deviceId
-  var updateTime = Message.time
+  var deviceNo = Message.deviceNo
+  var userId = Message.userId
+  var turnOnTime = Message.time
   var status = Message.status
 
-  //TODO 通知微信客户端
-  console.log("namespace", namespace)
   namespace.clients((error, client) => {
     if(client.indexOf(socketId) === -1) {
       //doNothing 多节点情况下
     } else {
-      console.log("websocket 发送开启成功消息")
-      namespace.to(socketId).emit(TURN_ON_DEVICE_SUCCESS, {deviceId: deviceId})
+      //TODO 创建订单
+      orderFunc.createOrder(deviceNo, userId, turnOnTime).then((orderInfo) => {
+
+        //websocket 发送开启成功消息
+        namespace.to(socketId).emit(websocketFunc.TURN_ON_DEVICE_SUCCESS, orderInfo)
+        //TODO 微信模版消息
+
+      }).catch((error) => {
+        console.log("handleTurnOnSuccess", error)
+        //websocket 发送开启失败消息
+        namespace.to(socketId).emit(websocketFunc.TURN_ON_DEVICE_FAILED, {deviceNo: deviceNo})
+      })
     }
   })
-
-
-  //TODO 微信模版消息
 
 }
 
@@ -225,7 +225,7 @@ function handleTurnOnSuccess(message) {
 function handleTurnOnFailed(message) {
   console.log("收到设备开启失败消息", message.toString())
   var Message = JSON.parse(message.toString())
-  var deviceId = Message.deviceId
+  var deviceNo = Message.deviceNo
   var updateTime = Message.time
   var status = Message.status
 

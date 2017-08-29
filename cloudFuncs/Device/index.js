@@ -4,14 +4,14 @@
 var AV = require('leanengine');
 
 //设备状态
-const IDLE = 0  //空闲
-const OCCUPIED = 1 //使用中
-const OFFLINE = 2 //下线
+const IDLE = 0        //空闲
+const OCCUPIED = 1    //使用中
+const OFFLINE = 2     //下线
 
 function constructDeviceInfo(device) {
   var deviceInfo = {}
   deviceInfo.id = device.id
-  deviceInfo.deviceId = device.attributes.deviceId
+  deviceInfo.deviceNo = device.attributes.deviceNo
   deviceInfo.status = device.attributes.status
   deviceInfo.onlineTime = device.attributes.onlineTime.valueOf()
   deviceInfo.updateTime = device.attributes.updateTime.valueOf()
@@ -20,15 +20,15 @@ function constructDeviceInfo(device) {
 }
 
 function fetchDeviceInfo(request, response) {
-  var deviceid = request.params.deviceid
+  var deviceNo = request.params.deviceNo
 
-  if(!deviceid) {
+  if(!deviceNo) {
     response.error(new Error("无效到设备id"))
     return
   }
 
   var query = new AV.Query('Device')
-  query.equalTo('deviceId', deviceid)
+  query.equalTo('deviceNo', deviceNo)
 
   query.first().then((device) => {
     if(device) {
@@ -51,6 +51,9 @@ function deviceFuncTest(request, response) {
 }
 
 var deviceFunc = {
+  IDLE: IDLE,
+  OCCUPIED: OCCUPIED,
+  OFFLINE: OFFLINE,
   fetchDeviceInfo: fetchDeviceInfo,
   getDeviceStatus: getDeviceStatus,
   deviceFuncTest: deviceFuncTest,

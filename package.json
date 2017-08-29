@@ -20,8 +20,10 @@
     "leanengine": "^3.0.0",
     "mqtt": "^2.11.0",
     "mysql": "^2.14.1",
+    "pingpp": "^2.0.13",
     "redis": "^2.7.1",
     "socket.io": "^2.0.3",
+    "uuid": "^3.1.0",
     "wechat": "^2.1.0",
     "wechat-api": "^1.35.0",
     "wechat-oauth": "^1.2.1"

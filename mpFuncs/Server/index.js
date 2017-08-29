@@ -16,11 +16,11 @@ function subscribeEvent(req, res, next) {
   // console.log("用户关注事件消息：", message)
   var scene_id = message.EventKey
   var openid = message.FromUserName
-  var deviceId = scene_id.slice(8)
+  var deviceNo = scene_id.slice(8)
 
   res.reply({
     type: 'text',
-    content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/bind?deviceid=" + deviceId + "'>绑定手机号码</a>" +"使用衣家宝干衣柜。"
+    content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/bind?deviceNo=" + deviceNo + "'>绑定手机号码</a>" +"使用衣家宝干衣柜。"
   })
 }
 
@@ -29,18 +29,18 @@ function scanEvent(req, res, next) {
   var message = req.weixin
   console.log("扫码开柜消息：", message)
   var openid = message.FromUserName
-  var deviceId = message.EventKey
+  var deviceNo = message.EventKey
 
   authFunc.isUserSignIn(openid).then((result) => {
     if(result) {
       res.reply({
         type: 'text',
-        content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/openDevice?deviceid=" + deviceId + "'>开柜使用</a>"
+        content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/openDevice?deviceNo=" + deviceNo + "'>开柜使用</a>"
       })
     } else {
       res.reply({
         type: 'text',
-        content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/bind?deviceid=" + deviceId + "'>绑定手机号码</a>" +"使用衣家宝干衣柜。"
+        content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/bind?deviceNo=" + deviceNo + "'>绑定手机号码</a>" +"使用衣家宝干衣柜。"
       })
     }
   }).catch((error) => {

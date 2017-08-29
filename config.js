@@ -15,8 +15,8 @@ var WECHAT_MP_APPID = ""
 var WECHAT_MP_APPSECRET = ""
 var WECHAT_MP_AESKEY = ""
 
-const MP_SERVER_DOMAIN_DEV = "http://local_mp.ngrok.io"
-const MP_CLIENT_DOMAIN_DEV = "http://local_client.ngrok.io"
+const MP_SERVER_DOMAIN_DEV = "http://yiijiabao.leanapp.cn"
+const MP_CLIENT_DOMAIN_DEV = "http://dev.yiijiabao.com:8090"
 const WECHAT_MP_TOKEN_DEV = "YiJiaBao2017dev"
 const WECHAT_MP_APPID_DEV = "wx2c7e7f1a67c78900"
 const WECHAT_MP_AESKEY_DEV = "K65BlkT0U2lH1SntekBotsAhKX0VLo94bMTQDAZudIY"
@@ -73,7 +73,13 @@ const MYSQL_PROD_USER = ''
 const MYSQL_PROD_PWD = ''
 const MYSQL_PROD_DB = ''
 
-
+//Ping++应用配置
+var PINGPP_APP_ID = ""
+var PINGPP_TEST_API_KEY = "sk_test_HKm9W904GqD0e9irLSLiv5eL" //Secret Key
+var PINGPP_LIVE_API_KEY = "sk_live_eTi9uHXPGWDOrnXP0SKS0yj5" //Secret Key
+var PINGPP_DEV_APP_ID = "app_qbzH8SmPqL48qLSu" //衣家宝-DEV应用 Id
+var PINGPP_PRE_APP_ID = "" //衣家宝-PRE应用 Id
+var PINGPP_PRO_APP_ID = "" //衣家宝-PRO应用 Id
 
 
 
@@ -94,6 +100,8 @@ if(process.env.LEANCLOUD_APP_ID === LC_DEV_APP_ID) {  //开发环境
   MYSQL_PWD = MYSQL_DEV_PWD
   MYSQL_DB = MYSQL_DEV_DB
 
+  PINGPP_APP_ID = PINGPP_DEV_APP_ID
+
 } else if(process.env.LEANCLOUD_APP_ID === LC_STAGE_APP_ID) {   //预上线环境
   MP_SERVER_DOMAIN = MP_SERVER_DOMAIN_PRE
   MP_CLIENT_DOMAIN = MP_CLIENT_DOMAIN_PRE
@@ -110,6 +118,8 @@ if(process.env.LEANCLOUD_APP_ID === LC_DEV_APP_ID) {  //开发环境
   MYSQL_PWD = MYSQL_PRE_PWD
   MYSQL_DB = MYSQL_PRE_DB
 
+  PINGPP_APP_ID = PINGPP_PRE_APP_ID
+
 } else if(process.env.LEANCLOUD_APP_ID === LC_PRO_APP_ID) {   //生产环境
   MP_SERVER_DOMAIN = MP_SERVER_DOMAIN_PRO
   MP_CLIENT_DOMAIN = MP_CLIENT_DOMAIN_PRO
@@ -125,6 +135,8 @@ if(process.env.LEANCLOUD_APP_ID === LC_DEV_APP_ID) {  //开发环境
   MYSQL_USER = MYSQL_PROD_USER
   MYSQL_PWD = MYSQL_PROD_PWD
   MYSQL_DB = MYSQL_PROD_DB
+
+  PINGPP_APP_ID = PINGPP_PRO_APP_ID
 }
 
 var GLOBAL_CONFIG = {
@@ -148,6 +160,8 @@ var GLOBAL_CONFIG = {
   MYSQL_PWD: MYSQL_PWD,
   MYSQL_DB: MYSQL_DB,
 
+  PINGPP_APP_ID: PINGPP_APP_ID,
+  PINGPP_API_KEY: PINGPP_LIVE_API_KEY,
 }
 
 module.exports = GLOBAL_CONFIG
