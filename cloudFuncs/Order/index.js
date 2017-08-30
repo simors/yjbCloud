@@ -4,12 +4,28 @@
 var AV = require('leanengine');
 const uuidv4 = require('uuid/v4')
 
-//设备状态 occupied
+//设备状态
 const ORDER_STATUS_UNPAID = 0  //未支付
 const ORDER_STATUS_OCCUPIED = 1 //使用中
 const ORDER_STATUS_PAID = 2 //已支付
 
 function constructOrderInfo(order) {
+  var orderInfo = {}
+  orderInfo.id = order.id
+  orderInfo.orderNo = order.attributes.order_no
+  orderInfo.createTime = order.attributes.start.valueOf()
+  orderInfo.status = order.attributes.status
+
+  var user = order.attributes.user
+  var device = order.attributes.device
+  orderInfo.userId = user.id
+  orderInfo.deviceNo = device.attributes.deviceNo
+  orderInfo.deviceAddr = device.attributes.deviceAddr
+
+  return orderInfo
+}
+
+function getOrderInfo(order) {
   var orderInfo = {}
   orderInfo.id = order.id
   orderInfo.orderNo = order.attributes.order_no
@@ -27,7 +43,7 @@ function constructOrderInfo(order) {
 
     return orderInfo
   }).catch((error) => {
-    console.log('constructOrderInfo', error)
+    console.log('getOrderInfo', error)
     throw error
   })
 }
@@ -45,7 +61,7 @@ function createOrder(deviceNo, userId, turnOnTime) {
       order.set('order_no', uuidv4().replace(/-/g, '').substr(0, 10))
       order.set('device', device)
       order.set('user',  user)
-      order.set('start', Date(turnOnTime))
+      order.set('start', new Date(turnOnTime))
       order.set('status', ORDER_STATUS_OCCUPIED)
 
       return order.save()
@@ -53,11 +69,43 @@ function createOrder(deviceNo, userId, turnOnTime) {
       throw new Error('无效的设备')
     }
   }).then((order) => {
-    return constructOrderInfo(order)
+    return getOrderInfo(order)
   }).catch((error) => {
     console.log('createOrder', error)
     throw error
   })
+}
+
+function fetchOrdersByStatus(request, response) {
+  var userId = request.params.userId
+  var orderStatus = request.params.orderStatus
+  var limit = request.params.limit || 10
+  var lastTurnOnTime = request.params.lastTurnOnTime
+  var isRefresh = request.params.isRefresh
+
+  var user = AV.Object.createWithoutData('_User', userId)
+  var query = new AV.Query('Order')
+  query.equalTo('user', user)
+  query.equalTo('status', orderStatus)
+  query.include('user')
+  query.include('device')
+  query.limit(limit)
+  query.descending('start')
+  if(!isRefresh && lastTurnOnTime) {
+    query.lessThan('start', new Date(lastTurnOnTime))
+  }
+
+  query.find().then((results) => {
+    var orderList = []
+    results.forEach((leanOrder) => {
+      orderList.push(constructOrderInfo(leanOrder))
+    })
+    response.success({orders: orderList})
+  }).catch((error) => {
+    console.log('fetchOrdersByStatus', error)
+    response.error(error)
+  })
+
 }
 
 function orderFuncTest(request, response) {
@@ -76,6 +124,7 @@ function orderFuncTest(request, response) {
 var orderFunc = {
   orderFuncTest: orderFuncTest,
   createOrder: createOrder,
+  fetchOrdersByStatus: fetchOrdersByStatus,
 }
 
 module.exports = orderFunc

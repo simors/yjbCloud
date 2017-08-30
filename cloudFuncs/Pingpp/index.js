@@ -3,7 +3,7 @@
  */
 var GLOBAL_CONFIG = require('../../config')
 var pingpp = require('pingpp')(GLOBAL_CONFIG.PINGPP_API_KEY)
-var mysqlUtil = require('../util/mysqlUtil')
+var mysqlUtil = require('../Util/mysqlUtil')
 var Promise = require('bluebird')
 const uuidv4 = require('uuid/v4')
 

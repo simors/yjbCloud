@@ -5,7 +5,6 @@ var amqp = require('amqplib')
 var GLOBAL_CONFIG = require('../config')
 var websocketIO = require('../websocketIO')
 var activityFunc = require('../cloudFuncs/Activity')
-var websocketFunc = require('../websocket')
 
 var namespace = websocketIO.of('/')
 
@@ -41,6 +40,7 @@ function connectEvent(conn) {
     })
 
     function handleQueueMessage(msg) {
+      var ACTIVITY_RESPONSE = require('../websocket').ACTIVITY_RESPONSE
       var body = msg.content.toString()
       var message = JSON.parse(body)
 
@@ -55,7 +55,7 @@ function connectEvent(conn) {
           //doNothing 多节点情况下
         } else {
           activityFunc.handleActivityMessage(activityId, activityCategory, openid).then((result) => {
-            namespace.to(socketId).emit(websocketFunc.ACTIVITY_RESPONSE, {result: result})
+            namespace.to(socketId).emit(ACTIVITY_RESPONSE, {result: result})
             ch.ack(msg)
           }).catch((error) => {
             console.log("处理活动请求失败", error)

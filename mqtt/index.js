@@ -6,7 +6,6 @@ var Promise = require('bluebird');
 var GLOBAL_CONFIG = require('../config')
 var client = require('mqtt').connect(GLOBAL_CONFIG.MQTT_SERVER_URL)
 var websocketIO = require('../websocketIO')
-var websocketFunc = require('../websocket')
 var deviceFunc = require('../cloudFuncs/Device')
 var orderFunc = require('../cloudFuncs/Order')
 
@@ -191,6 +190,8 @@ function turnOnDevice(deviceNo, userId, socketId) {
 
 //设备开启成功
 function handleTurnOnSuccess(message) {
+  var TURN_ON_DEVICE_SUCCESS = require('../websocket/').TURN_ON_DEVICE_SUCCESS
+  var TURN_ON_DEVICE_FAILED = require('../websocket').TURN_ON_DEVICE_FAILED
   console.log("收到设备开启成功消息", message.toString())
   handleDeviceStatus(message)
   var Message = JSON.parse(message.toString())
@@ -208,13 +209,13 @@ function handleTurnOnSuccess(message) {
       orderFunc.createOrder(deviceNo, userId, turnOnTime).then((orderInfo) => {
 
         //websocket 发送开启成功消息
-        namespace.to(socketId).emit(websocketFunc.TURN_ON_DEVICE_SUCCESS, orderInfo)
+        namespace.to(socketId).emit(TURN_ON_DEVICE_SUCCESS, orderInfo)
         //TODO 微信模版消息
 
       }).catch((error) => {
         console.log("handleTurnOnSuccess", error)
         //websocket 发送开启失败消息
-        namespace.to(socketId).emit(websocketFunc.TURN_ON_DEVICE_FAILED, {deviceNo: deviceNo})
+        namespace.to(socketId).emit(TURN_ON_DEVICE_FAILED, {deviceNo: deviceNo})
       })
     }
   })
