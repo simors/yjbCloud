@@ -56,7 +56,7 @@ function getWalletInfo(userId) {
       walletInfo.balance = queryRes.results[0].balance || 0
       walletInfo.deposit = queryRes.results[0].deposit || 0
       walletInfo.openid = queryRes.results[0].openid || ""
-      walletInfo.debt = queryRes.results[0].debt || ""
+      walletInfo.debt = queryRes.results[0].debt || 0
       walletInfo.user_name = queryRes.results[0].user_name || ""
       return walletInfo
     }
@@ -81,7 +81,23 @@ function updateWalletInfo(conn, deal) {
   if (!deal.from || !deal.cost || !deal.deal_type) {
     throw new Error('')
   }
-  var userId = deal.from
+  var userId = undefined
+
+  switch (deal.deal_type) {
+    case DEPOSIT:
+    case RECHARGE:
+    case SERVICE:
+      userId = deal.from
+      break
+    case REFUND:
+    case WITHDRAW:
+      userId = deal.to
+      break
+    default:
+      break
+  }
+
+  console.log("updateWalletInfo userId:", userId)
   var openid = deal.openid
   var user_name = deal.user_name || ''
   var balance = 0
@@ -198,7 +214,7 @@ function createPayment(request, response) {
 function paymentEvent(request, response) {
   var charge = request.params.data.object
   var amount = charge.amount * 0.01         //单位为 元
-  var dealType = charge.metadata.dealType
+  var dealType = Number(charge.metadata.dealType)
   var toUser = charge.metadata.toUser
   var fromUser = charge.metadata.fromUser
   var mysqlConn = undefined
@@ -279,6 +295,7 @@ function createTransfer(request, response) {
         })
         return
       }
+      response.success(transfer)
     })
   } else {
     response.error(new Error("目前暂不支持渠道[" + channel + "]提现"))
@@ -287,14 +304,16 @@ function createTransfer(request, response) {
 
 function transferEvent(request, response) {
   var transfer = request.params.data.object
-  var toUser = transfer.metadata.userId
+  var toUser = transfer.metadata.toUser
+  var fromUser = transfer.metadata.fromUser
   var amount = (transfer.amount * 0.01).toFixed(2)         //单位为 元
   var dealType = transfer.metadata.dealType
 
   var mysqlConn = undefined
+  console.log("收到transferEvent消息 transfer:", transfer)
 
   var deal = {
-    from: 'platform',
+    from: fromUser,
     to: toUser,
     cost: amount,
     deal_type: dealType,
@@ -313,6 +332,7 @@ function transferEvent(request, response) {
   }).then(() => {
     return updateWalletInfo(mysqlConn, deal)
   }).then(() => {
+    console.log("transferEvent commit")
     return mysqlUtil.commit(mysqlConn)
   }).catch((error) => {
     console.log(error)
