@@ -91,8 +91,6 @@ function getWalletInfo(userId) {
     return mysqlUtil.query(conn, sql, [userId])
   }).then((queryRes) => {
     if(queryRes.results.length === 1) {
-      console.log("queryRes.results[0]", queryRes.results[0])
-
       walletInfo.userId = queryRes.results[0].userId || userId
       walletInfo.balance = queryRes.results[0].balance || 0
       walletInfo.deposit = queryRes.results[0].deposit || 0

@@ -75,6 +75,30 @@ function fetchDealRecords(request, response) {
   })
 }
 
+function verifyIdName(request, response) {
+  var userId = request.params.userId
+  var idName = request.params.idName
+  var idNumber = request.params.idNumber
+
+  var user = AV.Object.createWithoutData('_User', userId)
+
+  user.set('idName', idName)
+  user.set('idNumber', idNumber)
+  user.set('idNameVerified', false)
+
+  user.save().then((leanUser) => {
+    var idInfo = {
+      userId: leanUser.id,
+      idName: leanUser.attributes.idName,
+      idNumber: leanUser.attributes.idNumber,
+    }
+    response.success(idInfo)
+  }).catch((error) => {
+    console.log("verifyUsername", error)
+    response.error(error)
+  })
+}
+
 function authFuncTest(request, response) {
   let message = "测试成功"
 
@@ -88,7 +112,8 @@ var authFunc = {
   authFuncTest: authFuncTest,
   isUserSignIn: isUserSignIn,
   fetchWalletInfo: fetchWalletInfo,
-  fetchDealRecords: fetchDealRecords
+  fetchDealRecords: fetchDealRecords,
+  verifyIdName: verifyIdName
 }
 
 module.exports = authFunc

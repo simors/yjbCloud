@@ -139,7 +139,8 @@ function updateOrderStatus(orderId, status, endTime, amount) {
 }
 
 function orderPayment(request, response) {
-  var amount = request.params.amount
+  console.log("orderPayment params:", request.params)
+  var amount = Number(request.params.amount)
   var userId = request.params.userId
   var orderId = request.params.orderId
   var endTime = request.params.endTime
@@ -167,6 +168,8 @@ function orderPayment(request, response) {
           deal_type: PingppFunc.SERVICE,
         }
         return PingppFunc.updateWalletInfo(mysqlConn, deal)
+      }).then(() => {
+        return mysqlUtil.commit(mysqlConn)
       }).catch((error) => {
         console.log("orderPayment", error)
         if (mysqlConn) {

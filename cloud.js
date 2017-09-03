@@ -13,6 +13,7 @@ AV.Cloud.define('authFuncTest', authFunc.authFuncTest)
 AV.Cloud.define('authFetchUserInfo', authFunc.fetchUserInfo)
 AV.Cloud.define('authFetchWalletInfo', authFunc.fetchWalletInfo)
 AV.Cloud.define('authFetchDealRecords', authFunc.fetchDealRecords)
+AV.Cloud.define('authVerifyIdName', authFunc.verifyIdName)
 
 //设备
 AV.Cloud.define('deviceFetchDeviceInfo', deviceFunc.fetchDeviceInfo)

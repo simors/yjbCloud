@@ -13,6 +13,8 @@ function constructDeviceInfo(device) {
   deviceInfo.id = device.id
   deviceInfo.deviceNo = device.attributes.deviceNo
   deviceInfo.status = device.attributes.status
+  deviceInfo.unitPrice = device.attributes.unitPrice
+  deviceInfo.deviceAddr = device.attributes.deviceAddr
   deviceInfo.onlineTime = device.attributes.onlineTime.valueOf()
   deviceInfo.updateTime = device.attributes.updateTime.valueOf()
 
