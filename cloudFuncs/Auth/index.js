@@ -61,6 +61,20 @@ function fetchWalletInfo(request, response) {
 
 }
 
+function fetchDealRecords(request, response) {
+  console.log("fetchDealRecords params:", request.params)
+  var userId = request.params.userId
+  var limit = request.params.limit || 10
+  var lastTime = request.params.lastTime
+
+  PingppFunc.getUserDealRecords(userId, limit, lastTime).then((records) => {
+    response.success(records)
+  }).catch((error) => {
+    console.log("fetchDealRecords", error)
+    response.error(error)
+  })
+}
+
 function authFuncTest(request, response) {
   let message = "测试成功"
 
@@ -74,6 +88,7 @@ var authFunc = {
   authFuncTest: authFuncTest,
   isUserSignIn: isUserSignIn,
   fetchWalletInfo: fetchWalletInfo,
+  fetchDealRecords: fetchDealRecords
 }
 
 module.exports = authFunc

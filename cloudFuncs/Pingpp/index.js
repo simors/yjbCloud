@@ -6,6 +6,7 @@ var pingpp = require('pingpp')(GLOBAL_CONFIG.PINGPP_API_KEY)
 var mysqlUtil = require('../Util/mysqlUtil')
 var Promise = require('bluebird')
 const uuidv4 = require('uuid/v4')
+var dateFormat = require('dateformat')
 
 // 支付类型定义
 const DEPOSIT = 1                // 押金
@@ -32,6 +33,46 @@ function updateUserDealRecords(conn, deal) {
   var feeAmount = deal.feeAmount || 0
   var recordSql = 'INSERT INTO `DealRecords` (`from`, `to`, `cost`, `deal_type`, `charge_id`, `order_no`, `channel`, `transaction_no`, `fee`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   return mysqlUtil.query(conn, recordSql, [deal.from, deal.to, deal.cost, deal.deal_type, charge_id, order_no, channel, transaction_no, feeAmount])
+}
+
+function getUserDealRecords(userId, limit, lastTime) {
+  var sql = ""
+  var mysqlConn = undefined
+  var records = []
+
+  return mysqlUtil.getConnection().then((conn) => {
+    mysqlConn = conn
+    sql = ""
+    if(lastTime) {
+      sql = "SELECT * FROM `DealRecords` WHERE (`to`=? OR `from`=?) AND `deal_time`<? ORDER BY `deal_time` DESC LIMIT ?"
+      return mysqlUtil.query(conn, sql, [userId, userId, dateFormat(lastTime, 'isoDateTime'), limit])
+    } else {
+      sql = "SELECT * FROM `DealRecords` WHERE `to`=? OR `from`=? ORDER BY `deal_time` DESC LIMIT ?"
+      return mysqlUtil.query(conn, sql, [userId, userId, limit])
+    }
+  }).then((queryRes) => {
+    if(queryRes.results.length > 0) {
+      queryRes.results.forEach((deal) => {
+        var record = {
+          order_no: deal.order_no,
+          from: deal.from,
+          to: deal.to,
+          cost: deal.cost,
+          dealTime: deal.deal_time,
+          dealType: deal.deal_type,
+        }
+        records.push(record)
+      })
+    }
+    return records
+  }).catch((error) => {
+    console.log('getUserDealRecords', error)
+    throw error
+  }).finally(() => {
+    if (mysqlConn) {
+      mysqlUtil.release(mysqlConn)
+    }
+  })
 }
 
 /**
@@ -361,6 +402,7 @@ var PingppFunc = {
   transferEvent: transferEvent,
   getWalletInfo: getWalletInfo,
   updateWalletInfo: updateWalletInfo,
+  getUserDealRecords: getUserDealRecords,
 }
 
 module.exports = PingppFunc

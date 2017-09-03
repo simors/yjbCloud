@@ -12,6 +12,7 @@ var orderFunc = require('./cloudFuncs/Order')
 AV.Cloud.define('authFuncTest', authFunc.authFuncTest)
 AV.Cloud.define('authFetchUserInfo', authFunc.fetchUserInfo)
 AV.Cloud.define('authFetchWalletInfo', authFunc.fetchWalletInfo)
+AV.Cloud.define('authFetchDealRecords', authFunc.fetchDealRecords)
 
 //设备
 AV.Cloud.define('deviceFetchDeviceInfo', deviceFunc.fetchDeviceInfo)
