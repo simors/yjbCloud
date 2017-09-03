@@ -11,6 +11,7 @@ var orderFunc = require('./cloudFuncs/Order')
 //用户
 AV.Cloud.define('authFuncTest', authFunc.authFuncTest)
 AV.Cloud.define('authFetchUserInfo', authFunc.fetchUserInfo)
+AV.Cloud.define('authFetchWalletInfo', authFunc.fetchWalletInfo)
 
 //设备
 AV.Cloud.define('deviceFetchDeviceInfo', deviceFunc.fetchDeviceInfo)
@@ -33,6 +34,8 @@ AV.Cloud.define('pingppTransferEvent', PingppFunc.transferEvent)
 //订单
 AV.Cloud.define('orderFuncTest', orderFunc.orderFuncTest)
 AV.Cloud.define('orderFetchOrdersByStatus', orderFunc.fetchOrdersByStatus)
+AV.Cloud.define('orderOrderPayment', orderFunc.orderPayment)
+
 
 
 module.exports = AV.Cloud;

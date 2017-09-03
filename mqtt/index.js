@@ -70,6 +70,7 @@ function handleDeviceOnline(message) {
       device.set('onlineTime', new Date(onlineTime))
       device.set('updateTime', new Date(onlineTime))
       device.set('deviceAddr', "")
+      device.set('unitPrice', 0.1)    //设备计费单价：元／分钟
       device.set('status', deviceFunc.IDLE)
 
       return device.save()

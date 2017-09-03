@@ -3,24 +3,7 @@
  */
 var AV = require('leanengine');
 var mpAuthFuncs = require('../../mpFuncs/Auth')
-
-function constructUserInfo(user) {
-  var userInfo = {}
-
-  userInfo.id = user.id
-  userInfo.mobilePhoneNumber = user.attributes.mobilePhoneNumber
-  userInfo.avatar = user.attributes.avatar
-  userInfo.nickname = user.attributes.nickname
-  userInfo.sex = user.attributes.sex
-  userInfo.language = user.attributes.language
-  userInfo.country = user.attributes.country
-  userInfo.province = user.attributes.province
-  userInfo.city = user.attributes.city
-  userInfo.balance = user.attributes.balance
-  userInfo.deposit = user.attributes.deposit
-
-  return userInfo
-}
+var PingppFunc = require('../Pingpp')
 
 
 function fetchUserInfo(request, response) {
@@ -66,6 +49,18 @@ function isUserSignIn(openid) {
   })
 }
 
+function fetchWalletInfo(request, response) {
+  var userId = request.params.userId
+
+  PingppFunc.getWalletInfo(userId).then((walletInfo) => {
+    response.success(walletInfo)
+  }).catch((error) => {
+    console.log("fetchWalletInfo", error)
+    response.error(error)
+  })
+
+}
+
 function authFuncTest(request, response) {
   let message = "测试成功"
 
@@ -78,6 +73,7 @@ var authFunc = {
   fetchUserInfo: fetchUserInfo,
   authFuncTest: authFuncTest,
   isUserSignIn: isUserSignIn,
+  fetchWalletInfo: fetchWalletInfo,
 }
 
 module.exports = authFunc

@@ -18,6 +18,7 @@ function getAccessToken(code) {
   return new Promise(function (resolve, reject) {
     client.getAccessToken(code, function (err, result) {
       if(err) {
+        console.log("getAccessToken error", err)
         reject(new Error('获取微信授权access_token失败'))
       } else {
         resolve(result)

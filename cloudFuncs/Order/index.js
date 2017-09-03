@@ -2,6 +2,9 @@
  * Created by wanpeng on 2017/8/29.
  */
 var AV = require('leanengine');
+var mysqlUtil = require('../Util/mysqlUtil')
+var PingppFunc = require('../Pingpp')
+var Promise = require('bluebird')
 const uuidv4 = require('uuid/v4')
 
 //设备状态
@@ -13,7 +16,10 @@ function constructOrderInfo(order) {
   var orderInfo = {}
   orderInfo.id = order.id
   orderInfo.orderNo = order.attributes.order_no
-  orderInfo.createTime = order.attributes.start.valueOf()
+  if(order.attributes.start)
+    orderInfo.createTime = order.attributes.start.valueOf()
+  if(order.attributes.end)
+    orderInfo.endTIme = order.attributes.end.valueOf()
   orderInfo.status = order.attributes.status
 
   var user = order.attributes.user
@@ -21,29 +27,35 @@ function constructOrderInfo(order) {
   orderInfo.userId = user.id
   orderInfo.deviceNo = device.attributes.deviceNo
   orderInfo.deviceAddr = device.attributes.deviceAddr
+  orderInfo.unitPrice = device.attributes.unitPrice
 
   return orderInfo
 }
 
-function getOrderInfo(order) {
+function getOrderInfo(orderId) {
   var orderInfo = {}
-  orderInfo.id = order.id
-  orderInfo.orderNo = order.attributes.order_no
-  orderInfo.createTime = order.attributes.start.valueOf()
-  orderInfo.status = order.attributes.status
+  var query = new AV.Query('Order')
+  query.include('user')
+  query.include('device')
+  return query.get(orderId).then((order) => {
+    orderInfo.id = order.id
+    orderInfo.orderNo = order.attributes.order_no
+    if(order.attributes.start)
+      orderInfo.createTime = order.attributes.start.valueOf()
+    if(order.attributes.end)
+      orderInfo.endTIme = order.attributes.end.valueOf()
+    orderInfo.status = order.attributes.status
 
-  var user = order.attributes.user
-  var device = order.attributes.device
-  return user.fetch().then((leanUser) => {
-    orderInfo.userId = leanUser.id
-    return device.fetch()
-  }).then((leanDevice) => {
-    orderInfo.deviceNo = leanDevice.attributes.deviceNo
-    orderInfo.deviceAddr = leanDevice.attributes.deviceAddr
+    var user = order.attributes.user
+    var device = order.attributes.device
+    orderInfo.userId = user.id
+    orderInfo.deviceNo = device.attributes.deviceNo
+    orderInfo.deviceAddr = device.attributes.deviceAddr
+    orderInfo.unitPrice = device.attributes.unitPrice
 
-    return orderInfo
+    return Promise.resolve(orderInfo)
   }).catch((error) => {
-    console.log('getOrderInfo', error)
+    console.log("getOrderInfo", error)
     throw error
   })
 }
@@ -62,14 +74,16 @@ function createOrder(deviceNo, userId, turnOnTime) {
       order.set('device', device)
       order.set('user',  user)
       order.set('start', new Date(turnOnTime))
+      order.set('end', new Date(turnOnTime))
       order.set('status', ORDER_STATUS_OCCUPIED)
+      order.set('amount', 0)
 
       return order.save()
     } else {
       throw new Error('无效的设备')
     }
   }).then((order) => {
-    return getOrderInfo(order)
+    return getOrderInfo(order.id)
   }).catch((error) => {
     console.log('createOrder', error)
     throw error
@@ -108,6 +122,72 @@ function fetchOrdersByStatus(request, response) {
 
 }
 
+function updateOrderStatus(orderId, status, endTime, amount) {
+  var updateTime = Date.now()
+
+  var order = AV.Object.createWithoutData('Order', orderId)
+
+  order.set('status', status)
+  order.set('end', new Date(endTime))
+  order.set('amount', amount)
+  if(status === ORDER_STATUS_PAID) {
+    order.set('payTime', new Date(updateTime))
+  }
+  return order.save().then((leanOrder) => {
+    return getOrderInfo(leanOrder.id)
+  })
+}
+
+function orderPayment(request, response) {
+  var amount = request.params.amount
+  var userId = request.params.userId
+  var orderId = request.params.orderId
+  var endTime = request.params.endTime
+
+  var mysqlConn = undefined
+  var orderInfo = undefined
+
+  PingppFunc.getWalletInfo(userId).then((walletInfo) => {
+    if(!walletInfo || amount > walletInfo.balance) {
+      return updateOrderStatus(orderId, ORDER_STATUS_UNPAID, endTime, amount).then((order) => {
+        orderInfo = order
+        response.success(orderInfo)
+      })
+    } else {
+      return updateOrderStatus(orderId, ORDER_STATUS_PAID, endTime, amount).then((order) => {
+        orderInfo = order
+        return mysqlUtil.getConnection()
+      }).then((conn) => {
+        mysqlConn = conn
+        return mysqlUtil.beginTransaction(conn)
+      }).then(() => {
+        var deal = {
+          from: userId,
+          cost: amount,
+          deal_type: PingppFunc.SERVICE,
+        }
+        return PingppFunc.updateWalletInfo(mysqlConn, deal)
+      }).catch((error) => {
+        console.log("orderPayment", error)
+        if (mysqlConn) {
+          console.log('transaction rollback')
+          mysqlUtil.rollback(mysqlConn)
+        }
+        response.error(error)
+      }).finally(() => {
+        if (mysqlConn) {
+          mysqlUtil.release(mysqlConn)
+        }
+        response.success(orderInfo)
+      })
+    }
+  }).catch((error) => {
+    console.log("orderPayment", error)
+    response.error(error)
+  })
+
+}
+
 function orderFuncTest(request, response) {
   var deviceNo = request.params.deviceNo
   var userId = request.params.userId
@@ -125,6 +205,7 @@ var orderFunc = {
   orderFuncTest: orderFuncTest,
   createOrder: createOrder,
   fetchOrdersByStatus: fetchOrdersByStatus,
+  orderPayment: orderPayment,
 }
 
 module.exports = orderFunc
