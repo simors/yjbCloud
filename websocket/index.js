@@ -1,7 +1,8 @@
 /**
  * Created by wanpeng on 2017/8/27.
  */
-var redis = require('redis');
+var Promise = require('bluebird')
+var redis = require('redis')
 var activityFunc = require('../cloudFuncs/Activity')
 var turnOnDevice = require('../mqtt').turnOnDevice
 

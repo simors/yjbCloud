@@ -4,6 +4,7 @@
 var AV = require('leanengine');
 var mpAuthFuncs = require('../../mpFuncs/Auth')
 var PingppFunc = require('../Pingpp')
+var Promise = require('bluebird')
 
 
 function fetchUserInfo(request, response) {

@@ -4,6 +4,7 @@ var activityFunc = require('./cloudFuncs/Activity')
 var deviceFunc = require('./cloudFuncs/Device')
 var PingppFunc = require('./cloudFuncs/Pingpp')
 var orderFunc = require('./cloudFuncs/Order')
+var mpJsSdkFuncs = require('./mpFuncs/JSSDK')
 
 /**
  * 云函数
@@ -38,6 +39,8 @@ AV.Cloud.define('orderFuncTest', orderFunc.orderFuncTest)
 AV.Cloud.define('orderFetchOrdersByStatus', orderFunc.fetchOrdersByStatus)
 AV.Cloud.define('orderOrderPayment', orderFunc.orderPayment)
 
+//微信
+AV.Cloud.define('getJsConfig', mpJsSdkFuncs.getJsConfig)
 
 
 module.exports = AV.Cloud;

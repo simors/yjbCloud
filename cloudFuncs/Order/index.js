@@ -16,10 +16,11 @@ function constructOrderInfo(order) {
   var orderInfo = {}
   orderInfo.id = order.id
   orderInfo.orderNo = order.attributes.order_no
+  orderInfo.amount = order.attributes.amount
   if(order.attributes.start)
     orderInfo.createTime = order.attributes.start.valueOf()
   if(order.attributes.end)
-    orderInfo.endTIme = order.attributes.end.valueOf()
+    orderInfo.endTime = order.attributes.end.valueOf()
   orderInfo.status = order.attributes.status
 
   var user = order.attributes.user
@@ -43,7 +44,7 @@ function getOrderInfo(orderId) {
     if(order.attributes.start)
       orderInfo.createTime = order.attributes.start.valueOf()
     if(order.attributes.end)
-      orderInfo.endTIme = order.attributes.end.valueOf()
+      orderInfo.endTime = order.attributes.end.valueOf()
     orderInfo.status = order.attributes.status
 
     var user = order.attributes.user
@@ -169,24 +170,23 @@ function orderPayment(request, response) {
         }
         return PingppFunc.updateWalletInfo(mysqlConn, deal)
       }).then(() => {
+        response.success(orderInfo)
         return mysqlUtil.commit(mysqlConn)
       }).catch((error) => {
-        console.log("orderPayment", error)
-        if (mysqlConn) {
-          console.log('transaction rollback')
-          mysqlUtil.rollback(mysqlConn)
-        }
-        response.error(error)
-      }).finally(() => {
-        if (mysqlConn) {
-          mysqlUtil.release(mysqlConn)
-        }
-        response.success(orderInfo)
+        throw error
       })
     }
   }).catch((error) => {
     console.log("orderPayment", error)
+    if (mysqlConn) {
+      console.log('transaction rollback')
+      mysqlUtil.rollback(mysqlConn)
+    }
     response.error(error)
+  }).finally(() => {
+    if(mysqlConn) {
+      mysqlUtil.release(mysqlConn)
+    }
   })
 
 }

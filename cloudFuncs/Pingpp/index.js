@@ -136,7 +136,6 @@ function updateWalletInfo(conn, deal) {
       break
   }
 
-  console.log("updateWalletInfo userId:", userId)
   var openid = deal.openid
   var user_name = deal.user_name || ''
   var balance = 0
@@ -144,9 +143,9 @@ function updateWalletInfo(conn, deal) {
   var debt = 0
   var password = ''
 
-  var sql = "SELECT count(1) as cnt FROM `Wallet` WHERE `userId` = ? LIMIT 1"
+  var sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt` FROM `Wallet` WHERE `userId` = ? LIMIT 1"
   return mysqlUtil.query(conn, sql, [userId]).then((queryRes) => {
-    if (queryRes.results[0].cnt == 1) {
+    if (queryRes.results.length == 1) {
       var currentBalance = queryRes.results[0].balance
       var currentDebt = queryRes.results[0].debt
 
@@ -296,7 +295,7 @@ function paymentEvent(request, response) {
 
 function createTransfer(request, response) {
   var order_no = uuidv4().replace(/-/g, '').substr(0, 16)
-  var amount = parseInt(request.params.amount * 100).toFixed(0) //人民币分
+  var amount = parseFloat(request.params.amount).toFixed(2) * 100 //人民币分
   var metadata = request.params.metadata
   var dealType = metadata.dealType
   var channel = request.params.channel
@@ -371,8 +370,8 @@ function transferEvent(request, response) {
   }).then(() => {
     return updateWalletInfo(mysqlConn, deal)
   }).then(() => {
-    console.log("transferEvent commit")
     return mysqlUtil.commit(mysqlConn)
+    response.success()
   }).catch((error) => {
     console.log(error)
     if (mysqlConn) {
@@ -384,7 +383,6 @@ function transferEvent(request, response) {
     if (mysqlConn) {
       mysqlUtil.release(mysqlConn)
     }
-    response.success()
   })
 }
 

@@ -27,7 +27,7 @@ function subscribeEvent(req, res, next) {
 //扫码开柜事件处理
 function scanEvent(req, res, next) {
   var message = req.weixin
-  console.log("扫码开柜消息：", message)
+  // console.log("扫码开柜消息：", message)
   var openid = message.FromUserName
   var deviceNo = message.EventKey
 

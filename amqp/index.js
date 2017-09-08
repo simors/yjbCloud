@@ -1,6 +1,7 @@
 /**
  * Created by wanpeng on 2017/8/27.
  */
+var Promise = require('bluebird')
 var amqp = require('amqplib')
 var GLOBAL_CONFIG = require('../config')
 var websocketIO = require('../websocketIO')

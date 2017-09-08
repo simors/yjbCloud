@@ -2,6 +2,7 @@
  * Created by wanpeng on 2017/7/15.
  */
 var GLOBAL_CONFIG = require('../../config')
+var Promise = require('bluebird')
 
 var wechat_api = require('../index').wechat_api
 

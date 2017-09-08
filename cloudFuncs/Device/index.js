@@ -2,6 +2,7 @@
  * Created by wanpeng on 2017/8/22.
  */
 var AV = require('leanengine');
+var Promise = require('bluebird')
 
 //设备状态
 const IDLE = 0        //空闲

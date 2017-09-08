@@ -3,6 +3,7 @@
 var AV = require('leanengine');
 var wechat_api = require('./mpFuncs').wechat_api
 var mpMenuFuncs = require('./mpFuncs/Menu')
+var mpTokenFuncs = require('./mpFuncs/Token')
 
 var GLOBAL_CONFIG = require('./config')
 
@@ -17,12 +18,20 @@ AV.init({
 // 如果不希望使用 masterKey 权限，可以将下面一行删除
 AV.Cloud.useMasterKey();
 
-//获取微信公众号api token &创建菜单
+//获取微信公众号api token &创建菜单&获取js-sdk ticket
 wechat_api.getLatestToken(function (err, token) {
   if(err) {
     console.warn("获取微信公众号token失败", err)
   } else {
     mpMenuFuncs.createMenu();
+    wechat_api.registerTicketHandle(mpTokenFuncs.getTicketToken, mpTokenFuncs.saveTicketToken)
+  }
+})
+wechat_api.getTicket(function (err, result) {
+  if(err) {
+    console.warn("获取微信公众号js-sdk ticket失败", result.errmsg)
+  } else {
+    // console.log("js-sdk ticket:", result)
   }
 })
 

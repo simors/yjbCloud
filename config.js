@@ -9,7 +9,7 @@ const LC_PRO_APP_ID = ''                                       //生产环境
 
 //微信公众平台
 var MP_SERVER_DOMAIN = "http://local_mp.ngrok.io"
-var MP_CLIENT_DOMAIN = "http://local_client.ngrok.io"
+var MP_CLIENT_DOMAIN = "http://yiijiabao.ngrok.cc"
 var WECHAT_MP_TOKEN = ""
 var WECHAT_MP_APPID = ""
 var WECHAT_MP_APPSECRET = ""
@@ -22,19 +22,19 @@ var WECHAT_MSG_TMPID_SYSTEM = ""            //后台系统通知模版消息ID
 
 
 
-const MP_SERVER_DOMAIN_DEV = "http://yiijiabao.leanapp.cn"
-const MP_CLIENT_DOMAIN_DEV = "http://dev.yiijiabao.com"
+const MP_SERVER_DOMAIN_DEV = "http://yiijiabao-dev.leanapp.cn"
+const MP_CLIENT_DOMAIN_DEV = "http://yiijiabao.ngrok.cc"
 const WECHAT_MP_TOKEN_DEV = "YiJiaBao2017dev"
-const WECHAT_MP_APPID_DEV = "wx792bf5a51051d512"
+const WECHAT_MP_APPID_DEV = "wx2c7e7f1a67c78900"
 const WECHAT_MP_AESKEY_DEV = "mBQTyvW4OlskuxHYWv0261sYw1w8EZw4vj6cQ6gOWNw"
-const WECHAT_MP_APPSECRET_DEV = "d9ebabc3e81cb6b0c6f4e48af40d6abb"
+const WECHAT_MP_APPSECRET_DEV = "7e053e63bc216611878697fdb5d8edc6"
 
-const MP_SERVER_DOMAIN_PRE = ""
-const MP_CLIENT_DOMAIN_PRE = ""
+const MP_SERVER_DOMAIN_PRE = "http://yiijiabao-pre.leanapp.cn"
+const MP_CLIENT_DOMAIN_PRE = "http://dev.yiijiabao.com"
 const WECHAT_MP_TOKEN_PRE = "YiJiaBao2017pre"
-const WECHAT_MP_APPID_PRE = ""
-const WECHAT_MP_AESKEY_PRE = "K65BlkT0U2lH1SntekBotsAhKX0VLo94bMTQDAZudIY"
-const WECHAT_MP_APPSECRET_PRE =""
+const WECHAT_MP_APPID_PRE = "wx792bf5a51051d512"
+const WECHAT_MP_AESKEY_PRE = "mBQTyvW4OlskuxHYWv0261sYw1w8EZw4vj6cQ6gOWNw"
+const WECHAT_MP_APPSECRET_PRE ="d9ebabc3e81cb6b0c6f4e48af40d6abb"
 
 const MP_SERVER_DOMAIN_PRO = ""
 const MP_CLIENT_DOMAIN_PRO = ""
@@ -56,13 +56,13 @@ var REDIS_AUTH = "Simors2017"
 //rabbitMQ配置
 var RABBITMQ_URL = ''
 var RABBITMQ_URL_DEV ='amqp://yijiabao:yijiabao@123.56.216.122:5672'
-var RABBITMQ_URL_PRE ='amqp://yijiabao:yijiabao@123.56.216.122:5672'
-var RABBITMQ_URL_PRO ='amqp://yijiabao:yijiabao@123.56.216.122:5672'
+var RABBITMQ_URL_PRE ='amqp://lvyii:lvyii@139.196.84.116:5672'
+var RABBITMQ_URL_PRO =''
 
 //mqtt配置
 var MQTT_SERVER_URL = ''
 const MQTT_SERVER_URL_DEV = 'mqtt://123.56.216.122:1883'
-const MQTT_SERVER_URL_PRE = ''
+const MQTT_SERVER_URL_PRE = 'mqtt://139.196.84.116:1883'
 const MQTT_SERVER_URL_PRO = ''
 
 // mysql数据库配置
@@ -82,10 +82,13 @@ const MYSQL_PROD_DB = ''
 
 //Ping++应用配置
 var PINGPP_APP_ID = ""
+var PINGPP_API_KEY = ""
+var PINGPP_TEST_API_KEY_DEV = "sk_test_fbTiHOOG0008r9Sq10GWXXnT" //注意：开发环境使用汇邻优店账户下的app
+var PINGPP_LIVE_API_KEY_DEV = "sk_live_P044i19GCS8SyT84eTvbHmbH" //注意：开发环境使用汇邻优店账户下的app
 var PINGPP_TEST_API_KEY = "sk_test_HKm9W904GqD0e9irLSLiv5eL" //Secret Key
 var PINGPP_LIVE_API_KEY = "sk_live_eTi9uHXPGWDOrnXP0SKS0yj5" //Secret Key
-var PINGPP_DEV_APP_ID = "app_qbzH8SmPqL48qLSu" //衣家宝-DEV应用 Id
-var PINGPP_PRE_APP_ID = "" //衣家宝-PRE应用 Id
+var PINGPP_DEV_APP_ID = "app_a5KeT8HKCSCG1yLa" //衣家宝-DEV应用 Id
+var PINGPP_PRE_APP_ID = "app_qbzH8SmPqL48qLSu" //衣家宝-PRE应用 Id
 var PINGPP_PRO_APP_ID = "" //衣家宝-PRO应用 Id
 
 
@@ -108,6 +111,7 @@ if(process.env.LEANCLOUD_APP_ID === LC_DEV_APP_ID) {  //开发环境
   MYSQL_DB = MYSQL_DEV_DB
 
   PINGPP_APP_ID = PINGPP_DEV_APP_ID
+  PINGPP_API_KEY = PINGPP_LIVE_API_KEY_DEV
 
 } else if(process.env.LEANCLOUD_APP_ID === LC_STAGE_APP_ID) {   //预上线环境
   MP_SERVER_DOMAIN = MP_SERVER_DOMAIN_PRE
@@ -126,6 +130,7 @@ if(process.env.LEANCLOUD_APP_ID === LC_DEV_APP_ID) {  //开发环境
   MYSQL_DB = MYSQL_PRE_DB
 
   PINGPP_APP_ID = PINGPP_PRE_APP_ID
+  PINGPP_API_KEY = PINGPP_LIVE_API_KEY
 
 } else if(process.env.LEANCLOUD_APP_ID === LC_PRO_APP_ID) {   //生产环境
   MP_SERVER_DOMAIN = MP_SERVER_DOMAIN_PRO
@@ -144,6 +149,7 @@ if(process.env.LEANCLOUD_APP_ID === LC_DEV_APP_ID) {  //开发环境
   MYSQL_DB = MYSQL_PROD_DB
 
   PINGPP_APP_ID = PINGPP_PRO_APP_ID
+  PINGPP_API_KEY = PINGPP_LIVE_API_KEY
 }
 
 var GLOBAL_CONFIG = {
@@ -173,7 +179,7 @@ var GLOBAL_CONFIG = {
   MYSQL_DB: MYSQL_DB,
 
   PINGPP_APP_ID: PINGPP_APP_ID,
-  PINGPP_API_KEY: PINGPP_LIVE_API_KEY,
+  PINGPP_API_KEY: PINGPP_API_KEY,
 }
 
 module.exports = GLOBAL_CONFIG
