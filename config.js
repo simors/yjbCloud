@@ -3,22 +3,22 @@
  */
 
 //LeanCloud环境参数
-const LC_DEV_APP_ID = 'QApBtOkMNfNo0lGaHxKBSWXX-gzGzoHsz'      //开发环境
-const LC_STAGE_APP_ID = 'HFRm8OUW9tNj2qxz6LuBExBa-gzGzoHsz'    //预上线环境
-const LC_PRO_APP_ID = ''                                       //生产环境
+const LC_DEV_APP_ID = 'QApBtOkMNfNo0lGaHxKBSWXX-gzGzoHsz'       //开发环境
+const LC_STAGE_APP_ID = 'HFRm8OUW9tNj2qxz6LuBExBa-gzGzoHsz'     //预上线环境
+const LC_PRO_APP_ID = ''                                        //生产环境
 
 //微信公众平台
-var MP_SERVER_DOMAIN = "http://local_mp.ngrok.io"
-var MP_CLIENT_DOMAIN = "http://yiijiabao.ngrok.cc"
+var MP_SERVER_DOMAIN = "http://local_mp.ngrok.io"               //leancloud云引擎域名
+var MP_CLIENT_DOMAIN = "http://yiijiabao.ngrok.cc"              //微信公众号客户端域名
 var WECHAT_MP_TOKEN = ""
 var WECHAT_MP_APPID = ""
 var WECHAT_MP_APPSECRET = ""
 var WECHAT_MP_AESKEY = ""
-var WECHAT_MSG_TMPID_RECHARGE = ""          //充值成功模版消息ID
-var WECHAT_MSG_TMPID_TURNON = ""            //开锁成功模版消息ID
-var WECHAT_MSG_TMPID_TURNOFF = ""           //干衣完成模版消息ID
-var WECHAT_MSG_TMPID_PAYMENT = ""           //付费模版消息ID
-var WECHAT_MSG_TMPID_SYSTEM = ""            //后台系统通知模版消息ID
+var WECHAT_MSG_TMPID_RECHARGE = "BG2I_dX7Fvgkxo1RkuXOd6WxErva97dwo6gAZNtvjAg"       //充值成功模版消息ID
+var WECHAT_MSG_TMPID_TURNON = ""                                //开锁成功模版消息ID
+var WECHAT_MSG_TMPID_TURNOFF = ""                               //干衣完成模版消息ID
+var WECHAT_MSG_TMPID_PAYMENT = ""                               //付费模版消息ID
+var WECHAT_MSG_TMPID_SYSTEM = ""                                 //后台系统通知模版消息ID
 
 
 
@@ -139,6 +139,7 @@ if(process.env.LEANCLOUD_APP_ID === LC_DEV_APP_ID) {  //开发环境
   WECHAT_MP_APPID = WECHAT_MP_APPID_PRO
   WECHAT_MP_APPSECRET = WECHAT_MP_APPSECRET_PRO
   WECHAT_MP_AESKEY = WECHAT_MP_AESKEY_PRO
+  WECHAT_MSG_TMPID_RECHARGE = "BG2I_dX7Fvgkxo1RkuXOd6WxErva97dwo6gAZNtvjAg"
 
   REDIS_DB = PROD_REDIS
   RABBITMQ_URL = RABBITMQ_URL_PRO

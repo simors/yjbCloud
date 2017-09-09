@@ -8,6 +8,7 @@ var Promise = require('bluebird')
 const uuidv4 = require('uuid/v4')
 var dateFormat = require('dateformat')
 var mathjs = require('mathjs')
+var mpMsgFuncs = require('../../mpFuncs/Message')
 
 // 支付类型定义
 const DEPOSIT = 1                // 押金
@@ -88,7 +89,7 @@ function getWalletInfo(userId) {
 
   return mysqlUtil.getConnection().then((conn) => {
     mysqlConn = conn
-    sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt` FROM `Wallet` WHERE `userId` = ?"
+    sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `score` FROM `Wallet` WHERE `userId` = ?"
     return mysqlUtil.query(conn, sql, [userId])
   }).then((queryRes) => {
     if(queryRes.results.length === 1) {
@@ -98,6 +99,7 @@ function getWalletInfo(userId) {
       walletInfo.openid = queryRes.results[0].openid || ""
       walletInfo.debt = queryRes.results[0].debt || 0
       walletInfo.user_name = queryRes.results[0].user_name || ""
+      walletInfo.score = queryRes.results[0].score || 0
       return walletInfo
     }
     return undefined
@@ -262,6 +264,7 @@ function paymentEvent(request, response) {
   var dealType = Number(charge.metadata.dealType)
   var toUser = charge.metadata.toUser
   var fromUser = charge.metadata.fromUser
+  var payTime = charge.created  //unix时间戳
   var mysqlConn = undefined
 
   console.log("收到paymentEvent消息 charge:", charge)
@@ -285,6 +288,11 @@ function paymentEvent(request, response) {
     return updateWalletInfo(mysqlConn, deal)
   }).then(() => {
     return mysqlUtil.commit(mysqlConn)
+  }).then(() => {
+    response.success()
+    return getWalletInfo(deal.from).then((walletInfo) => {
+      return mpMsgFuncs.sendRechargeTmpMsg(deal.openid, deal.cost, walletInfo.balance, walletInfo.score, new Date(payTime * 1000))
+    })
   }).catch((error) => {
     console.log("paymentEvent", error)
     if (mysqlConn) {
@@ -296,7 +304,6 @@ function paymentEvent(request, response) {
     if (mysqlConn) {
       mysqlUtil.release(mysqlConn)
     }
-    response.success()
   })
 }
 
