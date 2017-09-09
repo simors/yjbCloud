@@ -55,6 +55,7 @@ function handleDeviceOnline(message) {
   var onlineTime = Message.time
 
   var query = new AV.Query('Device')
+  console.log("handleDeviceOnline Device Object")
   query.equalTo('deviceNo', deviceNo)
 
   query.first().then((device) => {
@@ -89,6 +90,32 @@ function handleDeviceOnline(message) {
       }
     })
   }).catch((error) => {
+    if(error.code === 101) {  //第一台设备注册时，Device表尚未创建
+      var Device = AV.Object.extend('Device')
+      var device = new Device()
+      device.set('deviceNo', deviceNo)
+      device.set('onlineTime', new Date(onlineTime))
+      device.set('updateTime', new Date(onlineTime))
+      device.set('deviceAddr', "")
+      device.set('unitPrice', 0.1)    //设备计费单价：元／分钟
+      device.set('status', deviceFunc.IDLE)
+
+      device.save().then(() => {
+        var topics = []
+        topics.push('deviceStatus/' + deviceNo)   //设备状态上报消息
+        topics.push('turnOnSuccess/' + deviceNo)  //开机成功消息
+        topics.push('turnOnFailed/' + deviceNo)   //开机失败消息
+
+        client.subscribe(topics, function (error) {
+          if(error) {
+            console.log("subscribe error", error)
+          } else {
+            console.log("subscribe success, topics:", topics)
+          }
+        })
+      })
+      return
+    }
     console.error("设备注册失败", error)
   })
 }

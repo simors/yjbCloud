@@ -7,19 +7,23 @@ var wechat_api = require('../index').wechat_api
 
 
 function getWechatJsSdkConfig(request, response) {
+  var debug = request.params.debug
+  var jsApiList =  request.params.jsApiList
+  var url = request.params.url
+
   var param = {
-    debug: true,
-    jsApiList: ['scanQRCode'],
-    url: 'http://dev.yiijiabao.com'
+    debug: debug || false,
+    jsApiList: jsApiList,
+    url: GLOBAL_CONFIG.MP_CLIENT_DOMAIN + url
   }
 
   wechat_api.getJsConfig(param, function (err, result) {
     if(err) {
       console.log("getWechatJsSdkConfig", err)
       response.error(err)
-    } else {
-      response.success(result)
+      return
     }
+    response.success(result)
   })
 }
 
