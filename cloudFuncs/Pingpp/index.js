@@ -7,6 +7,7 @@ var mysqlUtil = require('../Util/mysqlUtil')
 var Promise = require('bluebird')
 const uuidv4 = require('uuid/v4')
 var dateFormat = require('dateformat')
+var mathjs = require('mathjs')
 
 // 支付类型定义
 const DEPOSIT = 1                // 押金
@@ -146,8 +147,10 @@ function updateWalletInfo(conn, deal) {
   var sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt` FROM `Wallet` WHERE `userId` = ? LIMIT 1"
   return mysqlUtil.query(conn, sql, [userId]).then((queryRes) => {
     if (queryRes.results.length == 1) {
-      var currentBalance = queryRes.results[0].balance
-      var currentDebt = queryRes.results[0].debt
+      // var currentBalance = queryRes.results[0].balance
+      var currentBalance = mathjs.number(queryRes.results[0].balance)
+      // var currentDebt = queryRes.results[0].debt
+      var currentDebt = mathjs.number(queryRes.results[0].debt)
 
       switch (deal.deal_type) {
         case DEPOSIT:
@@ -160,7 +163,8 @@ function updateWalletInfo(conn, deal) {
             return mysqlUtil.query(conn, sql, [deal.cost, userId])
           } else {
             sql = "UPDATE `Wallet` SET `balance` = `balance` + ?, `debt` = ? WHERE `userId` = ?"
-            return mysqlUtil.query(conn, sql, [deal.cost - currentDebt, 0, userId])
+            // return mysqlUtil.query(conn, sql, [deal.cost - currentDebt, 0, userId])
+            return mysqlUtil.query(conn, sql, [mathjs.eval(deal.cost - currentDebt), 0, userId])
           }
           break
         case WITHDRAW:
@@ -172,7 +176,8 @@ function updateWalletInfo(conn, deal) {
             sql = "UPDATE `Wallet` SET `balance` = `balance` - ? WHERE `userId` = ?"
             return mysqlUtil.query(conn, sql, [deal.cost, userId])
           } else {
-            debt = deal.cost - currentBalance
+            // debt = deal.cost - currentBalance
+            debt = mathjs.eval(deal.cost - currentBalance)
             sql = "UPDATE `Wallet` SET `balance` = ?, `debt` = ? WHERE `userId` = ?"
             return mysqlUtil.query(conn, sql, [deal.cost, debt, userId])
           }
@@ -214,7 +219,8 @@ function updateWalletInfo(conn, deal) {
 
 function createPayment(request, response) {
   var order_no = uuidv4().replace(/-/g, '').substr(0, 16)
-  var amount = parseInt(request.params.amount * 100).toFixed(0) //人民币分
+  // var amount = parseInt(request.params.amount * 100).toFixed(0) //人民币分
+  var amount = mathjs.number(request.params.amount) * 100
   var channel = request.params.channel
   var metadata = request.params.metadata
   var openid = request.params.openid
@@ -251,7 +257,8 @@ function createPayment(request, response) {
 
 function paymentEvent(request, response) {
   var charge = request.params.data.object
-  var amount = charge.amount * 0.01         //单位为 元
+  // var amount = charge.amount * 0.01         //单位为 元
+  var amount = mathjs.number(charge.amount) * 0.01
   var dealType = Number(charge.metadata.dealType)
   var toUser = charge.metadata.toUser
   var fromUser = charge.metadata.fromUser
@@ -295,7 +302,8 @@ function paymentEvent(request, response) {
 
 function createTransfer(request, response) {
   var order_no = uuidv4().replace(/-/g, '').substr(0, 16)
-  var amount = parseFloat(request.params.amount).toFixed(2) * 100 //人民币分
+  // var amount = parseFloat(request.params.amount).toFixed(2) * 100 //人民币分
+  var amount = mathjs.number(request.params.amount) * 100
   var metadata = request.params.metadata
   var dealType = metadata.dealType
   var channel = request.params.channel
@@ -344,7 +352,8 @@ function transferEvent(request, response) {
   var transfer = request.params.data.object
   var toUser = transfer.metadata.toUser
   var fromUser = transfer.metadata.fromUser
-  var amount = (transfer.amount * 0.01).toFixed(2)         //单位为 元
+  // var amount = (transfer.amount * 0.01).toFixed(2)         //单位为 元
+  var amount = mathjs.number(transfer.amount) * 0.01
   var dealType = transfer.metadata.dealType
 
   var mysqlConn = undefined
