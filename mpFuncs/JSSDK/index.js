@@ -14,9 +14,8 @@ function getWechatJsSdkConfig(request, response) {
   var param = {
     debug: debug || false,
     jsApiList: jsApiList,
-    url: GLOBAL_CONFIG.MP_CLIENT_DOMAIN + url
+    url: url
   }
-
   wechat_api.getJsConfig(param, function (err, result) {
     if(err) {
       console.log("getWechatJsSdkConfig", err)
