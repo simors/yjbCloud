@@ -56,6 +56,47 @@ function sendRechargeTmpMsg(openid, amount, balance, score, payTime) {
 }
 
 /**
+ * 发送订单支付模版消息
+ * @param {String} openid 用户openid
+ * @param {Number} amount 扣款金额
+ * @param {String} orderId 订单ObjectId
+ * @param {String} deviceAddr 订单设备地址
+ */
+function sendOrderPaymentTmpMsg(openid, amount, orderId, addr) {
+  var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_PAYMENT
+  var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine/orders/:' + orderId
+
+  var data = {
+    "first": {
+      "value":"尊敬的衣家宝用户，您已充值成功\n",
+      "color":"#173177"
+    },
+    "orderMoneySum": {
+      "value": amount.toFixed(2) + '元',
+      "color":"#173177"
+    },
+    "orderProductName" : {
+      "value": deviceAddr,
+      "color":"#173177"
+    },
+    "remark":{
+      "value":"\n如有问题请在衣家宝公众号内留言，小编将第一时间为您服务！",
+      "color":"#173177"
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    wechat_api.sendTemplate(openid, templateId, url, data, function (err, result) {
+      if(err) {
+        console.log("sendOrderPaymentTmpMsg", err)
+        return reject()
+      }
+      return resolve()
+    })
+  })
+}
+
+/**
  * 发送开锁成功模板消息
  * @param {String} openid 用户的openid
  * @param {Number} amount 打赏金额
@@ -121,6 +162,7 @@ function wechatMessageTest(request, response) {
 var mpMsgFuncs = {
   sendRechargeTmpMsg: sendRechargeTmpMsg,
   sendTurnOnTmpMsg: sendTurnOnTmpMsg,
+  sendOrderPaymentTmpMsg: sendOrderPaymentTmpMsg,
   wechatMessageTest: wechatMessageTest
 }
 

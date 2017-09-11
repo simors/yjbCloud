@@ -16,6 +16,7 @@ const RECHARGE = 2               // 充值
 const SERVICE = 3                // 服务消费
 const REFUND = 4                 // 押金退款
 const WITHDRAW = 5               // 提现
+const SYS_PRESENT = 6            // 系统赠送
 
 
 /**
@@ -34,7 +35,13 @@ function updateUserDealRecords(conn, deal) {
   var transaction_no = deal.transaction_no || ''
   var feeAmount = deal.feeAmount || 0
   var recordSql = 'INSERT INTO `DealRecords` (`from`, `to`, `cost`, `deal_type`, `charge_id`, `order_no`, `channel`, `transaction_no`, `fee`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  return mysqlUtil.query(conn, recordSql, [deal.from, deal.to, deal.cost, deal.deal_type, charge_id, order_no, channel, transaction_no, feeAmount])
+  return mysqlUtil.query(conn, recordSql, [deal.from, deal.to, deal.cost, deal.deal_type, charge_id, order_no, channel, transaction_no, feeAmount]).then(() => {
+    if(deal.present && deal.present > 0) {
+      var present_order_no = uuidv4().replace(/-/g, '').substr(0, 16) //充值赠送新生产一个订单号
+      return mysqlUtil.query(conn, recordSql, [deal.to, deal.from, deal.present, SYS_PRESENT, charge_id, present_order_no, channel, transaction_no, feeAmount])
+    }
+    return undefined
+  })
 }
 
 function getUserDealRecords(userId, limit, lastTime) {
@@ -160,13 +167,17 @@ function updateWalletInfo(conn, deal) {
           return mysqlUtil.query(conn, sql, [deal.cost, userId])
           break
         case RECHARGE:
-          if(debt === 0) {
+          if(currentDebt === 0) {
             sql = "UPDATE `Wallet` SET `balance` = `balance` + ? WHERE `userId` = ?"
-            return mysqlUtil.query(conn, sql, [deal.cost, userId])
-          } else {
+            // return mysqlUtil.query(conn, sql, [deal.cost, userId])
+            return mysqlUtil.query(conn, sql, [mathjs.eval(deal.cost + deal.present), userId])
+          } else if((deal.cost + deal.present) > currentDebt) {
             sql = "UPDATE `Wallet` SET `balance` = `balance` + ?, `debt` = ? WHERE `userId` = ?"
             // return mysqlUtil.query(conn, sql, [deal.cost - currentDebt, 0, userId])
-            return mysqlUtil.query(conn, sql, [mathjs.eval(deal.cost - currentDebt), 0, userId])
+            return mysqlUtil.query(conn, sql, [mathjs.eval(deal.cost + deal.present - currentDebt), 0, userId])
+          } else {
+            sql = "UPDATE `Wallet` SET `balance` = ?, `debt` = `debt` - ? WHERE `userId` = ?"
+            return mysqlUtil.query(conn, sql, [0, mathjs.eval(currentDebt - deal.cost - deal.present), userId])
           }
           break
         case WITHDRAW:
@@ -198,7 +209,7 @@ function updateWalletInfo(conn, deal) {
           deposit = deal.cost
           break
         case RECHARGE:
-          balance = deal.cost
+          balance = mathjs.eval(deal.cost + deal.present)
           break
         case SERVICE:
           debt = deal.cost
@@ -260,14 +271,30 @@ function createPayment(request, response) {
 function paymentEvent(request, response) {
   var charge = request.params.data.object
   // var amount = charge.amount * 0.01         //单位为 元
-  var amount = mathjs.number(charge.amount) * 0.01
+  var amount = mathjs.number(charge.amount) * 0.01 * 100  //TODO 支付测试金额缩小100倍，部署正式环境需废除
   var dealType = Number(charge.metadata.dealType)
   var toUser = charge.metadata.toUser
   var fromUser = charge.metadata.fromUser
   var payTime = charge.created  //unix时间戳
   var mysqlConn = undefined
+  var present = 0   //系统赠送金额
 
   console.log("收到paymentEvent消息 charge:", charge)
+  if(dealType === RECHARGE) {
+    if (amount >= 10.0 && amount < 20.0) {
+      present = 10.0
+    } else if (amount >= 20.0 && amount < 30.0) {
+      present = 30.0
+    } else if (amount >= 30.0 && amount < 50.0) {
+      present = 50.0
+    } else if (amount >= 50.0 && amount < 100) {
+      present = 70.0
+    } else if (amount >= 100 && amount < 200) {
+      present = 160
+    } else if (amount >= 200) {
+      present = 300
+    }
+  }
   var deal = {
     from: fromUser,
     to: toUser,
@@ -278,6 +305,7 @@ function paymentEvent(request, response) {
     channel: charge.channel,
     transaction_no: charge.transaction_no,
     openid: charge.extra.open_id,
+    present: present,
   }
   mysqlUtil.getConnection().then((conn) => {
     mysqlConn = conn

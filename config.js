@@ -17,7 +17,7 @@ var WECHAT_MP_AESKEY = ""
 var WECHAT_MSG_TMPID_RECHARGE = "BG2I_dX7Fvgkxo1RkuXOd6WxErva97dwo6gAZNtvjAg"       //充值成功模版消息ID
 var WECHAT_MSG_TMPID_TURNON = ""                                //开锁成功模版消息ID
 var WECHAT_MSG_TMPID_TURNOFF = ""                               //干衣完成模版消息ID
-var WECHAT_MSG_TMPID_PAYMENT = ""                               //付费模版消息ID
+var WECHAT_MSG_TMPID_PAYMENT = "erHnfN3EjT4_lV3G8HdXU4H3QbJsnqg2b0rGGdueB0w"        //订单支付模版消息ID
 var WECHAT_MSG_TMPID_SYSTEM = ""                                 //后台系统通知模版消息ID
 
 
@@ -140,6 +140,7 @@ if(process.env.LEANCLOUD_APP_ID === LC_DEV_APP_ID) {  //开发环境
   WECHAT_MP_APPSECRET = WECHAT_MP_APPSECRET_PRO
   WECHAT_MP_AESKEY = WECHAT_MP_AESKEY_PRO
   WECHAT_MSG_TMPID_RECHARGE = "BG2I_dX7Fvgkxo1RkuXOd6WxErva97dwo6gAZNtvjAg"
+  WECHAT_MSG_TMPID_PAYMENT = "erHnfN3EjT4_lV3G8HdXU4H3QbJsnqg2b0rGGdueB0w"
 
   REDIS_DB = PROD_REDIS
   RABBITMQ_URL = RABBITMQ_URL_PRO

@@ -4,6 +4,7 @@
 var AV = require('leanengine');
 var mysqlUtil = require('../Util/mysqlUtil')
 var PingppFunc = require('../Pingpp')
+var mpMsgFuncs = require('../../mpFuncs/Message')
 var Promise = require('bluebird')
 const uuidv4 = require('uuid/v4')
 
@@ -139,7 +140,7 @@ function updateOrderStatus(orderId, status, endTime, amount) {
   })
 }
 
-function orderPayment(request, response) {
+function  orderPayment(request, response) {
   console.log("orderPayment params:", request.params)
   var amount = Number(request.params.amount)
   var userId = request.params.userId
@@ -170,8 +171,12 @@ function orderPayment(request, response) {
         }
         return PingppFunc.updateWalletInfo(mysqlConn, deal)
       }).then(() => {
-        response.success(orderInfo)
         return mysqlUtil.commit(mysqlConn)
+      }).then(() => {
+        response.success(orderInfo)
+        if(orderInfo.status === ORDER_STATUS_PAID) {
+          return mpMsgFuncs.sendOrderPaymentTmpMsg(walletInfo.openid, amount, orderInfo.id, orderInfo.deviceAddr)
+        }
       }).catch((error) => {
         throw error
       })
