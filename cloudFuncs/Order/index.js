@@ -7,6 +7,7 @@ var PingppFunc = require('../Pingpp')
 var mpMsgFuncs = require('../../mpFuncs/Message')
 var Promise = require('bluebird')
 const uuidv4 = require('uuid/v4')
+var mathjs = require('mathjs')
 
 //设备状态
 const ORDER_STATUS_UNPAID = 0  //未支付
@@ -40,8 +41,10 @@ function getOrderInfo(orderId) {
   query.include('user')
   query.include('device')
   return query.get(orderId).then((order) => {
+    console.log("getOrderInfo order", order)
     orderInfo.id = order.id
     orderInfo.orderNo = order.attributes.order_no
+    orderInfo.amount = order.attributes.amount
     if(order.attributes.start)
       orderInfo.createTime = order.attributes.start.valueOf()
     if(order.attributes.end)
@@ -93,6 +96,7 @@ function createOrder(deviceNo, userId, turnOnTime) {
 }
 
 function fetchOrdersByStatus(request, response) {
+  console.log("fetchOrdersByStatus params:", request.params)
   var userId = request.params.userId
   var orderStatus = request.params.orderStatus
   var limit = request.params.limit || 10
@@ -196,6 +200,38 @@ function  orderPayment(request, response) {
 
 }
 
+function finishOrder(deviceNo, userId, finishTime) {
+  var user = AV.Object.createWithoutData('_User', userId)
+  var deviceQuery = new AV.Query('Device')
+  deviceQuery.equalTo('deviceNo', deviceNo)
+  var query = new AV.Query('Order')
+  query.equalTo('user', user)
+  query.equalTo('status', ORDER_STATUS_OCCUPIED)
+
+  return deviceQuery.first().then((device) => {
+    query.equalTo('device', device)
+    return query.find()
+  }).then((results) => {
+    if(results.length === 1) {
+      var order = results[0]
+      var duration = mathjs.eval((finishTime - order.attributes.start.valueOf()) * 0.001 / 60)
+      duration = duration < 1? 1: duration
+      var amount = mathjs.eval(duration * order.attributes.unitPrice)
+      order.set('status', ORDER_STATUS_UNPAID)
+      order.set('end', new Date(finishTime))
+      order.set('amount', amount)
+
+      return order.save().then((leanOrder) => {
+        return getOrderInfo(leanOrder.id)
+      })
+    }
+    return undefined
+  }).catch((error) => {
+    console.log("finishOrder", error)
+    throw error
+  })
+}
+
 function orderFuncTest(request, response) {
   var deviceNo = request.params.deviceNo
   var userId = request.params.userId
@@ -213,7 +249,9 @@ var orderFunc = {
   orderFuncTest: orderFuncTest,
   createOrder: createOrder,
   fetchOrdersByStatus: fetchOrdersByStatus,
+  updateOrderStatus: updateOrderStatus,
   orderPayment: orderPayment,
+  finishOrder: finishOrder,
 }
 
 module.exports = orderFunc

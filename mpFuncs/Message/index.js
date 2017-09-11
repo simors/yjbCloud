@@ -141,6 +141,51 @@ function sendTurnOnTmpMsg(openid ) {
   })
 }
 
+/**
+ * 发送干衣结束模板消息
+ * @param {String} openid 用户的openid
+ * @param {String} orderId 订单ObjectId
+ * @param {String} orderNo 订单编号
+ * @param {Number} amount 订单金额
+ * @param {String} deviceAddr 设备地址
+ */
+function sendFinishTmpMsg(openid, orderId, orderNo, amount, deviceAddr) {
+  var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_FINISH
+  var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine/orders/:' + orderId
+
+  var data = {
+    "first": {
+      "value":"您的衣物已经烘干完成，请尽快取出衣物完成支付！\n",
+      "color":"#173177"
+    },
+    "keyword1": {   //订单编号
+      "value": orderNo,
+      "color":"#173177"
+    },
+    "keyword2" : {  //服务项目
+      "value": deviceAddr,
+      "color":"#173177"
+    },
+    "keyword3" : {  //订单金额
+      "value": amount + '元',
+      "color":"#173177"
+    },
+    "remark":{
+      "value":"\n如有问题请在衣家宝公众号内留言，小编将第一时间为您服务！",
+      "color":"#173177"
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    wechat_api.sendTemplate(openid, templateId, url, data, function (err, result) {
+      if(err) {
+        console.log("sendFinishTmpMsg", err)
+        return reject()
+      }
+      return resolve()
+    })
+  })
+}
 
 
 function wechatMessageTest(request, response) {
@@ -163,6 +208,7 @@ var mpMsgFuncs = {
   sendRechargeTmpMsg: sendRechargeTmpMsg,
   sendTurnOnTmpMsg: sendTurnOnTmpMsg,
   sendOrderPaymentTmpMsg: sendOrderPaymentTmpMsg,
+  sendFinishTmpMsg: sendFinishTmpMsg,
   wechatMessageTest: wechatMessageTest
 }
 

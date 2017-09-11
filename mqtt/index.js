@@ -8,6 +8,7 @@ var client = require('mqtt').connect(GLOBAL_CONFIG.MQTT_SERVER_URL)
 var websocketIO = require('../websocketIO')
 var deviceFunc = require('../cloudFuncs/Device')
 var orderFunc = require('../cloudFuncs/Order')
+var mpMsgFunc = require('../mpFuncs/Message')
 
 const namespace = websocketIO.of('/')
 
@@ -39,6 +40,9 @@ function messageEvent(topic, message, packet) {
       break
     case 'turnOnFailed':
       handleTurnOnFailed(message)
+      break
+    case 'finish':
+      handleFinish(message)
       break
     default:
       console.log("未知消息 topic:", message.toString())
@@ -81,6 +85,7 @@ function handleDeviceOnline(message) {
     topics.push('deviceStatus/' + deviceNo)   //设备状态上报消息
     topics.push('turnOnSuccess/' + deviceNo)  //开机成功消息
     topics.push('turnOnFailed/' + deviceNo)   //开机失败消息
+    topics.push('finish/' + deviceNo)         //干衣结束消息
 
     client.subscribe(topics, function (error) {
       if(error) {
@@ -105,6 +110,7 @@ function handleDeviceOnline(message) {
         topics.push('deviceStatus/' + deviceNo)   //设备状态上报消息
         topics.push('turnOnSuccess/' + deviceNo)  //开机成功消息
         topics.push('turnOnFailed/' + deviceNo)   //开机失败消息
+        topics.push('finish/' + deviceNo)         //干衣结束消息
 
         client.subscribe(topics, function (error) {
           if(error) {
@@ -260,6 +266,33 @@ function handleTurnOnFailed(message) {
 
   //TODO 通知客户端
   //TODO 微信模版消息
+}
+
+//设备干衣结束
+function handleFinish(message) {
+  console.log("收到设备干衣结束消息", message.toString())
+  var Message = JSON.parse(message.toString())
+  var socketId = Message.socketId
+  var deviceNo = Message.deviceNo
+  var userId = Message.userId
+  var finishTime = Message.time
+  var status = Message.status
+
+  orderFunc.finishOrder(deviceNo, userId, finishTime).then((orderInfo) => {
+    if(!orderInfo) {
+      //结束订单失败
+      return
+    }
+    var user = AV.Object.createWithoutData('_User', userId)
+    user.fetch().then((leanUser) => {
+      var openid = leanUser.attributes.authData.weixin.openid
+      return mpMsgFunc.sendFinishTmpMsg(openid, orderInfo.id, orderInfo.orderNo, orderInfo.amount, orderInfo.deviceAddr)
+    }).catch((error) => {
+      throw error
+    })
+  }).catch((error) => {
+    console.log("handleFinish", error)
+  })
 }
 
 var mqttFunc = {
