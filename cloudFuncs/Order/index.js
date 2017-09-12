@@ -41,7 +41,6 @@ function getOrderInfo(orderId) {
   query.include('user')
   query.include('device')
   return query.get(orderId).then((order) => {
-    console.log("getOrderInfo order", order)
     orderInfo.id = order.id
     orderInfo.orderNo = order.attributes.order_no
     orderInfo.amount = order.attributes.amount
@@ -154,6 +153,10 @@ function  orderPayment(request, response) {
   var mysqlConn = undefined
   var orderInfo = undefined
 
+  if(!userId || !orderId || !amount || !endTime) {
+    response.error(new Error("参数错误"))
+  }
+
   PingppFunc.getWalletInfo(userId).then((walletInfo) => {
     if(!walletInfo || amount > walletInfo.balance) {
       return updateOrderStatus(orderId, ORDER_STATUS_UNPAID, endTime, amount).then((order) => {
@@ -215,8 +218,11 @@ function finishOrder(deviceNo, userId, finishTime) {
     if(results.length === 1) {
       var order = results[0]
       var duration = mathjs.eval((finishTime - order.attributes.start.valueOf()) * 0.001 / 60)
+      console.log("finishOrder duration", duration)
+
       duration = duration < 1? 1: duration
       var amount = mathjs.eval(duration * order.attributes.unitPrice)
+      console.log("finishOrder amount", amount)
       order.set('status', ORDER_STATUS_UNPAID)
       order.set('end', new Date(finishTime))
       order.set('amount', amount)

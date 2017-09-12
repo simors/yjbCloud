@@ -3,6 +3,7 @@
  */
 var AV = require('leanengine');
 var Promise = require('bluebird')
+var mpQrcodeFuncs = require('../../mpFuncs/Qrcode')
 
 //设备状态
 const IDLE = 0        //空闲
@@ -44,6 +45,19 @@ function fetchDeviceInfo(request, response) {
     response.error(error)
   })
 }
+//生成设备二维码
+function generateDeviceQrcode(request, response) {
+  var deviceNo = request.params.deviceNo
+
+  mpQrcodeFuncs.createLimitQRCode(deviceNo).then((url) => {
+    response.success({
+      qrcodeUrl: url
+    })
+  }).catch((error) => {
+    console.log("generateDeviceQrcode", error)
+    response.error(error)
+  })
+}
 
 
 function getDeviceStatus(request, response) {
@@ -59,6 +73,7 @@ var deviceFunc = {
   OFFLINE: OFFLINE,
   fetchDeviceInfo: fetchDeviceInfo,
   getDeviceStatus: getDeviceStatus,
+  generateDeviceQrcode: generateDeviceQrcode,
   deviceFuncTest: deviceFuncTest,
 }
 

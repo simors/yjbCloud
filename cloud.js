@@ -19,6 +19,7 @@ AV.Cloud.define('authVerifyIdName', authFunc.verifyIdName)
 //设备
 AV.Cloud.define('deviceFetchDeviceInfo', deviceFunc.fetchDeviceInfo)
 AV.Cloud.define('deviceGetDeviceStatus', deviceFunc.getDeviceStatus)
+AV.Cloud.define('deviceGenerateDeviceQrcode', deviceFunc.generateDeviceQrcode)
 AV.Cloud.define('deviceFuncTest', deviceFunc.deviceFuncTest)
 
 
