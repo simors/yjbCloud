@@ -32,9 +32,9 @@ function messageEvent(topic, message, packet) {
     case 'offline':
       handleDeviceOffline(message)
       break
-    case 'deviceStatus':
-      handleDeviceStatus(message)
-      break
+    // case 'deviceStatus':
+    //   handleDeviceStatus(message)
+    //   break
     case 'turnOnSuccess':
       handleTurnOnSuccess(message)
       break
@@ -88,7 +88,7 @@ function handleDeviceOnline(message) {
     }
   }).then((device) => {
     var topics = []
-    topics.push('deviceStatus/' + deviceNo)   //设备状态上报消息
+    // topics.push('deviceStatus/' + deviceNo)   //设备状态上报消息
     topics.push('turnOnSuccess/' + deviceNo)  //开机成功消息
     topics.push('turnOnFailed/' + deviceNo)   //开机失败消息
     topics.push('turnOffSuccess/' + deviceNo)
@@ -115,7 +115,7 @@ function handleDeviceOnline(message) {
 
       device.save().then(() => {
         var topics = []
-        topics.push('deviceStatus/' + deviceNo)   //设备状态上报消息
+        // topics.push('deviceStatus/' + deviceNo)   //设备状态上报消息
         topics.push('turnOnSuccess/' + deviceNo)  //开机成功消息
         topics.push('turnOnFailed/' + deviceNo)   //开机失败消息
         topics.push('turnOffSuccess/' + deviceNo)
