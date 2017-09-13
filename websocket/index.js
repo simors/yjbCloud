@@ -5,6 +5,7 @@ var Promise = require('bluebird')
 var redis = require('redis')
 var activityFunc = require('../cloudFuncs/Activity')
 var turnOnDevice = require('../mqtt').turnOnDevice
+var turnOffDevice = require('../mqtt').turnOffDevice
 
 //websocket消息
 const ACTIVITY_REQUEST = 'activity_request'     //活动请求&应答
@@ -12,6 +13,9 @@ const ACTIVITY_RESPONSE = 'activity_response'
 const TURN_ON_DEVICE = 'turn_on_device'         //设备开机请求&应答
 const TURN_ON_DEVICE_SUCCESS = 'turn_on_device_success'
 const TURN_ON_DEVICE_FAILED = 'turn_on_device_failed'
+const TURN_OFF_DEVICE = 'turn_off_device'       //设备关机请求&应答
+const TURN_OFF_DEVICE_SUCCESS = 'turn_off_device_success'
+const TURN_OFF_DEVICE_FAILED = 'turn_off_device_failed'
 
 function connectionEvent(socket) {
   //接收到H5页面的活动请求
@@ -59,6 +63,30 @@ function connectionEvent(socket) {
     })
   })
 
+  //接收到微信客户端的设备关机请求
+  socket.on(TURN_OFF_DEVICE, (data, callback) => {
+    console.log("收到设备关机请求：", data)
+    var deviceNo = data.deviceNo
+    var userId = data.userId
+    var orderId = data.orderId
+    var socketId = socket.id
+    var ackData = {
+      deviceNo: deviceNo,
+      errorCode: 0,
+      errorMessage: ""
+    }
+
+    turnOffDevice(deviceNo, userId, socketId, orderId).then((result) => {
+      ackData.errorCode = result.errorCode
+      ackData.errorMessage = result.errorMessage
+      callback(ackData)
+    }).catch((error) => {
+      console.log("设备关机失败", error)
+      ackData.errorCode = 4
+      ackData.errorMessage = error
+      callback(ackData)
+    })
+  })
 }
 
 var websocketFunc = {
@@ -67,6 +95,9 @@ var websocketFunc = {
   TURN_ON_DEVICE: TURN_ON_DEVICE,
   TURN_ON_DEVICE_SUCCESS: TURN_ON_DEVICE_SUCCESS,
   TURN_ON_DEVICE_FAILED: TURN_ON_DEVICE_FAILED,
+  TURN_OFF_DEVICE: TURN_OFF_DEVICE,
+  TURN_OFF_DEVICE_SUCCESS: TURN_OFF_DEVICE_SUCCESS,
+  TURN_OFF_DEVICE_FAILED: TURN_OFF_DEVICE_FAILED,
   connectionEvent: connectionEvent,
 }
 

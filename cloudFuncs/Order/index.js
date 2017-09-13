@@ -205,6 +205,7 @@ function  orderPayment(request, response) {
 
 function finishOrder(deviceNo, userId, finishTime) {
   var user = AV.Object.createWithoutData('_User', userId)
+  var unitPrice = undefined
   var deviceQuery = new AV.Query('Device')
   deviceQuery.equalTo('deviceNo', deviceNo)
   var query = new AV.Query('Order')
@@ -212,17 +213,16 @@ function finishOrder(deviceNo, userId, finishTime) {
   query.equalTo('status', ORDER_STATUS_OCCUPIED)
 
   return deviceQuery.first().then((device) => {
+    unitPrice = Number(device.attributes.unitPrice)
     query.equalTo('device', device)
     return query.find()
   }).then((results) => {
     if(results.length === 1) {
       var order = results[0]
       var duration = mathjs.eval((finishTime - order.attributes.start.valueOf()) * 0.001 / 60)
-      console.log("finishOrder duration", duration)
 
-      duration = duration < 1? 1: duration
-      var amount = mathjs.eval(duration * order.attributes.unitPrice)
-      console.log("finishOrder amount", amount)
+      duration = duration < 1? 1: Number(duration.toFixed(0))
+      var amount = mathjs.chain(unitPrice).multiply(duration).done()
       order.set('status', ORDER_STATUS_UNPAID)
       order.set('end', new Date(finishTime))
       order.set('amount', amount)

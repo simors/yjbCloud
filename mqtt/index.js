@@ -41,6 +41,12 @@ function messageEvent(topic, message, packet) {
     case 'turnOnFailed':
       handleTurnOnFailed(message)
       break
+    case 'turnOffSuccess':
+      handleTurnOffSuccess(message)
+      break
+    case 'turnOffFailed':
+      handleTurnOffFailed(message)
+      break
     case 'finish':
       handleFinish(message)
       break
@@ -85,6 +91,8 @@ function handleDeviceOnline(message) {
     topics.push('deviceStatus/' + deviceNo)   //设备状态上报消息
     topics.push('turnOnSuccess/' + deviceNo)  //开机成功消息
     topics.push('turnOnFailed/' + deviceNo)   //开机失败消息
+    topics.push('turnOffSuccess/' + deviceNo)
+    topics.push('turnOffFailed/' + deviceNo)
     topics.push('finish/' + deviceNo)         //干衣结束消息
 
     client.subscribe(topics, function (error) {
@@ -110,6 +118,8 @@ function handleDeviceOnline(message) {
         topics.push('deviceStatus/' + deviceNo)   //设备状态上报消息
         topics.push('turnOnSuccess/' + deviceNo)  //开机成功消息
         topics.push('turnOnFailed/' + deviceNo)   //开机失败消息
+        topics.push('turnOffSuccess/' + deviceNo)
+        topics.push('turnOffFailed/' + deviceNo)
         topics.push('finish/' + deviceNo)         //干衣结束消息
 
         client.subscribe(topics, function (error) {
@@ -183,9 +193,6 @@ function turnOnDevice(deviceNo, userId, socketId) {
 
   return query.first().then((device) => {
     var currentStatus = device && device.attributes.status
-
-
-    console.log("turnOnDevice currentStatus", currentStatus)
     if(device && (currentStatus === deviceFunc.IDLE)) {
       var turnOnMessage = {
         socketId: socketId,
@@ -268,6 +275,95 @@ function handleTurnOnFailed(message) {
   //TODO 微信模版消息
 }
 
+//设备关机
+function turnOffDevice(deviceNo, userId, socketId, orderId) {
+  var query = new AV.Query('Device')
+  query.equalTo('deviceNo', deviceNo)
+
+  return query.first().then((device) => {
+    var currentStatus = device && device.attributes.status
+    console.log("turnOffDevice currentStatus", currentStatus)
+    if(device && (currentStatus === deviceFunc.OCCUPIED)) {
+      var turnOffMessage = {
+        socketId: socketId,
+        deviceNo: deviceNo,
+        userId: userId,
+        orderId: orderId,
+        time: Date.now()
+      }
+
+      return new Promise((resolve, reject) => {
+        client.publish('turnOff/' + deviceNo, JSON.stringify(turnOffMessage), function (error) {
+          if(error) {
+            console.log("publish turnOff error:", error)
+            resolve({
+              errorCode: 1,
+              errorMessage: "设备请求失败"
+            })
+            return
+          }
+          console.log("publish success, topic:", 'turnOff/' + deviceNo)
+          resolve({
+            errorCode: 0,
+            errorMessage: ""
+          })
+        })
+      })
+    } else {
+      return {
+        errorCode: 2,
+        errorMessage: "没有该设备或设备状态有误"
+      }
+    }
+  }).catch((error) => {
+    throw error
+  })
+}
+
+function handleTurnOffSuccess(message) {
+  var TURN_OFF_DEVICE_SUCCESS = require('../websocket/').TURN_OFF_DEVICE_SUCCESS
+  var TURN_OFF_DEVICE_FAILED = require('../websocket').TURN_OFF_DEVICE_FAILED
+  console.log("收到设备关机成功消息", message.toString())
+  var Message = JSON.parse(message.toString())
+  var socketId = Message.socketId
+  var deviceNo = Message.deviceNo
+  var userId = Message.userId
+  var orderId = Message.orderId
+  var turnOffTime = Message.time
+  var status = Message.status
+
+  namespace.clients((error, client) => {
+    if(client.indexOf(socketId) === -1) {
+      //doNothing 多节点情况下
+      return
+    }
+    orderFunc.finishOrder(deviceNo, userId, turnOffTime).then((orderInfo) => {
+      //websocket 发送关机成功消息
+      namespace.to(socketId).emit(TURN_OFF_DEVICE_SUCCESS, orderInfo)
+    }).catch((error) => {
+      console.log("finishOrder", error)
+      namespace.to(socketId).emit(TURN_OFF_DEVICE_FAILED, {deviceNo: deviceNo})
+    })
+  })
+}
+
+function handleTurnOffFailed(message) {
+  var TURN_OFF_DEVICE_FAILED = require('../websocket').TURN_OFF_DEVICE_FAILED
+  console.log("收到设备关机失败消息", message.toString())
+  var Message = JSON.parse(message.toString())
+  var socketId = Message.socketId
+  var deviceNo = Message.deviceNo
+
+  namespace.clients((error, client) => {
+    if(client.indexOf(socketId) === -1) {
+      //doNothing 多节点情况下
+      return
+    }
+    namespace.to(socketId).emit(TURN_OFF_DEVICE_FAILED, {deviceNo: deviceNo})
+  })
+}
+
+
 //设备干衣结束
 function handleFinish(message) {
   console.log("收到设备干衣结束消息", message.toString())
@@ -297,6 +393,7 @@ function handleFinish(message) {
 
 var mqttFunc = {
   turnOnDevice: turnOnDevice,
+  turnOffDevice: turnOffDevice,
 }
 
 module.exports = mqttFunc
