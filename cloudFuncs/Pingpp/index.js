@@ -127,7 +127,7 @@ function getWalletInfo(userId) {
  * @returns {Promise.<T>}
  */
 function updateWalletInfo(conn, deal) {
-  if (!deal.from || !deal.cost || !deal.deal_type) {
+  if (!deal.to|| !deal.from || !deal.cost || !deal.deal_type) {
     throw new Error('')
   }
   var userId = undefined
@@ -189,10 +189,8 @@ function updateWalletInfo(conn, deal) {
             sql = "UPDATE `Wallet` SET `balance` = `balance` - ? WHERE `userId` = ?"
             return mysqlUtil.query(conn, sql, [deal.cost, userId])
           } else {
-            // debt = deal.cost - currentBalance
-            debt = mathjs.eval(deal.cost - currentBalance)
-            sql = "UPDATE `Wallet` SET `balance` = ?, `debt` = ? WHERE `userId` = ?"
-            return mysqlUtil.query(conn, sql, [deal.cost, debt, userId])
+            sql = "UPDATE `Wallet` SET  `debt` = ? WHERE `userId` = ?"
+            return mysqlUtil.query(conn, sql, [deal.cost, userId])
           }
           break
         case REFUND:

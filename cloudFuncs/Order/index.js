@@ -159,10 +159,11 @@ function  orderPayment(request, response) {
 
   PingppFunc.getWalletInfo(userId).then((walletInfo) => {
     if(!walletInfo || amount > walletInfo.balance) {
-      return updateOrderStatus(orderId, ORDER_STATUS_UNPAID, endTime, amount).then((order) => {
-        orderInfo = order
-        response.success(orderInfo)
-      })
+      // return updateOrderStatus(orderId, ORDER_STATUS_UNPAID, endTime, amount).then((order) => {
+      //   orderInfo = order
+      //   response.success(orderInfo)
+      // })
+      response.success(new Error("余额不足"))
     } else {
       return updateOrderStatus(orderId, ORDER_STATUS_PAID, endTime, amount).then((order) => {
         orderInfo = order
@@ -172,6 +173,7 @@ function  orderPayment(request, response) {
         return mysqlUtil.beginTransaction(conn)
       }).then(() => {
         var deal = {
+          to: 'platform',
           from: userId,
           cost: amount,
           deal_type: PingppFunc.SERVICE,
@@ -206,6 +208,8 @@ function  orderPayment(request, response) {
 function finishOrder(deviceNo, userId, finishTime) {
   var user = AV.Object.createWithoutData('_User', userId)
   var unitPrice = undefined
+  var mysqlConn = undefined
+
   var deviceQuery = new AV.Query('Device')
   deviceQuery.equalTo('deviceNo', deviceNo)
   var query = new AV.Query('Order')
@@ -223,11 +227,22 @@ function finishOrder(deviceNo, userId, finishTime) {
 
       duration = duration < 1? 1: Number(duration.toFixed(0))
       var amount = mathjs.chain(unitPrice).multiply(duration).done()
-      order.set('status', ORDER_STATUS_UNPAID)
-      order.set('end', new Date(finishTime))
-      order.set('amount', amount)
 
-      return order.save().then((leanOrder) => {
+      return mysqlUtil.getConnection().then((conn) => {
+        mysqlConn = conn
+        var deal = {
+          to: 'platform',
+          from: userId,
+          cost: amount,
+          deal_type: PingppFunc.SERVICE,
+        }
+        return PingppFunc.updateWalletInfo(mysqlConn, deal)
+      }).then(() => {
+        order.set('status', ORDER_STATUS_UNPAID)
+        order.set('end', new Date(finishTime))
+        order.set('amount', amount)
+        return order.save()
+      }).then((leanOrder) => {
         return getOrderInfo(leanOrder.id)
       })
     }
@@ -235,6 +250,10 @@ function finishOrder(deviceNo, userId, finishTime) {
   }).catch((error) => {
     console.log("finishOrder", error)
     throw error
+  }).finally(() => {
+    if(mysqlConn) {
+      mysqlUtil.release(mysqlConn)
+    }
   })
 }
 
