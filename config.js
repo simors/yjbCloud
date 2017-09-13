@@ -4,7 +4,7 @@
 
 //LeanCloud环境参数
 const LC_DEV_APP_ID = 'QApBtOkMNfNo0lGaHxKBSWXX-gzGzoHsz'       //开发环境
-const LC_STAGE_APP_ID = 'HFRm8OUW9tNj2qxz6LuBExBa-gzGzoHsz'     //预上线环境
+const LC_STAGE_APP_ID = 'O0Ej6uEsWydjHvsM9RTklWb5-gzGzoHsz'     //预上线环境
 const LC_PRO_APP_ID = ''                                        //生产环境
 
 //微信公众平台
