@@ -156,9 +156,7 @@ function updateWalletInfo(conn, deal) {
   var sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt` FROM `Wallet` WHERE `userId` = ? LIMIT 1"
   return mysqlUtil.query(conn, sql, [userId]).then((queryRes) => {
     if (queryRes.results.length == 1) {
-      // var currentBalance = queryRes.results[0].balance
       var currentBalance = mathjs.number(queryRes.results[0].balance)
-      // var currentDebt = queryRes.results[0].debt
       var currentDebt = mathjs.number(queryRes.results[0].debt)
 
       switch (deal.deal_type) {
