@@ -18,9 +18,24 @@ function subscribeEvent(req, res, next) {
   var openid = message.FromUserName
   var deviceNo = scene_id.slice(8)
 
-  res.reply({
-    type: 'text',
-    content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/bind?deviceNo=" + deviceNo + "'>绑定手机号码</a>" +"使用衣家宝干衣柜。"
+  authFunc.isUserSignIn(openid).then((result) => {
+    if(result) {
+      res.reply({
+        type: 'text',
+        content: "欢迎回来"
+      })
+    } else {
+      res.reply({
+        type: 'text',
+        content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/bind?deviceNo=" + deviceNo + "'>绑定手机号码</a>" +"使用衣家宝干衣柜。"
+      })
+    }
+  }).catch((error) => {
+    console.log("subscribeEvent error", error)
+    res.reply({
+      type: 'text',
+      content: "服务器异常，请联系客服！"
+    })
   })
 }
 

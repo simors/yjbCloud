@@ -7,6 +7,7 @@ var Promise = require('bluebird')
 function constructStationInfo(station) {
   var stationInfo = {}
 
+  var admin = station.attributes.admin
   stationInfo.id = station.id
   stationInfo.name = station.attributes.name
   stationInfo.addr = station.attributes.addr
@@ -18,7 +19,7 @@ function constructStationInfo(station) {
   stationInfo.powerUnitPrice = station.attributes.powerUnitPrice
   stationInfo.platformProp = station.attributes.platformProp
   stationInfo.stationProp = station.attributes.stationProp
-
+  stationInfo.adminId = admin.id
   return stationInfo
 }
 
@@ -56,7 +57,6 @@ function createStation(request, response) {
     station.set('addr', addr)
     station.set('province', province)
     station.set('city', city)
-    station.set('area', area)
     station.set('area', area)
     station.set('unitPrice', unitPrice)
     station.set('deposit', deposit)
