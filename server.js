@@ -1,11 +1,9 @@
 'use strict';
-
+require('babel-core/register')
 var AV = require('leanengine');
 var wechat_api = require('./mpFuncs').wechat_api
 var mpMenuFuncs = require('./mpFuncs/Menu')
 var mpTokenFuncs = require('./mpFuncs/Token')
-
-var GLOBAL_CONFIG = require('./config')
 
 
 
@@ -44,9 +42,7 @@ websocketIO.sockets.on('connection', websocketFunc.connectionEvent)
 
 //rabbitMQ
 var amqp = require('./amqp')
-// var amqp = require('amqplib')
-// var amqpFunc = require('./amqp')
-// amqp.connect(GLOBAL_CONFIG.RABBITMQ_URL).then(amqpFunc.connectEvent).catch(console.warn)
+
 
 //mqtt
 var mqtt = require('./mqtt')
