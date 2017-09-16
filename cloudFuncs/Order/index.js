@@ -246,7 +246,7 @@ function finishOrder(deviceNo, finishTime) {
         return getOrderInfo(leanOrder.id)
       })
     }
-    return undefined
+    return Promise.reject(new Error("未找到订单信息"))
   }).catch((error) => {
     console.log("finishOrder", error)
     throw error

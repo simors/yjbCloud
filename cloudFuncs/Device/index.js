@@ -277,7 +277,7 @@ function updateDeviceStatus(deviceNo, status, updateTime) {
 
   return query.first().then((device) => {
     device.set('status', status)
-    device.set('updateTime', onlineTime)
+    device.set('updateTime', updateTime)
 
     return device.save()
   }).catch((error) => {
