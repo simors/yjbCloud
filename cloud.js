@@ -5,6 +5,7 @@ var deviceFunc = require('./cloudFuncs/Device')
 var PingppFunc = require('./cloudFuncs/Pingpp')
 var orderFunc = require('./cloudFuncs/Order')
 var mpJsSdkFuncs = require('./mpFuncs/JSSDK')
+var stationFunc = require('./cloudFuncs/Station')
 
 /**
  * 云函数
@@ -18,9 +19,15 @@ AV.Cloud.define('authVerifyIdName', authFunc.verifyIdName)
 
 //设备
 AV.Cloud.define('deviceFetchDeviceInfo', deviceFunc.fetchDeviceInfo)
-AV.Cloud.define('deviceGetDeviceStatus', deviceFunc.getDeviceStatus)
 AV.Cloud.define('deviceGenerateDeviceQrcode', deviceFunc.generateDeviceQrcode)
 AV.Cloud.define('deviceFuncTest', deviceFunc.deviceFuncTest)
+AV.Cloud.define('deviceFetchDevices', deviceFunc.fetchDevices)
+AV.Cloud.define('deviceChangeDeviceStatus', deviceFunc.changeDeviceStatus)
+
+//服务网点
+AV.Cloud.define('stationCreateStation', stationFunc.createStation)
+AV.Cloud.define('stationFetchStations', stationFunc.fetchStations)
+AV.Cloud.define('stationUpdateStation', stationFunc.updateStation)
 
 
 //营销活动

@@ -32,9 +32,6 @@ function messageEvent(topic, message, packet) {
     case 'offline':
       handleDeviceOffline(message)
       break
-    // case 'deviceStatus':
-    //   handleDeviceStatus(message)
-    //   break
     case 'turnOnSuccess':
       handleTurnOnSuccess(message)
       break
@@ -50,6 +47,9 @@ function messageEvent(topic, message, packet) {
     case 'finish':
       handleFinish(message)
       break
+    case 'breakdown':
+      handleBreakdown(message)
+      break
     default:
       console.log("未知消息 topic:", message.toString())
       break
@@ -64,75 +64,25 @@ function handleDeviceOnline(message) {
   var deviceNo = Message.deviceNo
   var onlineTime = Message.time
 
-  var query = new AV.Query('Device')
-  console.log("handleDeviceOnline Device Object")
-  query.equalTo('deviceNo', deviceNo)
-
-  query.first().then((device) => {
-    if(device) {
-      device.set('status', deviceFunc.IDLE)
-      device.set('updateTime', new Date(onlineTime))
-
-      return device.save()
-    } else {
-      var Device = AV.Object.extend('Device')
-      var device = new Device()
-      device.set('deviceNo', deviceNo)
-      device.set('onlineTime', new Date(onlineTime))
-      device.set('updateTime', new Date(onlineTime))
-      device.set('deviceAddr', "")
-      device.set('unitPrice', 0.1)    //设备计费单价：元／分钟
-      device.set('status', deviceFunc.IDLE)
-
-      return device.save()
-    }
-  }).then((device) => {
+  deviceFunc.createDevice(deviceNo, new Date(onlineTime)).then((device) => {
     var topics = []
-    // topics.push('deviceStatus/' + deviceNo)   //设备状态上报消息
     topics.push('turnOnSuccess/' + deviceNo)  //开机成功消息
-    topics.push('turnOnFailed/' + deviceNo)   //开机失败消息
+    topics.push('turnOnFailed/' + deviceNo)
     topics.push('turnOffSuccess/' + deviceNo)
     topics.push('turnOffFailed/' + deviceNo)
+    topics.push('breakdown/' + deviceNo)
     topics.push('finish/' + deviceNo)         //干衣结束消息
 
     client.subscribe(topics, function (error) {
       if(error) {
         console.log("subscribe error", error)
-      } else {
-        console.log("subscribe success, topics:", topics)
+        return
       }
+      console.log("subscribe success, topics:", topics)
     })
   }).catch((error) => {
-    if(error.code === 101) {  //第一台设备注册时，Device表尚未创建
-      var Device = AV.Object.extend('Device')
-      var device = new Device()
-      device.set('deviceNo', deviceNo)
-      device.set('onlineTime', new Date(onlineTime))
-      device.set('updateTime', new Date(onlineTime))
-      device.set('deviceAddr', "")
-      device.set('unitPrice', 0.1)    //设备计费单价：元／分钟
-      device.set('status', deviceFunc.IDLE)
-
-      device.save().then(() => {
-        var topics = []
-        // topics.push('deviceStatus/' + deviceNo)   //设备状态上报消息
-        topics.push('turnOnSuccess/' + deviceNo)  //开机成功消息
-        topics.push('turnOnFailed/' + deviceNo)   //开机失败消息
-        topics.push('turnOffSuccess/' + deviceNo)
-        topics.push('turnOffFailed/' + deviceNo)
-        topics.push('finish/' + deviceNo)         //干衣结束消息
-
-        client.subscribe(topics, function (error) {
-          if(error) {
-            console.log("subscribe error", error)
-          } else {
-            console.log("subscribe success, topics:", topics)
-          }
-        })
-      })
-      return
-    }
     console.error("设备注册失败", error)
+    //TODO 通知相关人员
   })
 }
 
@@ -144,56 +94,28 @@ function handleDeviceOffline(message) {
   var offlineTime = Message.time
   var offlineMessage = Message.message
 
-  var query = new AV.Query('Device')
-  query.equalTo('deviceNo', deviceNo)
-
-  query.first().then((device) => {
+  deviceFunc.updateDeviceStatus(deviceNo, deviceFunc.DEVICE_STATUS_OFFLINE, new Date(offlineTime)).then((device) => {
     if(device) {
-      device.set('status', deviceFunc.OFFLINE)
-      device.set('updateTime', new Date(offlineTime))
-      return device.save()
-    } else {
-      return
-    }
-  }).then((leanDevice) => {
-    if(leanDevice) {
-      client.unsubscribe('deviceStatus/' + deviceNo)
-    }
-  }).catch(() => {
-    console.error("设备下线失败", error)
-  })
-}
+      //TODO 区分正常下线和异常下线
+      var topics = []
+      topics.push('turnOnSuccess/' + deviceNo)  //开机成功消息
+      topics.push('turnOnFailed/' + deviceNo)
+      topics.push('turnOffSuccess/' + deviceNo)
+      topics.push('turnOffFailed/' + deviceNo)
+      topics.push('finish/' + deviceNo)         //干衣结束消息
 
-//设备状态更新
-function handleDeviceStatus(message) {
-  // console.log("收到设备状态更新消息", message.toString())
-  var Message = JSON.parse(message.toString())
-  var deviceNo = Message.deviceNo
-  var updateTime = Message.time
-  var status = Message.status
-
-  var query = new AV.Query('Device')
-  query.equalTo('deviceNo', deviceNo)
-
-  query.first().then((device) => {
-    if(device) {
-      device.set('status', status)
-      device.set('updateTime', new Date(updateTime))
-      device.save()
+      client.unsubscribe(topics)
     }
   }).catch((error) => {
-    console.error("设备注册状态更新失败", error)
+    console.error("设备下线失败", error)
   })
 }
 
 //开启设备
 function turnOnDevice(deviceNo, userId, socketId) {
-  var query = new AV.Query('Device')
-  query.equalTo('deviceNo', deviceNo)
 
-  return query.first().then((device) => {
-    var currentStatus = device && device.attributes.status
-    if(device && (currentStatus === deviceFunc.IDLE)) {
+  return deviceFunc.getDeviceStatus(deviceNo).then((status) => {
+    if(status === deviceFunc.DEVICE_STATUS_IDLE) {
       var turnOnMessage = {
         socketId: socketId,
         deviceNo: deviceNo,
@@ -218,11 +140,10 @@ function turnOnDevice(deviceNo, userId, socketId) {
           }
         })
       })
-    } else {
-      return {
-        errorCode: 2,
-        errorMessage: "没有该设备或设备状态有误"
-      }
+    }
+    return {
+      errorCode: 2,
+      errorMessage: "没有该设备或设备状态有误"
     }
   }).catch((error) => {
     throw error
@@ -234,7 +155,6 @@ function handleTurnOnSuccess(message) {
   var TURN_ON_DEVICE_SUCCESS = require('../websocket/').TURN_ON_DEVICE_SUCCESS
   var TURN_ON_DEVICE_FAILED = require('../websocket').TURN_ON_DEVICE_FAILED
   console.log("收到设备开启成功消息", message.toString())
-  handleDeviceStatus(message)
   var Message = JSON.parse(message.toString())
   var socketId = Message.socketId
   var deviceNo = Message.deviceNo
@@ -277,13 +197,9 @@ function handleTurnOnFailed(message) {
 
 //设备关机
 function turnOffDevice(deviceNo, userId, socketId, orderId) {
-  var query = new AV.Query('Device')
-  query.equalTo('deviceNo', deviceNo)
 
-  return query.first().then((device) => {
-    var currentStatus = device && device.attributes.status
-    console.log("turnOffDevice currentStatus", currentStatus)
-    if(device && (currentStatus === deviceFunc.OCCUPIED)) {
+  return deviceFunc.getDeviceStatus(deviceNo).then((status) => {
+    if(status === deviceFunc.DEVICE_STATUS_OCCUPIED) {
       var turnOffMessage = {
         socketId: socketId,
         deviceNo: deviceNo,
@@ -309,11 +225,10 @@ function turnOffDevice(deviceNo, userId, socketId, orderId) {
           })
         })
       })
-    } else {
-      return {
-        errorCode: 2,
-        errorMessage: "没有该设备或设备状态有误"
-      }
+    }
+    return {
+      errorCode: 2,
+      errorMessage: "没有该设备或设备状态有误"
     }
   }).catch((error) => {
     throw error
@@ -388,6 +303,39 @@ function handleFinish(message) {
     })
   }).catch((error) => {
     console.log("handleFinish", error)
+  })
+}
+
+//设备故障
+function handleBreakdown(message) {
+  console.log("收到设备故障消息", message.toString())
+  var Message = JSON.parse(message.toString())
+  var deviceNo = Message.deviceNo
+  var errCode = Message.errCode
+  var breakdownTime = Message.time
+
+  deviceFunc.getDeviceStatus(deviceNo).then((status) => {
+    if(status === deviceFunc.DEVICE_STATUS_OCCUPIED) {
+      return orderFunc.finishOrder(deviceNo, '', breakdownTime)
+    }
+    return undefined
+  }).then((orderInfo) => {
+    if(orderInfo) {
+      //TODO 向正在使用的用户发送设备故障消息
+    }
+    return undefined
+  }).then(() => {
+    //TODO 短信通知网点管理员
+    AV.Cloud.requestSmsCode({
+      mobilePhoneNumber: '',
+      template: '衣家宝设备故障通知',
+      stationName: '',
+      admin: '',
+      deviceNo: deviceNo,
+      errCode: errCode,
+    })
+  }).catch((error) => {
+    console.log("handleBreakdown", error)
   })
 }
 
