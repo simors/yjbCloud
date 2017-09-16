@@ -252,7 +252,7 @@ function handleTurnOffSuccess(message) {
       //doNothing 多节点情况下
       return
     }
-    orderFunc.finishOrder(deviceNo, userId, turnOffTime).then((orderInfo) => {
+    orderFunc.finishOrder(deviceNo, turnOffTime).then((orderInfo) => {
       //websocket 发送关机成功消息
       namespace.to(socketId).emit(TURN_OFF_DEVICE_SUCCESS, orderInfo)
     }).catch((error) => {
@@ -289,7 +289,7 @@ function handleFinish(message) {
   var finishTime = Message.time
   var status = Message.status
 
-  orderFunc.finishOrder(deviceNo, userId, finishTime).then((orderInfo) => {
+  orderFunc.finishOrder(deviceNo, finishTime).then((orderInfo) => {
     if(!orderInfo) {
       //结束订单失败
       return
@@ -316,12 +316,13 @@ function handleBreakdown(message) {
 
   deviceFunc.getDeviceStatus(deviceNo).then((status) => {
     if(status === deviceFunc.DEVICE_STATUS_OCCUPIED) {
-      return orderFunc.finishOrder(deviceNo, '', breakdownTime)
+      return orderFunc.finishOrder(deviceNo, breakdownTime)
     }
     return undefined
   }).then((orderInfo) => {
     if(orderInfo) {
       //TODO 向正在使用的用户发送设备故障消息
+      
     }
     return undefined
   }).then(() => {

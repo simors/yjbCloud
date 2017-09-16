@@ -205,15 +205,14 @@ function  orderPayment(request, response) {
 
 }
 
-function finishOrder(deviceNo, userId, finishTime) {
-  var user = AV.Object.createWithoutData('_User', userId)
+function finishOrder(deviceNo, finishTime) {
   var unitPrice = undefined
   var mysqlConn = undefined
 
   var deviceQuery = new AV.Query('Device')
   deviceQuery.equalTo('deviceNo', deviceNo)
   var query = new AV.Query('Order')
-  query.equalTo('user', user)
+  query.include('user')
   query.equalTo('status', ORDER_STATUS_OCCUPIED)
 
   return deviceQuery.first().then((device) => {
@@ -223,6 +222,7 @@ function finishOrder(deviceNo, userId, finishTime) {
   }).then((results) => {
     if(results.length === 1) {
       var order = results[0]
+      var user = order.attributes.user
       var duration = mathjs.eval((finishTime - order.attributes.start.valueOf()) * 0.001 / 60)
 
       duration = duration < 1? 1: Number(duration.toFixed(0))
@@ -232,7 +232,7 @@ function finishOrder(deviceNo, userId, finishTime) {
         mysqlConn = conn
         var deal = {
           to: 'platform',
-          from: userId,
+          from: user.id,
           cost: amount,
           deal_type: PingppFunc.SERVICE,
         }
