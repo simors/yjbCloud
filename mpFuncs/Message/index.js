@@ -4,6 +4,7 @@
 var Promise = require('bluebird')
 var GLOBAL_CONFIG = require('../../config')
 var wechat_api = require('../index').wechat_api
+var PingppFunc = require('../../cloudFuncs/Pingpp')
 
 /**
  * 发送充值成功模版消息
@@ -12,14 +13,21 @@ var wechat_api = require('../index').wechat_api
  * @param {Number} balance 用户余额
  * @param {Number} score 用户积分
  * @param {Date} payTime 充值时间
+ * @param {Number} type 支付类型
  */
-function sendRechargeTmpMsg(openid, amount, balance, score, payTime) {
+function sendRechargeTmpMsg(openid, amount, balance, score, payTime, type) {
   var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_RECHARGE
   var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine/wallet'
+  var title = ""
+  if(type === PingppFunc.RECHARGE) {
+    title = "尊敬的衣家宝用户，您已充值成功\n"
+  } else if(type === PingppFunc.DEPOSIT) {
+    title = "尊敬的衣家宝用户，您的押金已经支付成功\n"
+  }
 
   var data = {
     "first": {
-      "value":"尊敬的衣家宝用户，您已充值成功\n",
+      "value": title,
       "color":"#173177"
     },
     "keyword1": {
