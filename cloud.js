@@ -28,6 +28,7 @@ AV.Cloud.define('deviceChangeDeviceStatus', deviceFunc.changeDeviceStatus)
 AV.Cloud.define('stationCreateStation', stationFunc.createStation)
 AV.Cloud.define('stationFetchStations', stationFunc.fetchStations)
 AV.Cloud.define('stationUpdateStation', stationFunc.updateStation)
+AV.Cloud.define('stationFetchProfitSharing', stationFunc.fetchPartnerByStationId)
 
 
 //营销活动
