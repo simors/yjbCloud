@@ -293,20 +293,20 @@ function fetchInvestorByStationId(request, response) {
   var query = new AV.Query('ProfitSharing')
   query.equalTo('station', station)
   query.equalTo('type', 'investor')
-  if(status!=undefined){
-    query.equalTo('status',status)
+  if (status != undefined) {
+    query.equalTo('status', status)
   }
   query.include(['station', 'shareholder'])
-  if(username){
+  if (username) {
     var queryUser = new AV.Query('_User')
-    queryUser.equalTo('nickname',username)
-    queryUser.find().then((users)=>{
+    queryUser.equalTo('nickname', username)
+    queryUser.find().then((users)=> {
       var userList = []
-      users.forEach((user)=>{
-        var userInfo = AV.Object.createWithoutData('_User',user.id)
+      users.forEach((user)=> {
+        var userInfo = AV.Object.createWithoutData('_User', user.id)
         userList.push(userInfo)
       })
-      query.containedIn('shareholder',userList)
+      query.containedIn('shareholder', userList)
       query.find().then((sharings)=> {
         var sharingList = []
         sharings.forEach((sharing)=> {
@@ -317,7 +317,7 @@ function fetchInvestorByStationId(request, response) {
         response.error(err)
       })
     })
-  }else{
+  } else {
     query.find().then((sharings)=> {
       var sharingList = []
       sharings.forEach((sharing)=> {
@@ -350,7 +350,7 @@ function createInvestor(request, response) {
   queryPre.equalTo('station', station)
   queryPre.equalTo('status', 1)
   queryPre.equalTo('type', 'investor')
-  queryPre.first().then((item)=>{
+  queryPre.first().then((item)=> {
     if (item) {
       response.error(new Error("该服务点已有该投资人!"))
       return
@@ -399,7 +399,7 @@ function updateInvestor(request, response) {
   investor.set('royalty', royalty)
   investor.set('investment', investment)
   investor.set('type', 'investor')
-  if(status!=undefined){
+  if (status != undefined) {
     investor.set('status', status)
   }
   investor.save().then((item)=> {
