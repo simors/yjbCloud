@@ -315,7 +315,7 @@ function paymentEvent(request, response) {
   }).then(() => {
     response.success()
     return getWalletInfo(deal.from).then((walletInfo) => {
-      return mpMsgFuncs.sendRechargeTmpMsg(deal.openid, deal.cost, walletInfo.balance, walletInfo.score, new Date(payTime * 1000))
+      return mpMsgFuncs.sendRechargeTmpMsg(deal.openid, deal.cost, walletInfo.balance, walletInfo.score, new Date(payTime * 1000), deal.deal_type)
     })
   }).catch((error) => {
     console.log("paymentEvent", error)
