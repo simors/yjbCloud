@@ -196,7 +196,7 @@ function createDevice(deviceNo, onlineTime) {
       return device.save()
     }
   }).catch((error) => {
-    console.log("updateDeviceStatus", error)
+    console.log("createDevice", error)
     throw error
   })
 }
@@ -306,6 +306,23 @@ function getDeviceStatus(deviceNo) {
   })
 }
 
+/**[[
+ * 获取设备编号列表
+ */
+function getDeviceNoList() {
+  var query = new AV.Query('Device')
+  return query.find().then((results) => {
+    let deviceNoList = []
+    results.forEach((device) => {
+      deviceNoList.push(device.attributes.deviceNo)
+    })
+    return deviceNoList
+  }).catch((error) => {
+    console.log("getDeviceNoList", error)
+    throw error
+  })
+}
+
 function deviceFuncTest(request, response) {
 
 }
@@ -324,6 +341,7 @@ var deviceFunc = {
   createDevice: createDevice,
   updateDeviceStatus: updateDeviceStatus,
   changeDeviceStatus: changeDeviceStatus,
+  getDeviceNoList: getDeviceNoList,
   deviceFuncTest: deviceFuncTest,
 }
 

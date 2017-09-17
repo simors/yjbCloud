@@ -20,6 +20,27 @@ function connectEvent(connack) {
 
   client.subscribe('online')
   client.subscribe('offline')
+
+  //订阅所有设备的消息
+  deviceFunc.getDeviceNoList().then((deviceNoList) => {
+    deviceNoList.forEach((deviceNo) => {
+      var topics = []
+      topics.push('turnOnSuccess/' + deviceNo)  //开机成功消息
+      topics.push('turnOnFailed/' + deviceNo)
+      topics.push('turnOffSuccess/' + deviceNo)
+      topics.push('turnOffFailed/' + deviceNo)
+      topics.push('breakdown/' + deviceNo)
+      topics.push('finish/' + deviceNo)         //干衣结束消息
+
+      client.subscribe(topics, function (error) {
+        if(error) {
+          console.error("mqtt subscribe error", error)
+        }
+      })
+    })
+  }).catch((error) => {
+    console.error(error)
+  })
 }
 
 function messageEvent(topic, message, packet) {
@@ -161,18 +182,18 @@ function handleTurnOnSuccess(message) {
   var userId = Message.userId
   var turnOnTime = Message.time
   var status = Message.status
+  var orderInfo = undefined
 
   namespace.clients((error, client) => {
     if(client.indexOf(socketId) === -1) {
       //doNothing 多节点情况下
     } else {
-      //TODO 创建订单
-      orderFunc.createOrder(deviceNo, userId, turnOnTime).then((orderInfo) => {
-
+      orderFunc.createOrder(deviceNo, userId, turnOnTime).then((result) => {
+        orderInfo = result
+        return deviceFunc.updateDeviceStatus(deviceNo, deviceFunc.DEVICE_STATUS_OCCUPIED, new Date(turnOnTime))
+      }).then(() => {
         //websocket 发送开启成功消息
         namespace.to(socketId).emit(TURN_ON_DEVICE_SUCCESS, orderInfo)
-        //TODO 微信模版消息
-
       }).catch((error) => {
         console.log("handleTurnOnSuccess", error)
         //websocket 发送开启失败消息
@@ -235,7 +256,19 @@ function turnOffDevice(deviceNo, userId, socketId, orderId) {
   })
 }
 
-function handleTurnOffSuccess(message) {
+function socketIdVerify(namespace, socketId) {
+  return new Promise(function (resolve, reject) {
+    namespace.clients((error, client) => {
+      if(client.indexOf(socketId) === -1) {
+        //doNothing 多节点情况下
+        resolve(false)
+      }
+      resolve(true)
+    })
+  })
+}
+
+async function handleTurnOffSuccess(message) {
   var TURN_OFF_DEVICE_SUCCESS = require('../websocket/').TURN_OFF_DEVICE_SUCCESS
   var TURN_OFF_DEVICE_FAILED = require('../websocket').TURN_OFF_DEVICE_FAILED
   console.log("收到设备关机成功消息", message.toString())
@@ -247,19 +280,20 @@ function handleTurnOffSuccess(message) {
   var turnOffTime = Message.time
   var status = Message.status
 
-  namespace.clients((error, client) => {
-    if(client.indexOf(socketId) === -1) {
-      //doNothing 多节点情况下
+  try {
+    let socketIdValid = await socketIdVerify(namespace, socketId)
+    if(!socketIdValid) {
       return
     }
-    orderFunc.finishOrder(deviceNo, turnOffTime).then((orderInfo) => {
-      //websocket 发送关机成功消息
+    let orderInfo = await orderFunc.finishOrder(deviceNo, turnOffTime)
+    if(orderInfo) {
+      deviceFunc.updateDeviceStatus(deviceNo, deviceFunc.DEVICE_STATUS_IDLE, new Date(turnOffTime))
       namespace.to(socketId).emit(TURN_OFF_DEVICE_SUCCESS, orderInfo)
-    }).catch((error) => {
-      console.log("finishOrder", error)
-      namespace.to(socketId).emit(TURN_OFF_DEVICE_FAILED, {deviceNo: deviceNo})
-    })
-  })
+    }
+  } catch (error) {
+    console.log("finishOrder", error)
+    namespace.to(socketId).emit(TURN_OFF_DEVICE_FAILED, {deviceNo: deviceNo})
+  }
 }
 
 function handleTurnOffFailed(message) {
@@ -280,7 +314,7 @@ function handleTurnOffFailed(message) {
 
 
 //设备干衣结束
-function handleFinish(message) {
+async function handleFinish(message) {
   console.log("收到设备干衣结束消息", message.toString())
   var Message = JSON.parse(message.toString())
   var socketId = Message.socketId
@@ -289,43 +323,43 @@ function handleFinish(message) {
   var finishTime = Message.time
   var status = Message.status
 
-  orderFunc.finishOrder(deviceNo, finishTime).then((orderInfo) => {
+  try {
+    let orderInfo = await orderFunc.finishOrder(deviceNo, finishTime)
     if(!orderInfo) {
-      //结束订单失败
+      console.log("结束订单失败")
       return
     }
-    var user = AV.Object.createWithoutData('_User', userId)
-    user.fetch().then((leanUser) => {
-      var openid = leanUser.attributes.authData.weixin.openid
-      return mpMsgFunc.sendFinishTmpMsg(openid, orderInfo.id, orderInfo.orderNo, orderInfo.amount, orderInfo.deviceAddr)
-    }).catch((error) => {
-      throw error
-    })
-  }).catch((error) => {
+    deviceFunc.updateDeviceStatus(deviceNo, deviceFunc.DEVICE_STATUS_IDLE, new Date(finishTime))
+    let user = AV.Object.createWithoutData('_User', userId)
+
+    let leanUser = await user.fetch()
+    let openid = leanUser.attributes.authData.weixin.openid
+    mpMsgFunc.sendFinishTmpMsg(openid, orderInfo.id, orderInfo.orderNo, orderInfo.amount, orderInfo.deviceAddr)
+  } catch (error) {
     console.log("handleFinish", error)
-  })
+  }
 }
 
 //设备故障
-function handleBreakdown(message) {
+async function handleBreakdown(message) {
   console.log("收到设备故障消息", message.toString())
   var Message = JSON.parse(message.toString())
   var deviceNo = Message.deviceNo
   var errCode = Message.errCode
   var breakdownTime = Message.time
 
-  deviceFunc.getDeviceStatus(deviceNo).then((status) => {
-    if(status === deviceFunc.DEVICE_STATUS_OCCUPIED) {
-      return orderFunc.finishOrder(deviceNo, breakdownTime)
+  try {
+    let status = await deviceFunc.getDeviceStatus(deviceNo)
+    if(status != deviceFunc.DEVICE_STATUS_OCCUPIED) {
+      return
     }
-    return undefined
-  }).then((orderInfo) => {
-    if(orderInfo) {
-      //TODO 向正在使用的用户发送设备故障消息
-      
+    let orderInfo = await orderFunc.finishOrder(deviceNo, breakdownTime)
+    if(!orderInfo) {
+      return
     }
-    return undefined
-  }).then(() => {
+    deviceFunc.updateDeviceStatus(deviceNo, deviceFunc.DEVICE_STATUS_FAULT, new Date(breakdownTime))
+    //TODO 向正在使用的用户发送设备故障消息
+
     //TODO 短信通知网点管理员
     AV.Cloud.requestSmsCode({
       mobilePhoneNumber: '',
@@ -335,9 +369,9 @@ function handleBreakdown(message) {
       deviceNo: deviceNo,
       errCode: errCode,
     })
-  }).catch((error) => {
+  } catch (error) {
     console.log("handleBreakdown", error)
-  })
+  }
 }
 
 var mqttFunc = {

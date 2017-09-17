@@ -28,8 +28,6 @@ wechat_api.getLatestToken(function (err, token) {
 wechat_api.getTicket(function (err, result) {
   if(err) {
     console.warn("获取微信公众号js-sdk ticket失败", result.errmsg)
-  } else {
-    console.log("js-sdk ticket:", result)
   }
 })
 

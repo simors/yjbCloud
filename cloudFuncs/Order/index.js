@@ -204,10 +204,62 @@ function  orderPayment(request, response) {
   })
 
 }
+//
+// function finishOrder(deviceNo, finishTime) {
+//   var unitPrice = undefined
+//   var mysqlConn = undefined
+//   var order = undefined
+//   var amount = undefined
+//
+//   var deviceQuery = new AV.Query('Device')
+//   deviceQuery.equalTo('deviceNo', deviceNo)
+//   var query = new AV.Query('Order')
+//   query.include('user')
+//   query.equalTo('status', ORDER_STATUS_OCCUPIED)
+//
+//   return deviceQuery.first().then((device) => {
+//     unitPrice = Number(device.attributes.unitPrice)
+//     query.equalTo('device', device)
+//     return query.find()
+//   }).then((results) => {
+//     console.log("finishOrder", results)
+//     if(results.length === 1) {
+//       order = results[0]
+//       return mysqlUtil.getConnection()
+//     }
+//     return Promise.reject(new Error("未找到订单信息"))
+//   }).then((conn) => {
+//     var user = order.attributes.user
+//     var duration = mathjs.eval((finishTime - order.attributes.start.valueOf()) * 0.001 / 60)
+//
+//     duration = duration < 1? 1: Number(duration.toFixed(0))
+//     amount = mathjs.chain(unitPrice).multiply(duration).done()
+//     mysqlConn = conn
+//     var deal = {
+//       to: 'platform',
+//       from: user.id,
+//       cost: amount,
+//       deal_type: PingppFunc.SERVICE,
+//     }
+//     return PingppFunc.updateWalletInfo(mysqlConn, deal)
+//   }).then(() => {
+//     order.set('status', ORDER_STATUS_UNPAID)
+//     order.set('end', new Date(finishTime))
+//     order.set('amount', amount)
+//     return order.save()
+//   }).then((leanOrder) => {
+//     return getOrderInfo(leanOrder.id)
+//   }).catch((error) => {
+//     console.log("finishOrder", error)
+//     throw error
+//   }).finally(() => {
+//     if(mysqlConn) {
+//       mysqlUtil.release(mysqlConn)
+//     }
+//   })
+// }
 
-function finishOrder(deviceNo, finishTime) {
-  var unitPrice = undefined
-  var mysqlConn = undefined
+async function finishOrder(deviceNo, finishTime) {
 
   var deviceQuery = new AV.Query('Device')
   deviceQuery.equalTo('deviceNo', deviceNo)
@@ -215,46 +267,42 @@ function finishOrder(deviceNo, finishTime) {
   query.include('user')
   query.equalTo('status', ORDER_STATUS_OCCUPIED)
 
-  return deviceQuery.first().then((device) => {
-    unitPrice = Number(device.attributes.unitPrice)
-    query.equalTo('device', device)
-    return query.find()
-  }).then((results) => {
-    if(results.length === 1) {
-      var order = results[0]
-      var user = order.attributes.user
-      var duration = mathjs.eval((finishTime - order.attributes.start.valueOf()) * 0.001 / 60)
+  let device = await deviceQuery.first()
+  if(!device) {
+    throw new Error("未找到设备")
+  }
+  let unitPrice = Number(device.attributes.unitPrice)
+  query.equalTo('device', device)
+  let queryResults = await query.find()
+  if(queryResults.length != 1) {
+    throw new Error("订单信息有误")
+  }
+  let order = queryResults[0]
+  let user = order.attributes.user
+  let duration = mathjs.eval((finishTime - order.attributes.start.valueOf()) * 0.001 / 60)
+  duration = duration < 1? 1: Number(duration.toFixed(0))
+  let amount = mathjs.chain(unitPrice).multiply(duration).done()
 
-      duration = duration < 1? 1: Number(duration.toFixed(0))
-      var amount = mathjs.chain(unitPrice).multiply(duration).done()
+  let mysqlConn = await mysqlUtil.getConnection()
 
-      return mysqlUtil.getConnection().then((conn) => {
-        mysqlConn = conn
-        var deal = {
-          to: 'platform',
-          from: user.id,
-          cost: amount,
-          deal_type: PingppFunc.SERVICE,
-        }
-        return PingppFunc.updateWalletInfo(mysqlConn, deal)
-      }).then(() => {
-        order.set('status', ORDER_STATUS_UNPAID)
-        order.set('end', new Date(finishTime))
-        order.set('amount', amount)
-        return order.save()
-      }).then((leanOrder) => {
-        return getOrderInfo(leanOrder.id)
-      })
-    }
-    return Promise.reject(new Error("未找到订单信息"))
-  }).catch((error) => {
-    console.log("finishOrder", error)
-    throw error
-  }).finally(() => {
-    if(mysqlConn) {
-      mysqlUtil.release(mysqlConn)
-    }
-  })
+  let deal = {
+    to: 'platform',
+    from: user.id,
+    cost: amount,
+    deal_type: PingppFunc.SERVICE,
+  }
+
+  let result = await PingppFunc.updateWalletInfo(mysqlConn, deal)
+  order.set('status', ORDER_STATUS_UNPAID)
+  order.set('end', new Date(finishTime))
+  order.set('amount', amount)
+
+  let leanOrder = await order.save()
+  let orderInfo = await getOrderInfo(leanOrder.id)
+  if(mysqlConn) {
+    mysqlUtil.release(mysqlConn)
+  }
+  return orderInfo
 }
 
 function orderFuncTest(request, response) {
