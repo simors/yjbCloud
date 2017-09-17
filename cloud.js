@@ -29,6 +29,9 @@ AV.Cloud.define('stationCreateStation', stationFunc.createStation)
 AV.Cloud.define('stationFetchStations', stationFunc.fetchStations)
 AV.Cloud.define('stationUpdateStation', stationFunc.updateStation)
 AV.Cloud.define('stationFetchProfitSharing', stationFunc.fetchPartnerByStationId)
+AV.Cloud.define('stationFetchInvestor', stationFunc.fetchInvestorByStationId)
+AV.Cloud.define('stationCreateInvestor', stationFunc.createInvestor)
+AV.Cloud.define('stationUpdateInvestor', stationFunc.updateInvestor)
 
 
 //营销活动
