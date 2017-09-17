@@ -66,7 +66,29 @@ function createStation(request, response) {
     station.set('admin', admin)
 
     station.save().then((leanStation) => {
-      response.success(constructStationInfo(leanStation))
+      if(request.params.shareList && request.params.shareList.length>0){
+        var shareList =request.params.shareList
+        var promise = []
+        shareList.forEach((item)=>{
+          var Share = AV.Object.extend('ProfitSharing')
+          var share = new Share()
+          var station = AV.Object.createWithoutData('Station',leanStation.id)
+          share.set('station',station)
+          var partner = AV.Object.createWithoutData('_User',item.userId)
+          share.set('shareholder',partner)
+          share.set('type','partner')
+          share.set('royalty',item.royalty)
+          promise.push(share.save())
+        })
+        Promise.all(promise).then(()=>{
+          response.success(constructStationInfo(leanStation))
+        },(err)=>{
+          response.error(err)
+        })
+
+      }else{
+        response.success(constructStationInfo(leanStation))
+      }
     }).catch((error) => {
       console.log("createStation", error)
       response.error(error)
@@ -80,6 +102,7 @@ function createStation(request, response) {
  * @param {Object}  request
  * @param {Object}  response
  */
+
 function fetchStations(request, response) {
 
 }
@@ -89,6 +112,7 @@ function fetchStations(request, response) {
  * @param {Object}  request
  * @param {Object}  response
  */
+
 function updateStation(request, response) {
 
 }
