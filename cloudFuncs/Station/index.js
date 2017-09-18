@@ -23,6 +23,7 @@ function constructStationInfo(station) {
   stationInfo.adminId = admin.id
   stationInfo.adminName = admin.attributes.nickname
   stationInfo.adminPhone = admin.attributes.mobilePhoneNumber
+  stationInfo.status = station.attributes.status
 
   return stationInfo
 }
@@ -182,6 +183,7 @@ function fetchStations(request, response) {
 
 function updateStation(request, response) {
   var stationId = request.params.stationId
+  var status = request.params.status
   var name = request.params.name
   var addr = request.params.addr                      //详细地址
   var province = request.params.province              //省份
@@ -195,6 +197,7 @@ function updateStation(request, response) {
   var stationProp = request.params.stationProp        //服务网点分成比例
   var admin = AV.Object.createWithoutData('_User', adminId)
   var station = AV.Object.createWithoutData('Station', stationId)
+
   station.set('name', name)
   station.set('addr', addr)
   station.set('province', province)
@@ -206,6 +209,9 @@ function updateStation(request, response) {
   station.set('platformProp', platformProp)
   station.set('stationProp', stationProp)
   station.set('admin', admin)
+  if(status!=undefined){
+    station.set('status',status)
+  }
   station.save().then((leanStation) => {
     var query = new AV.Query('Station')
     query.include('admin')
@@ -415,14 +421,51 @@ function updateInvestor(request, response) {
   })
 }
 
+function openStation(request,response){
+  var stationId = request.params.stationId
+  var station = AV.Object.createWithoutData('Station',stationId)
+  station.set('status',1)
+  station.save().then((item)=>{
+    var query = new AV.Query('Station')
+    query.include(['admin'])
+    query.get(item.id).then((result)=>{
+      response.success(constructStationInfo(result))
+    },(err)=>{
+      response.error(err)
+    })
+  },(err)=>{
+    response.error(err)
+  })
+}
+
+function closeStation(request,response){
+  var stationId = request.params.stationId
+  var station = AV.Object.createWithoutData('Station',stationId)
+  station.set('status',0)
+  station.save().then((item)=>{
+    var query = new AV.Query('Station')
+    query.include(['admin'])
+    query.get(item.id).then((result)=>{
+      response.success(constructStationInfo(result))
+    },(err)=>{
+      response.error(err)
+    })
+  },(err)=>{
+    response.error(err)
+  })
+}
+
 var stationFunc = {
   createStation: createStation,
   fetchStations: fetchStations,
   updateStation: updateStation,
+  openStation: openStation,
+  closeStation: closeStation,
   fetchPartnerByStationId: fetchPartnerByStationId,
   fetchInvestorByStationId: fetchInvestorByStationId,
   createInvestor: createInvestor,
-  updateInvestor: updateInvestor
+  updateInvestor: updateInvestor,
+
 }
 
 module.exports = stationFunc
