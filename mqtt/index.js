@@ -9,6 +9,7 @@ var websocketIO = require('../websocketIO')
 var deviceFunc = require('../cloudFuncs/Device')
 var orderFunc = require('../cloudFuncs/Order')
 var mpMsgFunc = require('../mpFuncs/Message')
+var stationFunc = require('../cloudFuncs/Station')
 
 const namespace = websocketIO.of('/')
 
@@ -350,22 +351,27 @@ async function handleBreakdown(message) {
 
   try {
     let status = await deviceFunc.getDeviceStatus(deviceNo)
-    if(status != deviceFunc.DEVICE_STATUS_OCCUPIED) {
+    if(status === deviceFunc.DEVICE_STATUS_OCCUPIED) {
+      let orderInfo = await orderFunc.finishOrder(deviceNo, breakdownTime)
+      if(orderInfo) {
+        let user = AV.Object.createWithoutData('_User', orderInfo.userId)
+        let leanUser = await user.fetch()
+        let openid = leanUser.attributes.authData.weixin.openid
+        mpMsgFunc.sendDeviceFaultTmpMsg(openid, deviceNo, orderInfo.deviceAddr, new Date(breakdownTime), errCode)
+      }
+    }
+    let device = await deviceFunc.updateDeviceStatus(deviceNo, deviceFunc.DEVICE_STATUS_FAULT, new Date(breakdownTime))
+    if(!device) {
+      console.log("更新设备状态失败")
       return
     }
-    let orderInfo = await orderFunc.finishOrder(deviceNo, breakdownTime)
-    if(!orderInfo) {
-      return
-    }
-    deviceFunc.updateDeviceStatus(deviceNo, deviceFunc.DEVICE_STATUS_FAULT, new Date(breakdownTime))
-    //TODO 向正在使用的用户发送设备故障消息
-
-    //TODO 短信通知网点管理员
+    // 短信通知网点管理员
+    let stationInfo = await stationFunc.getStationInfoByDeviceNo(deviceNo)
     AV.Cloud.requestSmsCode({
-      mobilePhoneNumber: '',
+      mobilePhoneNumber: stationInfo.adminPhone,
       template: '衣家宝设备故障通知',
-      stationName: '',
-      admin: '',
+      stationName: stationInfo.name,
+      admin: stationInfo.adminName,
       deviceNo: deviceNo,
       errCode: errCode,
     })

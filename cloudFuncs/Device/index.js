@@ -210,7 +210,6 @@ function registerDevice(request, response) {
   var currentUser = request.currentUser
   var deviceNo = request.params.deviceNo
   var deviceAddr = request.params.deviceAddr
-  var unitPrice = request.params.unitPrice
   var stationId = request.params.stationId
 
   var query = new AV.Query('Device')
@@ -221,7 +220,6 @@ function registerDevice(request, response) {
     device.set('status', DEVICE_STATUS_IDLE)
     device.set('updateTime', new Date())
     device.set('deviceAddr', deviceAddr)
-    device.set('unitPrice', unitPrice)
     device.set('station', station)
 
     device.save().then((leanDevice) => {
@@ -342,6 +340,7 @@ var deviceFunc = {
   updateDeviceStatus: updateDeviceStatus,
   changeDeviceStatus: changeDeviceStatus,
   getDeviceNoList: getDeviceNoList,
+  registerDevice: registerDevice,
   deviceFuncTest: deviceFuncTest,
 }
 

@@ -415,6 +415,44 @@ function updateInvestor(request, response) {
   })
 }
 
+/**
+ * 通过设备编号获取服务网点信息
+ * @param {String}  deviceNo
+ */
+function getStationInfoByDeviceNo(deviceNo) {
+  let query = new AV.Query('Device')
+  query.equalTo('deviceNo', deviceNo)
+  query.include('station')
+  return query.find().then((results) => {
+    if(results.length != 1) {
+      return undefined
+    }
+    let device = results[0]
+    let station = device.attributes.station
+    if(!station) {
+      return undefined
+    }
+    let stationId = station.id
+    var query = new AV.Query('Station')
+    query.include('admin')
+    return query.get(stationId)
+  }).then((station) => {
+    return constructStationInfo(station)
+  }).catch((error) => {
+    console.error(error)
+    throw error
+  })
+}
+
+function stationFuncTest(request, response) {
+  var deviceNo = request.params.deviceNo
+  getStationInfoByDeviceNo(deviceNo).then((stationInfo) => {
+    response.success(stationInfo)
+  }).catch((error) => {
+    response.error(error)
+  })
+}
+
 var stationFunc = {
   createStation: createStation,
   fetchStations: fetchStations,
@@ -422,7 +460,9 @@ var stationFunc = {
   fetchPartnerByStationId: fetchPartnerByStationId,
   fetchInvestorByStationId: fetchInvestorByStationId,
   createInvestor: createInvestor,
-  updateInvestor: updateInvestor
+  updateInvestor: updateInvestor,
+  getStationInfoByDeviceNo: getStationInfoByDeviceNo,
+  stationFuncTest: stationFuncTest,
 }
 
 module.exports = stationFunc

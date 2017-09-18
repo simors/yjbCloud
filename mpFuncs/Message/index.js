@@ -195,6 +195,47 @@ function sendFinishTmpMsg(openid, orderId, orderNo, amount, deviceAddr) {
   })
 }
 
+/**
+ * 发送设备故障模版消息
+ * @param {String} openid 用户的openid
+ * @param {String} deviceNo 设备编号
+ * @param {String} deviceAddr 设备地址
+ * @param {Date} time 设备地址
+ * @param {String} reason 故障原因
+ * @param response
+ */
+function sendDeviceFaultTmpMsg(openid, deviceNo, deviceAddr, time, reason) {
+  var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_FAULT
+  var url = ""
+
+  var data = {
+    "first": {
+      "value":"您的干衣设备出现故障，请尽快取出衣物！\n",
+      "color":"#173177"
+    },
+    "keyword1": {   //设备编号
+      "value": deviceNo,
+      "color":"#173177"
+    },
+    "keyword2" : {  //故障位置
+      "value": deviceAddr,
+      "color":"#173177"
+    },
+    "keyword3" : {  //故障时间
+      "value": time.toLocaleString(),
+      "color":"#173177"
+    },
+    "keyword4" : {  //故障内容
+      "value": reason,
+      "color":"#173177"
+    },
+    "remark":{
+      "value":"\n如有问题请在衣家宝公众号内留言，小编将第一时间为您服务！",
+      "color":"#173177"
+    }
+  }
+}
+
 
 function wechatMessageTest(request, response) {
   console.log("wechatMessageTest", request.params)
@@ -217,6 +258,7 @@ var mpMsgFuncs = {
   sendTurnOnTmpMsg: sendTurnOnTmpMsg,
   sendOrderPaymentTmpMsg: sendOrderPaymentTmpMsg,
   sendFinishTmpMsg: sendFinishTmpMsg,
+  sendDeviceFaultTmpMsg: sendDeviceFaultTmpMsg,
   wechatMessageTest: wechatMessageTest
 }
 
