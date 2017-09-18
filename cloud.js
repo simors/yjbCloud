@@ -24,6 +24,7 @@ AV.Cloud.define('deviceGenerateDeviceQrcode', deviceFunc.generateDeviceQrcode)
 AV.Cloud.define('deviceFuncTest', deviceFunc.deviceFuncTest)
 AV.Cloud.define('deviceFetchDevices', deviceFunc.fetchDevices)
 AV.Cloud.define('deviceChangeDeviceStatus', deviceFunc.changeDeviceStatus)
+AV.Cloud.define('deviceRegisterDevice', deviceFunc.registerDevice)
 
 //服务网点
 AV.Cloud.define('stationCreateStation', stationFunc.createStation)
@@ -35,6 +36,7 @@ AV.Cloud.define('stationFetchProfitSharing', stationFunc.fetchPartnerByStationId
 AV.Cloud.define('stationFetchInvestor', stationFunc.fetchInvestorByStationId)
 AV.Cloud.define('stationCreateInvestor', stationFunc.createInvestor)
 AV.Cloud.define('stationUpdateInvestor', stationFunc.updateInvestor)
+AV.Cloud.define('stationFuncTest', stationFunc.stationFuncTest)
 
 
 //营销活动

@@ -275,7 +275,7 @@ async function finishOrder(deviceNo, finishTime) {
   query.equalTo('device', device)
   let queryResults = await query.find()
   if(queryResults.length != 1) {
-    throw new Error("订单信息有误")
+    return undefined
   }
   let order = queryResults[0]
   let user = order.attributes.user

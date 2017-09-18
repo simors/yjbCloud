@@ -209,8 +209,8 @@ function updateStation(request, response) {
   station.set('platformProp', platformProp)
   station.set('stationProp', stationProp)
   station.set('admin', admin)
-  if(status!=undefined){
-    station.set('status',status)
+  if (status != undefined) {
+    station.set('status', status)
   }
   station.save().then((leanStation) => {
     var query = new AV.Query('Station')
@@ -421,37 +421,74 @@ function updateInvestor(request, response) {
   })
 }
 
-function openStation(request,response){
+function openStation(request, response) {
   var stationId = request.params.stationId
-  var station = AV.Object.createWithoutData('Station',stationId)
-  station.set('status',1)
-  station.save().then((item)=>{
+  var station = AV.Object.createWithoutData('Station', stationId)
+  station.set('status', 1)
+  station.save().then((item)=> {
     var query = new AV.Query('Station')
     query.include(['admin'])
-    query.get(item.id).then((result)=>{
+    query.get(item.id).then((result)=> {
       response.success(constructStationInfo(result))
-    },(err)=>{
+    }, (err)=> {
       response.error(err)
     })
-  },(err)=>{
+  }, (err)=> {
     response.error(err)
   })
 }
 
-function closeStation(request,response){
+function closeStation(request, response) {
   var stationId = request.params.stationId
-  var station = AV.Object.createWithoutData('Station',stationId)
-  station.set('status',0)
-  station.save().then((item)=>{
+  var station = AV.Object.createWithoutData('Station', stationId)
+  station.set('status', 0)
+  station.save().then((item)=> {
     var query = new AV.Query('Station')
     query.include(['admin'])
-    query.get(item.id).then((result)=>{
+    query.get(item.id).then((result)=> {
       response.success(constructStationInfo(result))
-    },(err)=>{
+    }, (err)=> {
       response.error(err)
     })
-  },(err)=>{
+  }, (err)=> {
     response.error(err)
+  })
+}
+/**
+ * 通过设备编号获取服务网点信息
+ * @param {String}  deviceNo
+ */
+function getStationInfoByDeviceNo(deviceNo) {
+  let query = new AV.Query('Device')
+  query.equalTo('deviceNo', deviceNo)
+  query.include('station')
+  return query.find().then((results) => {
+    if (results.length != 1) {
+      return undefined
+    }
+    let device = results[0]
+    let station = device.attributes.station
+    if (!station) {
+      return undefined
+    }
+    let stationId = station.id
+    var query = new AV.Query('Station')
+    query.include('admin')
+    return query.get(stationId)
+  }).then((station) => {
+    return constructStationInfo(station)
+  }).catch((error) => {
+    console.error(error)
+    throw error
+  })
+}
+
+function stationFuncTest(request, response) {
+  var deviceNo = request.params.deviceNo
+  getStationInfoByDeviceNo(deviceNo).then((stationInfo) => {
+    response.success(stationInfo)
+  }).catch((error) => {
+    response.error(error)
   })
 }
 
@@ -465,7 +502,8 @@ var stationFunc = {
   fetchInvestorByStationId: fetchInvestorByStationId,
   createInvestor: createInvestor,
   updateInvestor: updateInvestor,
-
+  getStationInfoByDeviceNo: getStationInfoByDeviceNo,
+  stationFuncTest: stationFuncTest,
 }
 
 module.exports = stationFunc
