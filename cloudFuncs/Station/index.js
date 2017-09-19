@@ -24,6 +24,7 @@ function constructStationInfo(station) {
   stationInfo.adminName = admin.attributes.nickname
   stationInfo.adminPhone = admin.attributes.mobilePhoneNumber
   stationInfo.status = station.attributes.status
+  stationInfo.deviceNo = station.attributes.deviceNo
 
   return stationInfo
 }
