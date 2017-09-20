@@ -347,7 +347,7 @@ function createInvestor(request, response) {
   var stationId = request.params.stationId
   var userId = request.params.userId
   var investment = request.params.investment
-  var royalty = request.params.royalty
+  // var royalty = request.params.royalty
   var Investor = AV.Object.extend('ProfitSharing')
   var investor = new Investor()
   var station = AV.Object.createWithoutData('Station', stationId)
@@ -364,17 +364,44 @@ function createInvestor(request, response) {
     } else {
       investor.set('shareholder', user)
       investor.set('station', station)
-      investor.set('royalty', royalty)
+      // investor.set('royalty', royalty)
       investor.set('investment', investment)
       investor.set('type', 'investor')
       investor.set('status', 1)
       investor.save().then((item)=> {
-        var query = new AV.Query('ProfitSharing')
-        query.include(['shareholder', 'station'])
-        query.get(item.id).then((sharing)=> {
-          response.success(constructProfitSharing(sharing))
-        }, (err)=> {
-          response.error(err)
+        var queryStation = new AV.Query('Station')
+        queryStation.get(stationId).then((stationInfo)=> {
+          var investmentSum = stationInfo.attributes.investment
+          investmentSum = investmentSum + investment
+          station.set('investment', investmentSum)
+          station.save().then(()=> {
+            var query = new AV.Query('ProfitSharing')
+            query.include(['shareholder', 'station', 'station.admin'])
+            query.equalTo('station', station)
+            query.find().then((sharings)=> {
+              var shareList = []
+              sharings.forEach((share)=> {
+                var shareInfo = AV.Object.createWithoutData('ProfitSharing', share.id)
+                var royalty = Math.round(share.attributes.investment / investmentSum * 100) / 100.00
+                shareInfo.set('royalty', royalty)
+                shareList.push(shareInfo)
+              })
+              AV.Object.saveAll(shareList).then(()=> {
+                query.find().then((results)=> {
+                  if (results && results.length > 0) {
+                    var investors = []
+                    results.forEach((result)=> {
+                      investors.push(constructProfitSharing(result))
+                    })
+                    response.success(investors)
+                  }
+
+                })
+              })
+            }, (err)=> {
+              response.error(err)
+            })
+          })
         })
       }, (err)=> {
         response.error(err)
@@ -396,30 +423,62 @@ function updateInvestor(request, response) {
   var stationId = request.params.stationId
   var userId = request.params.userId
   var investment = request.params.investment
-  var royalty = request.params.royalty
+  // var royalty = request.params.royalty
   var status = request.params.status
   var investor = AV.Object.createWithoutData('ProfitSharing', investorId)
   var station = AV.Object.createWithoutData('Station', stationId)
   var user = AV.Object.createWithoutData('_User', userId)
-  investor.set('shareholder', user)
-  investor.set('station', station)
-  investor.set('royalty', royalty)
-  investor.set('investment', investment)
-  investor.set('type', 'investor')
-  if (status != undefined) {
-    investor.set('status', status)
-  }
-  investor.save().then((item)=> {
-    var query = new AV.Query('ProfitSharing')
-    query.include(['shareholder', 'station'])
-    query.get(item.id).then((sharing)=> {
-      response.success(constructProfitSharing(sharing))
+  var queryShare = new AV.Query('ProfitSharing')
+  queryShare.get(investorId).then((record)=> {
+    var preInvestment = record.attributes.investment
+    investor.set('shareholder', user)
+    investor.set('station', station)
+    // investor.set('royalty', royalty)
+    investor.set('investment', investment)
+    investor.set('type', 'investor')
+    if (status != undefined) {
+      investor.set('status', status)
+    }
+    investor.save().then((item)=> {
+      var queryStation = new AV.Query('Station')
+      queryStation.get(stationId).then((stationInfo)=> {
+        var investmentSum = stationInfo.attributes.investment
+        investmentSum = investmentSum + investment - preInvestment
+        station.set('investment', investmentSum)
+        station.save().then(()=> {
+          var query = new AV.Query('ProfitSharing')
+          query.include(['shareholder', 'station', 'station.admin'])
+          query.equalTo('station', station)
+          query.find().then((sharings)=> {
+            var shareList = []
+            sharings.forEach((share)=> {
+              var shareInfo = AV.Object.createWithoutData('ProfitSharing', share.id)
+              var royalty = Math.round(share.attributes.investment / investmentSum * 100) / 100.00
+              shareInfo.set('royalty', royalty)
+              shareList.push(shareInfo)
+            })
+            AV.Object.saveAll(shareList).then(()=> {
+              query.find().then((results)=> {
+                if (results && results.length > 0) {
+                  var investors = []
+                  results.forEach((result)=> {
+                    investors.push(constructProfitSharing(result))
+                  })
+                  response.success(investors)
+                }
+
+              })
+            })
+          }, (err)=> {
+            response.error(err)
+          })
+        })
+      })
     }, (err)=> {
       response.error(err)
     })
-  }, (err)=> {
-    response.error(err)
   })
+
 }
 
 function openStation(request, response) {
