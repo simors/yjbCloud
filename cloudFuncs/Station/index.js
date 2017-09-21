@@ -25,6 +25,7 @@ function constructStationInfo(station) {
   stationInfo.adminPhone = admin.attributes.mobilePhoneNumber
   stationInfo.status = station.attributes.status
   stationInfo.deviceNo = station.attributes.deviceNo
+  stationInfo.createdAt = station.createdAt
 
   return stationInfo
 }
@@ -43,6 +44,7 @@ function constructProfitSharing(profitSharing) {
   profitSharingInfo.sharehlderPhone = shareholder.attributes.mobilePhoneNumber
   profitSharingInfo.stationId = station.id
   profitSharingInfo.stationName = station.attributes.name
+  profitSharingInfo.createdAt = profitSharing.createdAt
   return profitSharingInfo
 }
 
