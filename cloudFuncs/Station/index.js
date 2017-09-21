@@ -5,10 +5,14 @@ var AV = require('leanengine');
 var Promise = require('bluebird')
 
 //服务点
-function constructStationInfo(station) {
-  var stationInfo = {}
+function constructStationInfo(station, includeAdmin) {
+  if(!station) {
+    return undefined
+  }
+  let constructUserInfo = require('../Auth').constructUserInfo
+  let stationInfo = {}
 
-  var admin = station.attributes.admin
+  let admin = station.attributes.admin
   stationInfo.id = station.id
   stationInfo.name = station.attributes.name
   stationInfo.addr = station.attributes.addr
@@ -20,9 +24,9 @@ function constructStationInfo(station) {
   stationInfo.powerUnitPrice = station.attributes.powerUnitPrice
   stationInfo.platformProp = station.attributes.platformProp
   stationInfo.stationProp = station.attributes.stationProp
-  stationInfo.adminId = admin.id
-  stationInfo.adminName = admin.attributes.nickname
-  stationInfo.adminPhone = admin.attributes.mobilePhoneNumber
+  if(includeAdmin) {
+    stationInfo.admin = constructUserInfo(admin)
+  }
   stationInfo.status = station.attributes.status
 
   return stationInfo
@@ -107,13 +111,13 @@ function createStation(request, response) {
             promise.push(share.save())
           })
           Promise.all(promise).then(()=> {
-            response.success(constructStationInfo(stationInfo))
+            response.success(constructStationInfo(stationInfo, true))
           }, (err)=> {
             response.error(err)
           })
 
         } else {
-          response.success(constructStationInfo(stationInfo))
+          response.success(constructStationInfo(stationInfo, true))
         }
       })
     }).catch((error) => {
@@ -166,7 +170,7 @@ function fetchStations(request, response) {
   query.find().then((stationList)=> {
     var stations = []
     stationList.forEach((record)=> {
-      var station = constructStationInfo(record)
+      var station = constructStationInfo(record, true)
       stations.push(station)
     })
     response.success(stations)
@@ -245,12 +249,12 @@ function updateStation(request, response) {
               promise.push(share.save())
             })
             Promise.all(promise).then(()=> {
-              response.success(constructStationInfo(stationInfo))
+              response.success(constructStationInfo(stationInfo, true))
             }, (err)=> {
               response.error(err)
             })
           } else {
-            response.success(constructStationInfo(stationInfo))
+            response.success(constructStationInfo(stationInfo, true))
           }
         })
       })
@@ -429,7 +433,7 @@ function openStation(request, response) {
     var query = new AV.Query('Station')
     query.include(['admin'])
     query.get(item.id).then((result)=> {
-      response.success(constructStationInfo(result))
+      response.success(constructStationInfo(result, true))
     }, (err)=> {
       response.error(err)
     })
@@ -446,7 +450,7 @@ function closeStation(request, response) {
     var query = new AV.Query('Station')
     query.include(['admin'])
     query.get(item.id).then((result)=> {
-      response.success(constructStationInfo(result))
+      response.success(constructStationInfo(result, true))
     }, (err)=> {
       response.error(err)
     })
@@ -476,7 +480,7 @@ function getStationInfoByDeviceNo(deviceNo) {
     query.include('admin')
     return query.get(stationId)
   }).then((station) => {
-    return constructStationInfo(station)
+    return constructStationInfo(station, true)
   }).catch((error) => {
     console.error(error)
     throw error
@@ -493,6 +497,7 @@ function stationFuncTest(request, response) {
 }
 
 var stationFunc = {
+  constructStationInfo: constructStationInfo,
   createStation: createStation,
   fetchStations: fetchStations,
   updateStation: updateStation,
