@@ -298,9 +298,13 @@ function fetchInvestorByStationId(request, response) {
   var stationId = request.params.stationId
   var status = request.params.status
   var username = request.params.username
-  var station = AV.Object.createWithoutData('Station', stationId)
+  var station = undefined
+
   var query = new AV.Query('ProfitSharing')
-  query.equalTo('station', station)
+  if(stationId){
+    station = AV.Object.createWithoutData('Station', stationId)
+    query.equalTo('station', station)
+  }
   query.equalTo('type', 'investor')
   if (status != undefined) {
     query.equalTo('status', status)
@@ -330,6 +334,7 @@ function fetchInvestorByStationId(request, response) {
     query.find().then((sharings)=> {
       var sharingList = []
       sharings.forEach((sharing)=> {
+        console.log('sharing===>',sharing.id)
         sharingList.push(constructProfitSharing(sharing))
       })
       response.success(sharingList)
