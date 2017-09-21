@@ -6,6 +6,30 @@ var mpAuthFuncs = require('../../mpFuncs/Auth')
 var PingppFunc = require('../Pingpp')
 var Promise = require('bluebird')
 
+function constructUserInfo(user) {
+  if(!user) {
+    return undefined
+  }
+  var userAttr = user.attributes
+  if(!userAttr) {
+    return undefined
+  }
+
+  var userInfo = {}
+  userInfo.id = user.id
+  userInfo.nickname = userAttr.nickname
+  userInfo.sex = userAttr.sex
+  userInfo.country = userAttr.country
+  userInfo.province = userAttr.province
+  userInfo.city = userAttr.city
+  userInfo.idNumber = userAttr.idNumber
+  userInfo.idName = userAttr.idName
+  userInfo.mobilePhoneNumber = userAttr.mobilePhoneNumber
+  userInfo.language = userAttr.language
+  userInfo.avatar = userAttr.avatar
+
+  return userInfo
+}
 
 function fetchUserInfo(request, response) {
   console.log("fetchUserInfo params", request.params)
@@ -109,6 +133,7 @@ function authFuncTest(request, response) {
 }
 
 var authFunc = {
+  constructUserInfo: constructUserInfo,
   fetchUserInfo: fetchUserInfo,
   authFuncTest: authFuncTest,
   isUserSignIn: isUserSignIn,

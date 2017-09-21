@@ -13,16 +13,19 @@ const DEVICE_STATUS_FAULT = 3         //故障
 const DEVICE_STATUS_MAINTAIN = 4      //维修保养
 const DEVICE_STATUS_UNREGISTER = 5    //未注册
 
-function constructDeviceInfo(device) {
+function constructDeviceInfo(device, includeStation) {
+  var constructStationInfo = require('../Station').constructStationInfo
   var deviceInfo = {}
   deviceInfo.id = device.id
   deviceInfo.deviceNo = device.attributes.deviceNo
   deviceInfo.status = device.attributes.status
-  deviceInfo.unitPrice = device.attributes.unitPrice
   deviceInfo.deviceAddr = device.attributes.deviceAddr
-  deviceInfo.onlineTime = device.attributes.onlineTime.valueOf()
-  deviceInfo.updateTime = device.attributes.updateTime.valueOf()
-
+  deviceInfo.onlineTime = device.attributes.onlineTime
+  deviceInfo.updateTime = device.attributes.updateTime
+  let station = device.attributes.station
+  if(includeStation && station) {
+    deviceInfo.station = constructStationInfo(station, false)
+  }
   return deviceInfo
 }
 
@@ -40,7 +43,6 @@ function getDeviceInfo(deviceId) {
     }
     deviceInfo.deviceNo = device.attributes.deviceNo
     deviceInfo.status = device.attributes.status
-    deviceInfo.unitPrice = device.attributes.unitPrice
     deviceInfo.deviceAddr = device.attributes.deviceAddr
     deviceInfo.onlineTime = device.attributes.onlineTime.valueOf()
     deviceInfo.updateTime = device.attributes.updateTime.valueOf()
@@ -95,7 +97,7 @@ function fetchDeviceInfo(request, response) {
 
   query.first().then((device) => {
     if(device) {
-      response.success(constructDeviceInfo(device))
+      response.success(constructDeviceInfo(device), false)
     } else {
       response.success()
     }
@@ -139,6 +141,7 @@ function fetchDevices(request, response) {
 
 
   var query = new AV.Query('Device')
+  query.include('station')
   if(deviceNo) {
     query.equalTo('deviceNo', deviceNo)
   }
@@ -158,9 +161,9 @@ function fetchDevices(request, response) {
   query.find().then((results) => {
     var deviceList = []
     results.forEach((leanDevice) => {
-      deviceList.push(constructDeviceInfo(leanDevice))
+      deviceList.push(constructDeviceInfo(leanDevice, true))
     })
-    response.success({devices: deviceList})
+    response.success(deviceList)
   }).catch((error) => {
     console.log('fetchDevices', error)
     response.error(error)
@@ -189,7 +192,6 @@ function createDevice(deviceNo, onlineTime) {
       device.set('onlineTime', onlineTime)
       device.set('updateTime', onlineTime)
       device.set('deviceAddr', "")
-      device.set('unitPrice', 0.1)    //设备计费单价：元／分钟
       device.set('status', DEVICE_STATUS_UNREGISTER)
 
       //TODO 通知管理平台新设备上线

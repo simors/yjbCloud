@@ -30,7 +30,6 @@ function constructOrderInfo(order) {
   orderInfo.userId = user.id
   orderInfo.deviceNo = device.attributes.deviceNo
   orderInfo.deviceAddr = device.attributes.deviceAddr
-  orderInfo.unitPrice = device.attributes.unitPrice
 
   return orderInfo
 }
@@ -55,7 +54,6 @@ function getOrderInfo(orderId) {
     orderInfo.userId = user.id
     orderInfo.deviceNo = device.attributes.deviceNo
     orderInfo.deviceAddr = device.attributes.deviceAddr
-    orderInfo.unitPrice = device.attributes.unitPrice
 
     return Promise.resolve(orderInfo)
   }).catch((error) => {
@@ -263,6 +261,7 @@ async function finishOrder(deviceNo, finishTime) {
 
   var deviceQuery = new AV.Query('Device')
   deviceQuery.equalTo('deviceNo', deviceNo)
+  deviceQuery.include('station')
   var query = new AV.Query('Order')
   query.include('user')
   query.equalTo('status', ORDER_STATUS_OCCUPIED)
@@ -271,7 +270,8 @@ async function finishOrder(deviceNo, finishTime) {
   if(!device) {
     throw new Error("未找到设备")
   }
-  let unitPrice = Number(device.attributes.unitPrice)
+  let station = device.attributes.station
+  let unitPrice = Number(station.attributes.unitPrice)
   query.equalTo('device', device)
   let queryResults = await query.find()
   if(queryResults.length != 1) {
