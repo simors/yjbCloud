@@ -36,6 +36,8 @@ AV.Cloud.define('stationFetchProfitSharing', stationFunc.fetchPartnerByStationId
 AV.Cloud.define('stationFetchInvestor', stationFunc.fetchInvestorByStationId)
 AV.Cloud.define('stationCreateInvestor', stationFunc.createInvestor)
 AV.Cloud.define('stationUpdateInvestor', stationFunc.updateInvestor)
+AV.Cloud.define('stationCloseInvestor', stationFunc.closeInvestor)
+AV.Cloud.define('stationOpenInvestor', stationFunc.openInvestor)
 AV.Cloud.define('stationFuncTest', stationFunc.stationFuncTest)
 
 
