@@ -149,7 +149,7 @@ function fetchDevices(request, response) {
     var station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
   }
-  if(status) {
+  if(status != undefined) {
     query.equalTo('status', status)
   }
   query.limit(limit)
