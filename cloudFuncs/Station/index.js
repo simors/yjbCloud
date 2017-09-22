@@ -48,6 +48,7 @@ function constructProfitSharing(profitSharing) {
   profitSharingInfo.sharehlderPhone = shareholder.attributes.mobilePhoneNumber
   profitSharingInfo.stationId = station.id
   profitSharingInfo.stationName = station.attributes.name
+  profitSharingInfo.status = profitSharing.attributes.status
   profitSharingInfo.createdAt = profitSharing.createdAt
   return profitSharingInfo
 }
@@ -389,6 +390,8 @@ function createInvestor(request, response) {
             var query = new AV.Query('ProfitSharing')
             query.include(['shareholder', 'station', 'station.admin'])
             query.equalTo('station', station)
+            query.equalTo('status', 1)
+            query.equalTo('type','investor')
             query.find().then((sharings)=> {
               var shareList = []
               sharings.forEach((share)=> {
@@ -460,6 +463,8 @@ function updateInvestor(request, response) {
           var query = new AV.Query('ProfitSharing')
           query.include(['shareholder', 'station', 'station.admin'])
           query.equalTo('station', station)
+          query.equalTo('status', 1)
+          query.equalTo('type','investor')
           query.find().then((sharings)=> {
             var shareList = []
             sharings.forEach((share)=> {
@@ -489,7 +494,6 @@ function updateInvestor(request, response) {
       response.error(err)
     })
   })
-
 }
 
 function openStation(request, response) {
@@ -506,6 +510,134 @@ function openStation(request, response) {
     })
   }, (err)=> {
     response.error(err)
+  })
+}
+
+/**
+ * 启用投资人
+ * @param {Object}  request
+ * @param {Object}  response
+ */
+
+function openInvestor(request, response) {
+  var investorId = request.params.investorId
+  // var stationId = request.params.stationId
+  // var royalty = request.params.royalty
+  var investor = AV.Object.createWithoutData('ProfitSharing', investorId)
+  var queryShare = new AV.Query('ProfitSharing')
+  queryShare.get(investorId).then((record)=> {
+    var preInvestment = record.attributes.investment
+    // console.log('record========>',record.attributes.station)
+    var station = AV.Object.createWithoutData('Station', record.attributes.station.id)
+    if(record.attributes.status==1){
+      response.error({message:'该投资人已经被启用'})
+      return
+    }
+    investor.set('status', 1)
+    investor.save().then((item)=> {
+      var queryStation = new AV.Query('Station')
+      queryStation.get(record.attributes.station.id).then((stationInfo)=> {
+        var investmentSum = stationInfo.attributes.investment
+        investmentSum = investmentSum  + preInvestment
+        station.set('investment', investmentSum)
+        station.save().then(()=> {
+          var query = new AV.Query('ProfitSharing')
+          query.include(['shareholder', 'station', 'station.admin'])
+          query.equalTo('station', station)
+          query.equalTo('status', 1)
+          query.equalTo('type','investor')
+          query.find().then((sharings)=> {
+            var shareList = []
+            sharings.forEach((share)=> {
+              var shareInfo = AV.Object.createWithoutData('ProfitSharing', share.id)
+              var royalty = Math.round(share.attributes.investment / investmentSum * 100) / 100.00
+              shareInfo.set('royalty', royalty)
+              shareList.push(shareInfo)
+            })
+            AV.Object.saveAll(shareList).then(()=> {
+              query.find().then((results)=> {
+                if (results && results.length > 0) {
+                  var investors = []
+                  results.forEach((result)=> {
+                    investors.push(constructProfitSharing(result))
+                  })
+                  response.success(investors)
+                }
+
+              })
+            })
+          }, (err)=> {
+            response.error(err)
+          })
+        })
+      })
+    }, (err)=> {
+      response.error(err)
+    })
+  })
+}
+
+/**
+ * 禁用投资人
+ * @param {Object}  request
+ * @param {Object}  response
+ */
+
+function closeInvestor(request, response) {
+  var investorId = request.params.investorId
+  // var stationId = request.params.stationId
+  // var royalty = request.params.royalty
+  var investor = AV.Object.createWithoutData('ProfitSharing', investorId)
+  var queryShare = new AV.Query('ProfitSharing')
+  queryShare.get(investorId).then((record)=> {
+    var preInvestment = record.attributes.investment
+    // console.log('record========>',record.attributes.station)
+    var station = AV.Object.createWithoutData('Station', record.attributes.station.id)
+    if(record.attributes.status==0){
+      response.error({message:'该投资人已经被禁用'})
+      return
+    }
+    investor.set('status', 0)
+    investor.save().then((item)=> {
+      var queryStation = new AV.Query('Station')
+      queryStation.get(record.attributes.station.id).then((stationInfo)=> {
+        var investmentSum = stationInfo.attributes.investment
+        investmentSum = investmentSum - preInvestment
+        station.set('investment', investmentSum)
+        station.save().then(()=> {
+          var query = new AV.Query('ProfitSharing')
+          query.include(['shareholder', 'station', 'station.admin'])
+          query.equalTo('station', station)
+          query.equalTo('status', 1)
+          query.equalTo('type','investor')
+          query.find().then((sharings)=> {
+            var shareList = []
+            sharings.forEach((share)=> {
+              var shareInfo = AV.Object.createWithoutData('ProfitSharing', share.id)
+              var royalty = Math.round(share.attributes.investment / investmentSum * 100) / 100.00
+              shareInfo.set('royalty', royalty)
+              shareList.push(shareInfo)
+            })
+            AV.Object.saveAll(shareList).then(()=> {
+              query.find().then((results)=> {
+                if (results && results.length > 0) {
+                  var investors = []
+                  results.forEach((result)=> {
+                    investors.push(constructProfitSharing(result))
+                  })
+                  response.success(investors)
+                }
+
+              })
+            })
+          }, (err)=> {
+            response.error(err)
+          })
+        })
+      })
+    }, (err)=> {
+      response.error(err)
+    })
   })
 }
 
@@ -576,6 +708,8 @@ var stationFunc = {
   updateInvestor: updateInvestor,
   getStationInfoByDeviceNo: getStationInfoByDeviceNo,
   stationFuncTest: stationFuncTest,
+  closeInvestor: closeInvestor,
+  openInvestor: openInvestor,
 }
 
 module.exports = stationFunc
