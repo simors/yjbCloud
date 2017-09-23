@@ -249,6 +249,7 @@ async function associateWithStation(request, response) {
   query.equalTo('deviceNo', deviceNo)
   query.first().then((device) => {
     device.set('station', station)
+    device.set('status', DEVICE_STATUS_MAINTAIN)
     return device.save()
   }).then((device) => {
     return query.get(device.id)
