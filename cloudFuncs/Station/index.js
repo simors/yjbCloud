@@ -36,7 +36,6 @@ function constructStationInfo(station, includeAdmin) {
 
 function constructProfitSharing(profitSharing) {
   var profitSharingInfo = {}
-
   var shareholder = profitSharing.attributes.shareholder
   var station = profitSharing.attributes.station
   profitSharingInfo.id = profitSharing.id
@@ -94,42 +93,17 @@ function createStation(request, response) {
     station.set('platformProp', platformProp)
     station.set('stationProp', stationProp)
     station.set('admin', admin)
-
     station.save().then((leanStation) => {
       var query = new AV.Query('Station')
       query.include('admin')
       query.get(leanStation.id).then((stationInfo)=> {
-        if (request.params.shareList && request.params.shareList.length > 0) {
-          var shareList = request.params.shareList
-          var promise = []
-          shareList.forEach((item)=> {
-            var Share = AV.Object.extend('ProfitSharing')
-            var share = new Share()
-            var station = AV.Object.createWithoutData('Station', leanStation.id)
-            share.set('station', station)
-            var partner = AV.Object.createWithoutData('_User', item.userId)
-            share.set('shareholder', partner)
-            share.set('type', 'partner')
-            share.set('royalty', item.royalty)
-            share.set('status', 1)
-            promise.push(share.save())
-          })
-          Promise.all(promise).then(()=> {
-            response.success(constructStationInfo(stationInfo, true))
-          }, (err)=> {
-            response.error(err)
-          })
-
-        } else {
-          response.success(constructStationInfo(stationInfo, true))
-        }
+        response.success(constructStationInfo(stationInfo, true))
       })
     }).catch((error) => {
       console.log("createStation", error)
       response.error(error)
     })
   })
-
 }
 
 /**
@@ -224,44 +198,7 @@ function updateStation(request, response) {
     var query = new AV.Query('Station')
     query.include('admin')
     query.get(leanStation.id).then((stationInfo)=> {
-      var querySharing = new AV.Query('ProfitSharing')
-      querySharing.equalTo('station', station)
-      querySharing.equalTo('status', 1)
-      querySharing.equalTo('type', 'partner')
-      querySharing.find().then((shares)=> {
-        var preShares = []
-        shares.forEach((share)=> {
-          // console.log('share=======>',share)
-          var shareInfo = AV.Object.createWithoutData('ProfitSharing', share.id)
-          shareInfo.set('status', 0)
-          preShares.push(shareInfo)
-        })
-        AV.Object.saveAll(preShares).then(()=> {
-          if (request.params.shareList && request.params.shareList.length > 0) {
-            var shareList = request.params.shareList
-            var promise = []
-            shareList.forEach((item)=> {
-              var Share = AV.Object.extend('ProfitSharing')
-              var share = new Share()
-              var station = AV.Object.createWithoutData('Station', leanStation.id)
-              share.set('station', station)
-              var partner = AV.Object.createWithoutData('_User', item.userId)
-              share.set('shareholder', partner)
-              share.set('type', 'partner')
-              share.set('royalty', item.royalty)
-              share.set('status', 1)
-              promise.push(share.save())
-            })
-            Promise.all(promise).then(()=> {
-              response.success(constructStationInfo(stationInfo, true))
-            }, (err)=> {
-              response.error(err)
-            })
-          } else {
-            response.success(constructStationInfo(stationInfo, true))
-          }
-        })
-      })
+      response.success(constructStationInfo(stationInfo, true))
     })
   }).catch((error) => {
     console.log("createStation", error)
@@ -347,6 +284,81 @@ function fetchInvestorByStationId(request, response) {
       response.error(err)
     })
   }
+}
+
+/**
+ * 新建分成方信息
+ * @param {Object}  request
+ * @param {Object}  response
+ */
+
+async function createPartner(request,response) {
+  try{
+    let royalty = request.params.royalty
+    let userId = request.params.userId
+    let stationId = request.params.stationId
+    let user = AV.Object.createWithoutData('_User', userId)
+    let station = AV.Object.createWithoutData('Station', stationId)
+    let query = new AV.Query('ProfitSharing')
+    query.equalTo('station', station)
+    query.equalTo('shareholder', user)
+    query.equalTo('type', 'partner')
+    let prePartner = await query.first()
+    let status = request.params.status
+    console.log('prePartne===>',prePartner)
+    if(prePartner){
+      response.error(new Error('已经存在该分成方'))
+      return
+    }
+    let Partner = AV.Object.extend('ProfitSharing')
+    let partner = new Partner()
+    partner.set('shareholder', user)
+    partner.set('station', station)
+    partner.set('royalty', royalty)
+    partner.set('status', status)
+    partner.set('type', 'partner')
+    let newPartner = await partner.save()
+    let queryNew = new AV.Query('ProfitSharing')
+    queryNew.include('admin')
+    let finPartner = await queryNew.get(newPartner.id)
+    response.success(constructProfitSharing(finPartner,true))
+  }catch (err){
+    response.error(err)
+  }
+
+}
+
+/**
+ * 更新分成方信息
+ * @param {Object}  request
+ * @param {Object}  response
+ */
+
+async function updatePartner(request,response) {
+  try{
+    let royalty = request.params.royalty
+    let userId = request.params.userId
+    let stationId = request.params.stationId
+    let partnerId = request.params.partnerId
+    let user = AV.Object.createWithoutData('_User', userId)
+    let station = AV.Object.createWithoutData('Station', stationId)
+    let status = request.params.status
+
+    let partner = AV.Object.createWithoutData('ProfitSharing',partnerId)
+    partner.set('shareholder', user)
+    partner.set('station', station)
+    partner.set('royalty', royalty)
+    partner.set('status', status)
+    partner.set('type', 'partner')
+    let newPartner = await partner.save()
+    let queryNew = new AV.Query('ProfitSharing')
+    queryNew.include('admin')
+    let finPartner = await queryNew.get(newPartner.id)
+    response.success(constructProfitSharing(finPartner,true))
+  }catch (err){
+    response.error(err)
+  }
+
 }
 
 /**
@@ -710,6 +722,8 @@ var stationFunc = {
   stationFuncTest: stationFuncTest,
   closeInvestor: closeInvestor,
   openInvestor: openInvestor,
+  createPartner: createPartner,
+  updatePartner: updatePartner,
 }
 
 module.exports = stationFunc
