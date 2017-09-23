@@ -123,13 +123,13 @@ function fetchStations(request, response) {
   var lastCreatedAt = request.params.lastCreatedAt
   var query = new AV.Query('Station')
   if (province) {
-    query.equalTo('province', province)
+    query.equalTo('province.value', province)
   }
   if (city) {
-    query.equalTo('city', city)
+    query.equalTo('city.value', city)
   }
   if (area) {
-    query.equalTo('area', area)
+    query.equalTo('area.value', area)
   }
   if (name) {
     query.equalTo('name', name)
