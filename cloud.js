@@ -41,6 +41,8 @@ AV.Cloud.define('stationOpenInvestor', stationFunc.openInvestor)
 AV.Cloud.define('stationFuncTest', stationFunc.stationFuncTest)
 AV.Cloud.define('stationCreatePartner', stationFunc.createPartner)
 AV.Cloud.define('stationUpdatePartner', stationFunc.updatePartner)
+AV.Cloud.define('stationOpenPartner', stationFunc.openPartner)
+AV.Cloud.define('stationClosePartner', stationFunc.closePartner)
 
 //营销活动
 AV.Cloud.define('activityIncrActivityPageView', activityFunc.incrActivityPageView)

@@ -6,7 +6,7 @@ var Promise = require('bluebird')
 
 //服务点
 function constructStationInfo(station, includeAdmin) {
-  if(!station) {
+  if (!station) {
     return undefined
   }
   let constructUserInfo = require('../Auth').constructUserInfo
@@ -24,7 +24,7 @@ function constructStationInfo(station, includeAdmin) {
   stationInfo.powerUnitPrice = station.attributes.powerUnitPrice
   stationInfo.platformProp = station.attributes.platformProp
   stationInfo.stationProp = station.attributes.stationProp
-  if(includeAdmin) {
+  if (includeAdmin) {
     stationInfo.admin = constructUserInfo(admin)
   }
   stationInfo.status = station.attributes.status
@@ -243,7 +243,7 @@ function fetchInvestorByStationId(request, response) {
   var station = undefined
 
   var query = new AV.Query('ProfitSharing')
-  if(stationId){
+  if (stationId) {
     station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
   }
@@ -276,7 +276,7 @@ function fetchInvestorByStationId(request, response) {
     query.find().then((sharings)=> {
       var sharingList = []
       sharings.forEach((sharing)=> {
-        console.log('sharing===>',sharing.id)
+        console.log('sharing===>', sharing.id)
         sharingList.push(constructProfitSharing(sharing))
       })
       response.success(sharingList)
@@ -292,8 +292,8 @@ function fetchInvestorByStationId(request, response) {
  * @param {Object}  response
  */
 
-async function createPartner(request,response) {
-  try{
+async function createPartner(request, response) {
+  try {
     let royalty = request.params.royalty
     let userId = request.params.userId
     let stationId = request.params.stationId
@@ -305,8 +305,8 @@ async function createPartner(request,response) {
     query.equalTo('type', 'partner')
     let prePartner = await query.first()
     let status = request.params.status
-    console.log('prePartne===>',prePartner)
-    if(prePartner){
+    console.log('prePartne===>', prePartner)
+    if (prePartner) {
       response.error(new Error('已经存在该分成方'))
       return
     }
@@ -319,10 +319,10 @@ async function createPartner(request,response) {
     partner.set('type', 'partner')
     let newPartner = await partner.save()
     let queryNew = new AV.Query('ProfitSharing')
-    queryNew.include('admin')
+    queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
-    response.success(constructProfitSharing(finPartner,true))
-  }catch (err){
+    response.success(constructProfitSharing(finPartner, true))
+  } catch (err) {
     response.error(err)
   }
 
@@ -334,8 +334,8 @@ async function createPartner(request,response) {
  * @param {Object}  response
  */
 
-async function updatePartner(request,response) {
-  try{
+async function updatePartner(request, response) {
+  try {
     let royalty = request.params.royalty
     let userId = request.params.userId
     let stationId = request.params.stationId
@@ -344,7 +344,7 @@ async function updatePartner(request,response) {
     let station = AV.Object.createWithoutData('Station', stationId)
     let status = request.params.status
 
-    let partner = AV.Object.createWithoutData('ProfitSharing',partnerId)
+    let partner = AV.Object.createWithoutData('ProfitSharing', partnerId)
     partner.set('shareholder', user)
     partner.set('station', station)
     partner.set('royalty', royalty)
@@ -352,10 +352,10 @@ async function updatePartner(request,response) {
     partner.set('type', 'partner')
     let newPartner = await partner.save()
     let queryNew = new AV.Query('ProfitSharing')
-    queryNew.include('admin')
+    queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
-    response.success(constructProfitSharing(finPartner,true))
-  }catch (err){
+    response.success(constructProfitSharing(finPartner, true))
+  } catch (err) {
     response.error(err)
   }
 
@@ -403,7 +403,7 @@ function createInvestor(request, response) {
             query.include(['shareholder', 'station', 'station.admin'])
             query.equalTo('station', station)
             query.equalTo('status', 1)
-            query.equalTo('type','investor')
+            query.equalTo('type', 'investor')
             query.find().then((sharings)=> {
               var shareList = []
               sharings.forEach((share)=> {
@@ -476,7 +476,7 @@ function updateInvestor(request, response) {
           query.include(['shareholder', 'station', 'station.admin'])
           query.equalTo('station', station)
           query.equalTo('status', 1)
-          query.equalTo('type','investor')
+          query.equalTo('type', 'investor')
           query.find().then((sharings)=> {
             var shareList = []
             sharings.forEach((share)=> {
@@ -508,6 +508,12 @@ function updateInvestor(request, response) {
   })
 }
 
+/**
+ * 启用服务点
+ * @param {Object}  request
+ * @param {Object}  response
+ */
+
 function openStation(request, response) {
   var stationId = request.params.stationId
   var station = AV.Object.createWithoutData('Station', stationId)
@@ -517,6 +523,52 @@ function openStation(request, response) {
     query.include(['admin'])
     query.get(item.id).then((result)=> {
       response.success(constructStationInfo(result, true))
+    }, (err)=> {
+      response.error(err)
+    })
+  }, (err)=> {
+    response.error(err)
+  })
+}
+
+/**
+ * 启用分成方
+ * @param {Object}  request
+ * @param {Object}  response
+ */
+
+function openPartner(request, response) {
+  var partnerId = request.params.partnerId
+  var partner = AV.Object.createWithoutData('ProfitSharing', partnerId)
+  partner.set('status', 1)
+  partner.save().then((item)=> {
+    var query = new AV.Query('ProfitSharing')
+    query.include(['station', 'shareholder'])
+    query.get(item.id).then((result)=> {
+      response.success(constructProfitSharing(result))
+    }, (err)=> {
+      response.error(err)
+    })
+  }, (err)=> {
+    response.error(err)
+  })
+}
+
+/**
+ * 禁用分成方
+ * @param {Object}  request
+ * @param {Object}  response
+ */
+
+function closePartner(request, response) {
+  var partnerId = request.params.partnerId
+  var partner = AV.Object.createWithoutData('ProfitSharing', partnerId)
+  partner.set('status', 0)
+  partner.save().then((item)=> {
+    var query = new AV.Query('ProfitSharing')
+    query.include(['station', 'shareholder'])
+    query.get(item.id).then((result)=> {
+      response.success(constructProfitSharing(result))
     }, (err)=> {
       response.error(err)
     })
@@ -541,8 +593,8 @@ function openInvestor(request, response) {
     var preInvestment = record.attributes.investment
     // console.log('record========>',record.attributes.station)
     var station = AV.Object.createWithoutData('Station', record.attributes.station.id)
-    if(record.attributes.status==1){
-      response.error({message:'该投资人已经被启用'})
+    if (record.attributes.status == 1) {
+      response.error({message: '该投资人已经被启用'})
       return
     }
     investor.set('status', 1)
@@ -550,14 +602,14 @@ function openInvestor(request, response) {
       var queryStation = new AV.Query('Station')
       queryStation.get(record.attributes.station.id).then((stationInfo)=> {
         var investmentSum = stationInfo.attributes.investment
-        investmentSum = investmentSum  + preInvestment
+        investmentSum = investmentSum + preInvestment
         station.set('investment', investmentSum)
         station.save().then(()=> {
           var query = new AV.Query('ProfitSharing')
           query.include(['shareholder', 'station', 'station.admin'])
           query.equalTo('station', station)
           query.equalTo('status', 1)
-          query.equalTo('type','investor')
+          query.equalTo('type', 'investor')
           query.find().then((sharings)=> {
             var shareList = []
             sharings.forEach((share)=> {
@@ -605,8 +657,8 @@ function closeInvestor(request, response) {
     var preInvestment = record.attributes.investment
     // console.log('record========>',record.attributes.station)
     var station = AV.Object.createWithoutData('Station', record.attributes.station.id)
-    if(record.attributes.status==0){
-      response.error({message:'该投资人已经被禁用'})
+    if (record.attributes.status == 0) {
+      response.error({message: '该投资人已经被禁用'})
       return
     }
     investor.set('status', 0)
@@ -621,7 +673,7 @@ function closeInvestor(request, response) {
           query.include(['shareholder', 'station', 'station.admin'])
           query.equalTo('station', station)
           query.equalTo('status', 1)
-          query.equalTo('type','investor')
+          query.equalTo('type', 'investor')
           query.find().then((sharings)=> {
             var shareList = []
             sharings.forEach((share)=> {
@@ -724,6 +776,8 @@ var stationFunc = {
   openInvestor: openInvestor,
   createPartner: createPartner,
   updatePartner: updatePartner,
+  openPartner: openPartner,
+  closePartner: closePartner,
 }
 
 module.exports = stationFunc
