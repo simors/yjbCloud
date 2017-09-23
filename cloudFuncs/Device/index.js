@@ -234,6 +234,34 @@ function registerDevice(request, response) {
 }
 
 /**
+ * 关联设备和服务网点
+ * @param {Object}  request
+ * @param {Object}  response
+ */
+async function associateWithStation(request, response) {
+  var currentUser = request.currentUser
+  let stationId = request.params.stationId
+  var deviceNo = request.params.deviceNo
+
+  let station = AV.Object.createWithoutData('Station', stationId)
+  var query = new AV.Query('Device')
+  query.include('station')
+  query.equalTo('deviceNo', deviceNo)
+  query.first().then((device) => {
+    device.set('station', station)
+    return device.save()
+  }).then((device) => {
+    return query.get(device.id)
+  }).then((device) => {
+    response.success(constructDeviceInfo(device, true))
+  }).catch((error) => {
+    console.log("associateWithStation", error)
+    response.success(error)
+  })
+
+}
+
+/**
  * 批量修改设备状态
  * @param {Object}  request
  * @param {Object}  response
@@ -343,6 +371,7 @@ var deviceFunc = {
   changeDeviceStatus: changeDeviceStatus,
   getDeviceNoList: getDeviceNoList,
   registerDevice: registerDevice,
+  associateWithStation: associateWithStation,
   deviceFuncTest: deviceFuncTest,
 }
 
