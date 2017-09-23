@@ -44,8 +44,8 @@ function constructProfitSharing(profitSharing) {
   profitSharingInfo.royalty = profitSharing.attributes.royalty
   profitSharingInfo.investment = profitSharing.attributes.investment
   profitSharingInfo.shareholderId = shareholder.id
-  profitSharingInfo.sharehlderName = shareholder.attributes.nickname
-  profitSharingInfo.sharehlderPhone = shareholder.attributes.mobilePhoneNumber
+  profitSharingInfo.shareholderName = shareholder.attributes.nickname
+  profitSharingInfo.shareholderPhone = shareholder.attributes.mobilePhoneNumber
   profitSharingInfo.stationId = station.id
   profitSharingInfo.stationName = station.attributes.name
   profitSharingInfo.status = profitSharing.attributes.status
