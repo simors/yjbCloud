@@ -666,6 +666,7 @@ function closeInvestor(request, response) {
       return
     }
     investor.set('status', 0)
+    investor.set('royalty', 0)
     investor.save().then((item)=> {
       var queryStation = new AV.Query('Station')
       queryStation.get(record.attributes.station.id).then((stationInfo)=> {
