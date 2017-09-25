@@ -469,7 +469,7 @@ function updateInvestor(request, response) {
       var queryStation = new AV.Query('Station')
       queryStation.get(stationId).then((stationInfo)=> {
         var investmentSum = stationInfo.attributes.investment
-        if(stationInfo.attributes.status==1){
+        if (stationInfo.attributes.status == 1) {
           investmentSum = investmentSum + investment - preInvestment
           station.set('investment', investmentSum)
         }
@@ -495,8 +495,9 @@ function updateInvestor(request, response) {
                     investors.push(constructProfitSharing(result))
                   })
                   response.success(investors)
+                } else {
+                  response.success()
                 }
-
               })
             })
           }, (err)=> {
@@ -628,8 +629,9 @@ function openInvestor(request, response) {
                     investors.push(constructProfitSharing(result))
                   })
                   response.success(investors)
+                } else {
+                  response.success()
                 }
-
               })
             })
           }, (err)=> {
@@ -692,6 +694,8 @@ function closeInvestor(request, response) {
                     investors.push(constructProfitSharing(result))
                   })
                   response.success(investors)
+                } else {
+                  response.success()
                 }
 
               })
