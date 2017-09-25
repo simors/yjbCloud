@@ -74,8 +74,8 @@ function createStation(request, response) {
   var query = new AV.Query('Station')
   query.equalTo('name', name)
 
-  query.first().then((station) => {
-    if (station) {
+  query.first().then((stationRecord) => {
+    if (stationRecord) {
       response.error(new Error("服务网点名字重复"))
       return
     }
@@ -469,8 +469,10 @@ function updateInvestor(request, response) {
       var queryStation = new AV.Query('Station')
       queryStation.get(stationId).then((stationInfo)=> {
         var investmentSum = stationInfo.attributes.investment
-        investmentSum = investmentSum + investment - preInvestment
-        station.set('investment', investmentSum)
+        if(stationInfo.attributes.status==1){
+          investmentSum = investmentSum + investment - preInvestment
+          station.set('investment', investmentSum)
+        }
         station.save().then(()=> {
           var query = new AV.Query('ProfitSharing')
           query.include(['shareholder', 'station', 'station.admin'])
