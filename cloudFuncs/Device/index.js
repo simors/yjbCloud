@@ -352,11 +352,44 @@ function getDeviceNoList() {
   })
 }
 
+/**
+ * 更新设备信息
+ * @param {Object}  request
+ * @param {Object}  response
+ */
+function updateDevice(request, response) {
+  var currentUser = request.currentUser
+  let deviceNo = request.params.deviceNo
+  let stationId = request.params.stationId
+  let deviceAddr = request.params.deviceAddr
+  let status = Number(request.params.status)
+
+  let station = AV.Object.createWithoutData('Station', stationId)
+  var query = new AV.Query('Device')
+  query.include('station')
+  query.equalTo('deviceNo', deviceNo)
+  query.first().then((device) => {
+    device.set('station', station)
+    device.set('deviceAddr', deviceAddr)
+    device.set('status', status)
+    return device.save()
+  }).then((device) => {
+    return query.get(device.id)
+  }).then((device) => {
+    response.success(constructDeviceInfo(device, true))
+  }).catch((error) => {
+    console.log("updateDevice", error)
+    response.success(error)
+  })
+
+}
+
 function deviceFuncTest(request, response) {
 
 }
 
 var deviceFunc = {
+  constructDeviceInfo: constructDeviceInfo,
   DEVICE_STATUS_IDLE: DEVICE_STATUS_IDLE,
   DEVICE_STATUS_OCCUPIED: DEVICE_STATUS_OCCUPIED,
   DEVICE_STATUS_MAINTAIN: DEVICE_STATUS_MAINTAIN,
@@ -373,6 +406,7 @@ var deviceFunc = {
   getDeviceNoList: getDeviceNoList,
   registerDevice: registerDevice,
   associateWithStation: associateWithStation,
+  updateDevice: updateDevice,
   deviceFuncTest: deviceFuncTest,
 }
 

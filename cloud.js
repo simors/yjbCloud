@@ -26,6 +26,7 @@ AV.Cloud.define('deviceFetchDevices', deviceFunc.fetchDevices)
 AV.Cloud.define('deviceChangeDeviceStatus', deviceFunc.changeDeviceStatus)
 AV.Cloud.define('deviceRegisterDevice', deviceFunc.registerDevice)
 AV.Cloud.define('deviceAssociateWithStation', deviceFunc.associateWithStation)
+AV.Cloud.define('deviceUpdateDevice', deviceFunc.updateDevice)
 
 //服务网点
 AV.Cloud.define('stationCreateStation', stationFunc.createStation)
@@ -61,6 +62,7 @@ AV.Cloud.define('pingppTransferEvent', PingppFunc.transferEvent)
 AV.Cloud.define('orderFuncTest', orderFunc.orderFuncTest)
 AV.Cloud.define('orderFetchOrdersByStatus', orderFunc.fetchOrdersByStatus)
 AV.Cloud.define('orderOrderPayment', orderFunc.orderPayment)
+AV.Cloud.define('orderFetchOrders', orderFunc.fetchOrders)
 
 //微信
 AV.Cloud.define('getJsConfig', mpJsSdkFuncs.getJsConfig)

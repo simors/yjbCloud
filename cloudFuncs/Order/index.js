@@ -14,15 +14,17 @@ const ORDER_STATUS_UNPAID = 0  //未支付
 const ORDER_STATUS_OCCUPIED = 1 //使用中
 const ORDER_STATUS_PAID = 2 //已支付
 
-function constructOrderInfo(order) {
-  var orderInfo = {}
+function constructOrderInfo(order, includeDevice, includeUser) {
+  let constructDeviceInfo = require('../Device').constructDeviceInfo
+  let constructUserInfo = require('../Auth').constructUserInfo
+  let orderInfo = {}
   orderInfo.id = order.id
   orderInfo.orderNo = order.attributes.order_no
   orderInfo.amount = order.attributes.amount
   if(order.attributes.start)
-    orderInfo.createTime = order.attributes.start.valueOf()
+    orderInfo.createTime = order.attributes.start
   if(order.attributes.end)
-    orderInfo.endTime = order.attributes.end.valueOf()
+    orderInfo.endTime = order.attributes.end
   orderInfo.status = order.attributes.status
 
   var user = order.attributes.user
@@ -30,7 +32,12 @@ function constructOrderInfo(order) {
   orderInfo.userId = user.id
   orderInfo.deviceNo = device.attributes.deviceNo
   orderInfo.deviceAddr = device.attributes.deviceAddr
-
+  if(includeDevice) {
+    orderInfo.device = constructDeviceInfo(device, true)
+  }
+  if(includeUser) {
+    orderInfo.user = constructUserInfo(user)
+  }
   return orderInfo
 }
 
@@ -115,7 +122,7 @@ function fetchOrdersByStatus(request, response) {
   query.find().then((results) => {
     var orderList = []
     results.forEach((leanOrder) => {
-      orderList.push(constructOrderInfo(leanOrder))
+      orderList.push(constructOrderInfo(leanOrder, true, true))
     })
     response.success({orders: orderList})
   }).catch((error) => {
@@ -137,12 +144,16 @@ function updateOrderStatus(orderId, status, endTime, amount) {
     order.set('payTime', new Date(updateTime))
   }
   return order.save().then((leanOrder) => {
-    return getOrderInfo(leanOrder.id)
+    let query = new AV.Query('Order')
+    query.include('device')
+    query.include('user')
+    return query.get(leanOrder.id)
+  }).then((leanOrder) => {
+    return constructOrderInfo(leanOrder, true, true)
   })
 }
 
 function  orderPayment(request, response) {
-  console.log("orderPayment params:", request.params)
   var amount = Number(request.params.amount)
   var userId = request.params.userId
   var orderId = request.params.orderId
@@ -202,60 +213,6 @@ function  orderPayment(request, response) {
   })
 
 }
-//
-// function finishOrder(deviceNo, finishTime) {
-//   var unitPrice = undefined
-//   var mysqlConn = undefined
-//   var order = undefined
-//   var amount = undefined
-//
-//   var deviceQuery = new AV.Query('Device')
-//   deviceQuery.equalTo('deviceNo', deviceNo)
-//   var query = new AV.Query('Order')
-//   query.include('user')
-//   query.equalTo('status', ORDER_STATUS_OCCUPIED)
-//
-//   return deviceQuery.first().then((device) => {
-//     unitPrice = Number(device.attributes.unitPrice)
-//     query.equalTo('device', device)
-//     return query.find()
-//   }).then((results) => {
-//     console.log("finishOrder", results)
-//     if(results.length === 1) {
-//       order = results[0]
-//       return mysqlUtil.getConnection()
-//     }
-//     return Promise.reject(new Error("未找到订单信息"))
-//   }).then((conn) => {
-//     var user = order.attributes.user
-//     var duration = mathjs.eval((finishTime - order.attributes.start.valueOf()) * 0.001 / 60)
-//
-//     duration = duration < 1? 1: Number(duration.toFixed(0))
-//     amount = mathjs.chain(unitPrice).multiply(duration).done()
-//     mysqlConn = conn
-//     var deal = {
-//       to: 'platform',
-//       from: user.id,
-//       cost: amount,
-//       deal_type: PingppFunc.SERVICE,
-//     }
-//     return PingppFunc.updateWalletInfo(mysqlConn, deal)
-//   }).then(() => {
-//     order.set('status', ORDER_STATUS_UNPAID)
-//     order.set('end', new Date(finishTime))
-//     order.set('amount', amount)
-//     return order.save()
-//   }).then((leanOrder) => {
-//     return getOrderInfo(leanOrder.id)
-//   }).catch((error) => {
-//     console.log("finishOrder", error)
-//     throw error
-//   }).finally(() => {
-//     if(mysqlConn) {
-//       mysqlUtil.release(mysqlConn)
-//     }
-//   })
-// }
 
 async function finishOrder(deviceNo, finishTime) {
 
@@ -305,6 +262,65 @@ async function finishOrder(deviceNo, finishTime) {
   return orderInfo
 }
 
+/**
+ * 分页查询订单
+ * @param {Object}  request
+ * @param {Object}  response
+ */
+async function fetchOrders(request, response) {
+  let currentUser = request.currentUser
+  let start = request.params.start
+  let end = request.params.end
+  let status = request.params.status
+  let limit = request.params.limit || 10
+  let isRefresh = request.params.isRefresh || true    //分页查询刷新
+  let lastStartTime = request.params.lastStartTime  //分页查询历史查询最后一条记录的设备更新时间
+  let mobilePhoneNumber = request.params.mobilePhoneNumber
+  let stationId = request.params.stationId
+
+  let query = new AV.Query('Order')
+  query.include('user')
+  query.include('device')
+  query.limit(limit)
+
+  if(status != undefined) {
+    query.equalTo('status', status)
+  }
+
+  if(start) {
+    query.greaterThanOrEqualTo('start', new Date(start))
+  }
+
+  if(end) {
+    query.lessThan('start', new Date(end))
+  }
+
+  if(!isRefresh && lastStartTime) {
+    query.lessThan('start', new Date(lastStartTime))
+  }
+  query.descending('updateAt')
+
+  try {
+    let results = await query.find()
+    let orderList = []
+    results.forEach((order) => {
+      let device = order.attributes.device
+      let user = order.attributes.user
+      if(mobilePhoneNumber && (mobilePhoneNumber != user.attributes.mobilePhoneNumber)) {
+        return
+      }
+      if(stationId && (stationId != device.attributes.station.id)) {
+        return
+      }
+      orderList.push(constructOrderInfo(order, true, true))
+    })
+    response.success(orderList)
+  } catch (error) {
+    console.error(error)
+    response.error(error)
+  }
+}
+
 function orderFuncTest(request, response) {
   var deviceNo = request.params.deviceNo
   var userId = request.params.userId
@@ -319,12 +335,14 @@ function orderFuncTest(request, response) {
 
 
 var orderFunc = {
+  constructOrderInfo: constructOrderInfo,
   orderFuncTest: orderFuncTest,
   createOrder: createOrder,
   fetchOrdersByStatus: fetchOrdersByStatus,
   updateOrderStatus: updateOrderStatus,
   orderPayment: orderPayment,
   finishOrder: finishOrder,
+  fetchOrders: fetchOrders,
 }
 
 module.exports = orderFunc
