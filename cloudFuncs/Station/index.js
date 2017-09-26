@@ -64,7 +64,7 @@ function createStation(request, response) {
   var province = request.params.province              //省份
   var city = request.params.city                      //城市
   var area = request.params.area                      //区
-  var adminId = request.params.adminId                //网点管理员userId
+  var userId = request.params.userId                //网点管理员userId
   var unitPrice = request.params.unitPrice            //设备使用单价，单位：元／分钟
   var deposit = request.params.deposit                //设备使用押金，单位：¥元
   var powerUnitPrice = request.params.powerUnitPrice  //电费单价，单位：元／KWh
@@ -79,7 +79,7 @@ function createStation(request, response) {
       response.error(new Error("服务网点名字重复"))
       return
     }
-    var admin = AV.Object.createWithoutData('_User', adminId)
+    var user = AV.Object.createWithoutData('_User', userId)
     var Station = AV.Object.extend('Station')
     var station = new Station()
     station.set('name', name)
@@ -92,7 +92,7 @@ function createStation(request, response) {
     station.set('powerUnitPrice', powerUnitPrice)
     station.set('platformProp', platformProp)
     station.set('stationProp', stationProp)
-    station.set('admin', admin)
+    station.set('admin', user)
     station.save().then((leanStation) => {
       var query = new AV.Query('Station')
       query.include('admin')
@@ -145,6 +145,8 @@ function fetchStations(request, response) {
   }
   query.limit(limit)
   query.include(['admin'])
+  query.descending('createdDate')
+
   query.find().then((stationList)=> {
     var stations = []
     stationList.forEach((record)=> {
@@ -179,31 +181,39 @@ function updateStation(request, response) {
   var stationProp = request.params.stationProp        //服务网点分成比例
   var admin = AV.Object.createWithoutData('_User', adminId)
   var station = AV.Object.createWithoutData('Station', stationId)
-
-  station.set('name', name)
-  station.set('addr', addr)
-  station.set('province', province)
-  station.set('city', city)
-  station.set('area', area)
-  station.set('unitPrice', unitPrice)
-  station.set('deposit', deposit)
-  station.set('powerUnitPrice', powerUnitPrice)
-  station.set('platformProp', platformProp)
-  station.set('stationProp', stationProp)
-  station.set('admin', admin)
-  if (status != undefined) {
-    station.set('status', status)
-  }
-  station.save().then((leanStation) => {
-    var query = new AV.Query('Station')
-    query.include('admin')
-    query.get(leanStation.id).then((stationInfo)=> {
-      response.success(constructStationInfo(stationInfo, true))
+  let queryName = new AV.Query('Station')
+  queryName.equalTo('name',name)
+  query.first().then((stationRecord) => {
+    if (stationRecord&&stationRecord.id!=stationId) {
+      response.error(new Error("服务网点名字重复"))
+      return
+    }
+    station.set('name', name)
+    station.set('addr', addr)
+    station.set('province', province)
+    station.set('city', city)
+    station.set('area', area)
+    station.set('unitPrice', unitPrice)
+    station.set('deposit', deposit)
+    station.set('powerUnitPrice', powerUnitPrice)
+    station.set('platformProp', platformProp)
+    station.set('stationProp', stationProp)
+    station.set('admin', admin)
+    if (status != undefined) {
+      station.set('status', status)
+    }
+    station.save().then((leanStation) => {
+      var query = new AV.Query('Station')
+      query.include('admin')
+      query.get(leanStation.id).then((stationInfo)=> {
+        response.success(constructStationInfo(stationInfo, true))
+      })
+    }).catch((error) => {
+      console.log("createStation", error)
+      response.error(error)
     })
-  }).catch((error) => {
-    console.log("createStation", error)
-    response.error(error)
   })
+
 }
 
 /**
@@ -219,6 +229,7 @@ function fetchPartnerByStationId(request, response) {
   query.equalTo('station', station)
   query.equalTo('type', 'partner')
   query.include(['station', 'shareholder'])
+  query.descending('createdDate')
   query.find().then((sharings)=> {
     var sharingList = []
     sharings.forEach((sharing)=> {
@@ -252,6 +263,7 @@ function fetchInvestorByStationId(request, response) {
     query.equalTo('status', status)
   }
   query.include(['station', 'shareholder'])
+  query.descending('createdDate')
   if (username) {
     var queryUser = new AV.Query('_User')
     queryUser.equalTo('nickname', username)
