@@ -74,8 +74,8 @@ function createStation(request, response) {
   var query = new AV.Query('Station')
   query.equalTo('name', name)
 
-  query.first().then((station) => {
-    if (station) {
+  query.first().then((stationRecord) => {
+    if (stationRecord) {
       response.error(new Error("服务网点名字重复"))
       return
     }
@@ -469,8 +469,10 @@ function updateInvestor(request, response) {
       var queryStation = new AV.Query('Station')
       queryStation.get(stationId).then((stationInfo)=> {
         var investmentSum = stationInfo.attributes.investment
-        investmentSum = investmentSum + investment - preInvestment
-        station.set('investment', investmentSum)
+        if (stationInfo.attributes.status == 1) {
+          investmentSum = investmentSum + investment - preInvestment
+          station.set('investment', investmentSum)
+        }
         station.save().then(()=> {
           var query = new AV.Query('ProfitSharing')
           query.include(['shareholder', 'station', 'station.admin'])
@@ -493,8 +495,9 @@ function updateInvestor(request, response) {
                     investors.push(constructProfitSharing(result))
                   })
                   response.success(investors)
+                } else {
+                  response.success()
                 }
-
               })
             })
           }, (err)=> {
@@ -626,8 +629,9 @@ function openInvestor(request, response) {
                     investors.push(constructProfitSharing(result))
                   })
                   response.success(investors)
+                } else {
+                  response.success()
                 }
-
               })
             })
           }, (err)=> {
@@ -662,6 +666,7 @@ function closeInvestor(request, response) {
       return
     }
     investor.set('status', 0)
+    investor.set('royalty', 0)
     investor.save().then((item)=> {
       var queryStation = new AV.Query('Station')
       queryStation.get(record.attributes.station.id).then((stationInfo)=> {
@@ -690,6 +695,8 @@ function closeInvestor(request, response) {
                     investors.push(constructProfitSharing(result))
                   })
                   response.success(investors)
+                } else {
+                  response.success()
                 }
 
               })
