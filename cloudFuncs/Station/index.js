@@ -183,7 +183,7 @@ function updateStation(request, response) {
   var station = AV.Object.createWithoutData('Station', stationId)
   let queryName = new AV.Query('Station')
   queryName.equalTo('name',name)
-  query.first().then((stationRecord) => {
+  queryName.first().then((stationRecord) => {
     if (stationRecord&&stationRecord.id!=stationId) {
       response.error(new Error("服务网点名字重复"))
       return
