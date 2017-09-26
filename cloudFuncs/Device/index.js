@@ -389,6 +389,7 @@ function deviceFuncTest(request, response) {
 }
 
 var deviceFunc = {
+  constructDeviceInfo: constructDeviceInfo,
   DEVICE_STATUS_IDLE: DEVICE_STATUS_IDLE,
   DEVICE_STATUS_OCCUPIED: DEVICE_STATUS_OCCUPIED,
   DEVICE_STATUS_MAINTAIN: DEVICE_STATUS_MAINTAIN,

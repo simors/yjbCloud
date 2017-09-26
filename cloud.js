@@ -62,6 +62,7 @@ AV.Cloud.define('pingppTransferEvent', PingppFunc.transferEvent)
 AV.Cloud.define('orderFuncTest', orderFunc.orderFuncTest)
 AV.Cloud.define('orderFetchOrdersByStatus', orderFunc.fetchOrdersByStatus)
 AV.Cloud.define('orderOrderPayment', orderFunc.orderPayment)
+AV.Cloud.define('orderFetchOrders', orderFunc.fetchOrders)
 
 //微信
 AV.Cloud.define('getJsConfig', mpJsSdkFuncs.getJsConfig)
