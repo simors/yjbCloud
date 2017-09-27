@@ -785,6 +785,23 @@ function stationFuncTest(request, response) {
   })
 }
 
+function userFuncTest(request, response) {
+
+  var query =new AV.Query('_User')
+  query.find().then((results)=>{
+    var userList = []
+    results.forEach((item)=>{
+      userList.push({
+        id: item.id,
+        nickname: item.attributes.nickname
+      })
+    })
+    response.success(userList)
+  },(err)=>{
+    response.error(err)
+  })
+}
+
 var stationFunc = {
   constructStationInfo: constructStationInfo,
   createStation: createStation,
@@ -804,6 +821,7 @@ var stationFunc = {
   updatePartner: updatePartner,
   openPartner: openPartner,
   closePartner: closePartner,
+  userFuncTest: userFuncTest
 }
 
 module.exports = stationFunc
