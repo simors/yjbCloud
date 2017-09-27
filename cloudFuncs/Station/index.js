@@ -252,8 +252,11 @@ function fetchInvestorByStationId(request, response) {
   var status = request.params.status
   var username = request.params.username
   var station = undefined
+  var limit = request.params.limit || 100
+  var lastCreateTime = request.params.lastCreateTime
 
   var query = new AV.Query('ProfitSharing')
+  query.limit(limit)
   if (stationId) {
     station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
@@ -262,7 +265,11 @@ function fetchInvestorByStationId(request, response) {
   if (status != undefined) {
     query.equalTo('status', status)
   }
+  if(lastCreateTime){
+    query.lessThan('createdAt',lastCreateTime)
+  }
   query.include(['station', 'shareholder'])
+
   query.descending('createdDate')
   if (username) {
     var queryUser = new AV.Query('_User')
