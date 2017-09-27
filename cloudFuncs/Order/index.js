@@ -281,6 +281,7 @@ async function fetchOrders(request, response) {
   let query = new AV.Query('Order')
   query.include('user')
   query.include('device')
+  query.include('device.station')
   query.limit(limit)
 
   if(status != undefined) {
