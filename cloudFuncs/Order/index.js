@@ -99,37 +99,34 @@ function createOrder(deviceNo, userId, turnOnTime) {
   })
 }
 
-function fetchOrdersByStatus(request, response) {
-  console.log("fetchOrdersByStatus params:", request.params)
-  var userId = request.params.userId
-  var orderStatus = request.params.orderStatus
+async function fetchOwnsOrders(request, response) {
+  let currentUser = request.currentUser
   var limit = request.params.limit || 10
   var lastTurnOnTime = request.params.lastTurnOnTime
   var isRefresh = request.params.isRefresh
 
-  var user = AV.Object.createWithoutData('_User', userId)
   var query = new AV.Query('Order')
-  query.equalTo('user', user)
-  query.equalTo('status', orderStatus)
-  query.include('user')
-  query.include('device')
+  query.equalTo('user', currentUser)
   query.limit(limit)
-  query.descending('start')
   if(!isRefresh && lastTurnOnTime) {
     query.lessThan('start', new Date(lastTurnOnTime))
   }
+  query.descending('start')
+  query.include('user')
+  query.include('device')
+  query.include('device.station')
 
-  query.find().then((results) => {
-    var orderList = []
-    results.forEach((leanOrder) => {
-      orderList.push(constructOrderInfo(leanOrder, true, true))
+  try {
+    let orders = await query.find()
+    let ownsOrders = []
+    orders.forEach((order) => {
+      ownsOrders.push(constructOrderInfo(order, true, true))
     })
-    response.success({orders: orderList})
-  }).catch((error) => {
-    console.log('fetchOrdersByStatus', error)
+    response.success(ownsOrders)
+  } catch (error) {
+    console.error(error)
     response.error(error)
-  })
-
+  }
 }
 
 function updateOrderStatus(orderId, status, endTime, amount) {
@@ -146,6 +143,7 @@ function updateOrderStatus(orderId, status, endTime, amount) {
   return order.save().then((leanOrder) => {
     let query = new AV.Query('Order')
     query.include('device')
+    query.include('device.station')
     query.include('user')
     return query.get(leanOrder.id)
   }).then((leanOrder) => {
@@ -339,7 +337,7 @@ var orderFunc = {
   constructOrderInfo: constructOrderInfo,
   orderFuncTest: orderFuncTest,
   createOrder: createOrder,
-  fetchOrdersByStatus: fetchOrdersByStatus,
+  fetchOwnsOrders: fetchOwnsOrders,
   updateOrderStatus: updateOrderStatus,
   orderPayment: orderPayment,
   finishOrder: finishOrder,
