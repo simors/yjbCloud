@@ -79,6 +79,7 @@ function connectionEvent(socket) {
     turnOffDevice(deviceNo, userId, socketId, orderId).then((result) => {
       ackData.errorCode = result.errorCode
       ackData.errorMessage = result.errorMessage
+      ackData.order = result.order || undefined
       callback(ackData)
     }).catch((error) => {
       console.log("设备关机失败", error)

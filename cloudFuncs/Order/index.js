@@ -320,6 +320,21 @@ async function fetchOrders(request, response) {
   }
 }
 
+/**
+ * 获取订单信息（websocket）
+ * @param {String}  orderId
+ */
+async function fetchOrderInfo(orderId) {
+  var query = new AV.Query('Order')
+  query.include('user')
+  query.include('device')
+  query.include('device.station')
+
+  let order = await query.get(orderId)
+
+  return constructOrderInfo(order, true, true)
+}
+
 function orderFuncTest(request, response) {
   var deviceNo = request.params.deviceNo
   var userId = request.params.userId
@@ -342,6 +357,7 @@ var orderFunc = {
   orderPayment: orderPayment,
   finishOrder: finishOrder,
   fetchOrders: fetchOrders,
+  fetchOrderInfo: fetchOrderInfo,
 }
 
 module.exports = orderFunc
