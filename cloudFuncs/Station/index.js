@@ -24,6 +24,7 @@ function constructStationInfo(station, includeAdmin) {
   stationInfo.powerUnitPrice = station.attributes.powerUnitPrice
   stationInfo.platformProp = station.attributes.platformProp
   stationInfo.stationProp = station.attributes.stationProp
+  stationInfo.adminId = admin.id
   if (includeAdmin) {
     stationInfo.admin = constructUserInfo(admin)
   }

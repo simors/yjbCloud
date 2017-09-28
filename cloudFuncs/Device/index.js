@@ -23,6 +23,7 @@ function constructDeviceInfo(device, includeStation) {
   deviceInfo.onlineTime = device.attributes.onlineTime
   deviceInfo.updateTime = device.attributes.updateTime
   let station = device.attributes.station
+  deviceInfo.stationId = station.id
   if(includeStation && station) {
     deviceInfo.station = constructStationInfo(station, false)
   }

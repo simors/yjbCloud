@@ -30,6 +30,7 @@ function constructOrderInfo(order, includeDevice, includeUser) {
   var user = order.attributes.user
   var device = order.attributes.device
   orderInfo.userId = user.id
+  orderInfo.deviceId = device.id
   orderInfo.deviceNo = device.attributes.deviceNo
   orderInfo.deviceAddr = device.attributes.deviceAddr
   if(includeDevice) {
@@ -112,7 +113,6 @@ async function fetchOwnsOrders(request, response) {
     query.lessThan('start', new Date(lastTurnOnTime))
   }
   query.descending('start')
-  query.include('user')
   query.include('device')
   query.include('device.station')
 
@@ -120,7 +120,7 @@ async function fetchOwnsOrders(request, response) {
     let orders = await query.find()
     let ownsOrders = []
     orders.forEach((order) => {
-      ownsOrders.push(constructOrderInfo(order, true, true))
+      ownsOrders.push(constructOrderInfo(order, true, false))
     })
     response.success(ownsOrders)
   } catch (error) {
