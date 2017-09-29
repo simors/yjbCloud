@@ -29,14 +29,12 @@ function constructOrderInfo(order, includeDevice, includeUser) {
 
   var user = order.attributes.user
   var device = order.attributes.device
-  orderInfo.userId = user.id
-  orderInfo.deviceId = device.id
-  orderInfo.deviceNo = device.attributes.deviceNo
-  orderInfo.deviceAddr = device.attributes.deviceAddr
-  if(includeDevice) {
+  orderInfo.userId = user? user.id : undefined
+  orderInfo.deviceId = device? device.id : undefined
+  if(includeDevice && device) {
     orderInfo.device = constructDeviceInfo(device, true)
   }
-  if(includeUser) {
+  if(includeUser && user) {
     orderInfo.user = constructUserInfo(user)
   }
   return orderInfo

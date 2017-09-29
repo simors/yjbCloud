@@ -24,8 +24,8 @@ function constructStationInfo(station, includeAdmin) {
   stationInfo.powerUnitPrice = station.attributes.powerUnitPrice
   stationInfo.platformProp = station.attributes.platformProp
   stationInfo.stationProp = station.attributes.stationProp
-  stationInfo.adminId = admin.id
-  if (includeAdmin) {
+  stationInfo.adminId = admin? admin.id : undefined
+  if (includeAdmin && admin) {
     stationInfo.admin = constructUserInfo(admin)
   }
   stationInfo.status = station.attributes.status

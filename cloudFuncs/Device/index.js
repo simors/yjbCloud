@@ -23,8 +23,8 @@ function constructDeviceInfo(device, includeStation) {
   deviceInfo.onlineTime = device.attributes.onlineTime
   deviceInfo.updateTime = device.attributes.updateTime
   let station = device.attributes.station
-  deviceInfo.stationId = station.id
-  if(includeStation) {
+  deviceInfo.stationId = station? station.id : undefined
+  if(includeStation && station) {
     deviceInfo.station = constructStationInfo(station, false)
   }
   return deviceInfo
@@ -54,31 +54,6 @@ function getDeviceInfo(deviceId) {
     throw error
   })
 }
-
-// /**
-//  * 创建设备
-//  * @param {String}  deviceNo 设备编号
-//  */
-// function getDeviceInfoByNo(deviceNo) {
-//   var deviceInfo = {}
-//   var query = new AV.Query('Device')
-//   query.equalTo('deviceNo', deviceNo)
-//   query.include('station')
-//
-//   return query.first().then((device) => {
-//     var station = device.attributes.station
-//     deviceInfo.id = device.id
-//     deviceInfo.deviceNo = device.attributes.deviceNo
-//     deviceInfo.status = device.attributes.status
-//     deviceInfo.deviceAddr = device.attributes.deviceAddr
-//     deviceInfo.stationName = station.attributes.name
-//
-//     return deviceInfo
-//   }).catch((error) => {
-//     console.log("getDeviceInfoByNo", error)
-//     throw error
-//   })
-// }
 
 /**
  * 获取设备信息
