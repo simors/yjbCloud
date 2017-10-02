@@ -68,13 +68,5 @@ AV.Cloud.define('orderFetchOrders', orderFunc.fetchOrders)
 //微信
 AV.Cloud.define('getJsConfig', mpJsSdkFuncs.getJsConfig)
 
-//百度地图
-AV.Cloud.define('baiduGetSubAreaList', baiduFunc.getSubAreaList)
-AV.Cloud.define('baiduGetSubAreaList2', baiduFunc.getSubAreaList2)
-AV.Cloud.define('baiduGetProviceList', baiduFunc.getProviceList)
-AV.Cloud.define('baiduGetCityList', baiduFunc.getCityList)
-AV.Cloud.define('baiduGetDistrictList', baiduFunc.getDistrictList)
-AV.Cloud.define('baiduGetAllCityMap', baiduFunc.getAllCityMap)
-
 
 module.exports = AV.Cloud;
