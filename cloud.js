@@ -7,6 +7,7 @@ var orderFunc = require('./cloudFuncs/Order')
 var mpJsSdkFuncs = require('./mpFuncs/JSSDK')
 var stationFunc = require('./cloudFuncs/Station')
 var baiduFunc = require('./cloudFuncs/Baidu')
+var accountsFunc= require('./cloudFuncs/Accounts')
 
 /**
  * 云函数
@@ -75,6 +76,9 @@ AV.Cloud.define('baiduGetProviceList', baiduFunc.getProviceList)
 AV.Cloud.define('baiduGetCityList', baiduFunc.getCityList)
 AV.Cloud.define('baiduGetDistrictList', baiduFunc.getDistrictList)
 AV.Cloud.define('baiduGetAllCityMap', baiduFunc.getAllCityMap)
+
+//结算
+AV.Cloud.define('selectDealData', accountsFunc.selectDealData)
 
 
 module.exports = AV.Cloud;
