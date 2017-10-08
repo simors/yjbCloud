@@ -3,8 +3,8 @@
  */
 var AV = require('leanengine');
 var mysqlUtil = require('../Util/mysqlUtil')
-var PingppFunc = require('../Pingpp')
-var mpMsgFuncs = require('../../mpFuncs/Message')
+var OrderFunc = require('../Order')
+var DeviceFuncs = require('../Device')
 var Promise = require('bluebird')
 const uuidv4 = require('uuid/v4')
 var mathjs = require('mathjs')
@@ -67,67 +67,43 @@ function getYesterday(request, response) {
 }
 
 //查询该设备下的1000个订单收益的和
-function selectAmountSumBydeviceId(deviceId, lastTime) {
-  let query = new AV.Query('Order')
-  var device = AV.Object.createWithoutData('Device', deviceId)
-  query.equalTo('device', device)
-  query.limit(1)
-  let queryNum = 0
-  let amountSum = 0
-  let retLastTime = lastTime
-  query.descending('createdAt')
-  if (lastTime) {
-    query.lessThan('createdAt', new Date(lastTime))
+async function selectAmountSumBydeviceId(deviceId) {
+  try{
+    let amountSum = 0
+    let orderList = await OrderFunc.getOrders(deviceId)
+    orderList.forEach((order)=> {
+      amountSum = mathjs.chain(amountSum).add(order.amount).done()
+    })
+    return amountSum
+  }catch(error){
+    throw error
   }
-  return query.find().then((orders)=> {
-    // console.log('orders=====>',orders)
-    if(orders&&orders.length){
-      queryNum = orders.length
-      orders.forEach((order)=> {
-        retLastTime = order.createdAt
-        // console.log('order.attributes.amount=====>',order.attributes.amount)
-        amountSum = mathjs.chain(amountSum).add(order.attributes.amount).done()
-      })
-    }
-    console.log('amountSum=====>',amountSum)
-    return {
-      success: true,
-      queryNum: queryNum,
-      amountSum: amountSum,
-      lastTime: retLastTime
-    }
-  },(err)=>{
-    return {success: false, error: err}
-  })
 }
 
 //查询单个服务点当天收益并生成日结数据插入Account表中
-async function selectAllAmountByDeviceId(deviceId) {
-  let lastTime = undefined
-  let amountSum = 0
-  let cost = 0
-  while (1) {
-    let result = await selectAmountSumBydeviceId(deviceId,lastTime)
-    if (result.queryNum <= 0) {
-      break
+async function createStationAccount(stationId) {
+  try {
+    let amountSum = 0
+    let cost = 0
+    let deviceList = await DeviceFuncs.getDevices(stationId)
+    for(let i = 0 ; i < deviceList.length ; i++){
+      let result = await selectAmountSumBydeviceId(deviceList[i].id)
+      amountSum = mathjs.chain(amountSum).add(result).done()
     }
-    if (result.success) {
-      console.log('result===>',result)
-      lastTime = result.lastTime
-      // cost = mathjs.chain(cost).add(result.cost).done()
-      amountSum = mathjs.chain(amountSum).add(result.amountSum).done()
-    }
+
+    console.log('amountSum===>', amountSum)
+    let station = AV.Object.createWithoutData('Station', stationId)
+    let Account = AV.Object.extend('StationAccount')
+    let account = new Account()
+    account.set('incoming', amountSum)
+    account.set('station', station)
+    account.set('cost', cost)
+    // account.set('profit', mathjs.chain(amountSum).sub(cost))
+    account.save()
+  } catch (error) {
+    throw error
   }
-  return amountSum
-  // console.log('amountSum===>', amountSum)
-  // let station = AV.Object.createWithoutData('Station', stationId)
-  // let Account = AV.Object.extend('StationAccount')
-  // let account = new Account()
-  // account.set('incoming', amountSum)
-  // account.set('station', station)
-  // account.set('cost', cost)
-  // // account.set('profit', mathjs.chain(amountSum).sub(cost))
-  // account.save()
+
 }
 
 //查询limit数据量的服务点并生成日结数据
@@ -140,10 +116,10 @@ function selectStationsForAccount(lastTime) {
   if (lastTime) {
     query.lessThan('createdAt', new Date(lastTime))
   }
-  console.log('stationqueryNum====>',queryNum)
+  console.log('stationqueryNum====>', queryNum)
 
   return query.find().then((stations)=> {
-    if(stations&&stations.length){
+    if (stations && stations.length) {
       queryNum = stations.length
       stations.forEach((station)=> {
         retLastTime = station.createdAt
@@ -164,8 +140,8 @@ function selectStationsForAccount(lastTime) {
 async function createStationDayAccount() {
   let lastTime = undefined
   while (1) {
-    let result = await selectStationsForAccount( lastTime)
-    console.log('result====>',result)
+    let result = await selectStationsForAccount(lastTime)
+    console.log('result====>', result)
     if (result.queryNum <= 0) {
       break
     }

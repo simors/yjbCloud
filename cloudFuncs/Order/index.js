@@ -333,16 +333,48 @@ async function fetchOrderInfo(orderId) {
   return constructOrderInfo(order, true, true)
 }
 
-function orderFuncTest(request, response) {
-  var deviceNo = request.params.deviceNo
-  var userId = request.params.userId
-  var turnOnTime = request.params.turnOnTime
+/**
+ * 查询订单列表
+ * @param {String}  deviceId
+ */
+async function getOrders(deviceId) {
+  if(!deviceId) {
+    return undefined
+  }
 
-  createOrder(deviceNo, userId, turnOnTime).then((orderInfo) => {
-    response.success(orderInfo)
-  }).catch((error) => {
-    response.error(error)
-  })
+  let query = new AV.Query('Order')
+  let device = AV.Object.createWithoutData('Device', deviceId)
+  query.equalTo('device', device)
+  query.descending('createdAt')
+
+  let lastCreatedAt = undefined
+  let orderList = []
+
+  try {
+    while (1) {
+      if(lastCreatedAt) {
+        query.lessThan('createdAt', new Date(lastCreatedAt))
+      }
+      let orders = await query.find()
+      if(orders.length < 1) {
+        break
+      }
+      orders.forEach((order) => {
+        orderList.push(constructOrderInfo(order, false, false))
+      })
+      lastCreatedAt = orders[orders.length - 1].createdAt.valueOf()
+    }
+    return orderList
+  } catch (error) {
+    console.log("getOrders", error)
+    throw error
+  }
+}
+
+function orderFuncTest(request, response) {
+  let deviceId = request.params.deviceId
+
+  response.success(getOrders(deviceId))
 }
 
 
@@ -356,6 +388,7 @@ var orderFunc = {
   finishOrder: finishOrder,
   fetchOrders: fetchOrders,
   fetchOrderInfo: fetchOrderInfo,
+  getOrders: getOrders,
 }
 
 module.exports = orderFunc

@@ -311,7 +311,7 @@ function getDeviceStatus(deviceNo) {
   })
 }
 
-/**[[
+/**
  * 获取设备编号列表
  */
 function getDeviceNoList() {
@@ -326,6 +326,42 @@ function getDeviceNoList() {
     console.log("getDeviceNoList", error)
     throw error
   })
+}
+
+/**
+ * 查询设备列表
+ * @param {String}  stationId
+ */
+async function getDevices(stationId) {
+  if(!stationId) {
+    return undefined
+  }
+  let query = new AV.Query('Device')
+  var station = AV.Object.createWithoutData('Station', stationId)
+  query.equalTo('station', station)
+  query.descending('createdAt')
+  let lastCreatedAt = undefined
+  let deviceList = []
+
+  try {
+    while(1) {
+      if(lastCreatedAt) {
+        query.lessThan('createdAt', new Date(lastCreatedAt))
+      }
+      let devices = await query.find()
+      if(devices.length < 1) {
+        break
+      }
+      devices.forEach((device) => {
+        deviceList.push(constructDeviceInfo(device, false))
+      })
+      lastCreatedAt = devices[devices.length - 1].createdAt.valueOf()
+    }
+    return deviceList
+  } catch (error) {
+    console.log("getDevices", error)
+    throw error
+  }
 }
 
 /**
@@ -361,7 +397,9 @@ function updateDevice(request, response) {
 }
 
 function deviceFuncTest(request, response) {
+  let stationId = request.params.stationId
 
+  response.success(getDevices(stationId))
 }
 
 var deviceFunc = {
@@ -383,6 +421,7 @@ var deviceFunc = {
   registerDevice: registerDevice,
   associateWithStation: associateWithStation,
   updateDevice: updateDevice,
+  getDevices: getDevices,
   deviceFuncTest: deviceFuncTest,
 }
 
