@@ -9,6 +9,7 @@ var Promise = require('bluebird')
 const uuidv4 = require('uuid/v4')
 var mathjs = require('mathjs')
 var dateFormat = require('dateformat')
+var StationFuncs = require('../Station')
 
 function selectDealData(request, response) {
 
@@ -68,14 +69,14 @@ function getYesterday(request, response) {
 
 //查询该设备下的1000个订单收益的和
 async function selectAmountSumBydeviceId(deviceId) {
-  try{
+  try {
     let amountSum = 0
     let orderList = await OrderFunc.getOrders(deviceId)
     orderList.forEach((order)=> {
       amountSum = mathjs.chain(amountSum).add(order.amount).done()
     })
     return amountSum
-  }catch(error){
+  } catch (error) {
     throw error
   }
 }
@@ -86,7 +87,7 @@ async function createStationAccount(stationId) {
     let amountSum = 0
     let cost = 0
     let deviceList = await DeviceFuncs.getDevices(stationId)
-    for(let i = 0 ; i < deviceList.length ; i++){
+    for (let i = 0; i < deviceList.length; i++) {
       let result = await selectAmountSumBydeviceId(deviceList[i].id)
       amountSum = mathjs.chain(amountSum).add(result).done()
     }
@@ -106,48 +107,15 @@ async function createStationAccount(stationId) {
 
 }
 
-//查询limit数据量的服务点并生成日结数据
-function selectStationsForAccount(lastTime) {
-  let query = new AV.Query('Station')
-  query.limit(1000)
-  let queryNum = 0
-  let retLastTime = lastTime
-  query.descending('createdAt')
-  if (lastTime) {
-    query.lessThan('createdAt', new Date(lastTime))
-  }
-  console.log('stationqueryNum====>', queryNum)
-
-  return query.find().then((stations)=> {
-    if (stations && stations.length) {
-      queryNum = stations.length
-      stations.forEach((station)=> {
-        retLastTime = station.createdAt
-        createStationAccount(station.id)
-      })
-    }
-    return {
-      success: true,
-      queryNum: queryNum,
-      lastTime: retLastTime
-    }
-  }, (err)=> {
-    return {success: false, error: err}
-  })
-}
-
 //生成服务点日结数据
 async function createStationDayAccount() {
-  let lastTime = undefined
-  while (1) {
-    let result = await selectStationsForAccount(lastTime)
-    console.log('result====>', result)
-    if (result.queryNum <= 0) {
-      break
-    }
-    if (result.success) {
-      lastTime = result.lastTime
-    }
+  try {
+    let stationList = await StationFuncs.getStations()
+    stationList.forEach((station)=> {
+      createStationAccount(station.id)
+    })
+  } catch (error) {
+    throw error
   }
 }
 
