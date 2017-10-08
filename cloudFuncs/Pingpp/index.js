@@ -426,6 +426,10 @@ function transferEvent(request, response) {
   })
 }
 
+function fetchRecharges(request, response) {
+
+}
+
 var PingppFunc = {
   DEPOSIT: DEPOSIT,
   RECHARGE: RECHARGE,
@@ -439,6 +443,7 @@ var PingppFunc = {
   getWalletInfo: getWalletInfo,
   updateWalletInfo: updateWalletInfo,
   getUserDealRecords: getUserDealRecords,
+  fetchRecharges: fetchRecharges,
 }
 
 module.exports = PingppFunc
