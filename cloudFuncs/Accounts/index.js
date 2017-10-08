@@ -66,13 +66,11 @@ function getYesterday(request, response) {
   response.success({today: today, yesterday: yesterday})
 }
 
-//查询该服务点下的1000个订单收益的和
-function selectAmountSumByStation(stationId, lastTime) {
+//查询该设备下的1000个订单收益的和
+function selectAmountSumBydeviceId(deviceId, lastTime) {
   let query = new AV.Query('Order')
-  var station = AV.Object.createWithoutData('Station', stationId)
-  console.log('stationId=====>',stationId)
-  query.include('device.station')
-  // query.equalTo('device.station', station)
+  var device = AV.Object.createWithoutData('Device', deviceId)
+  query.equalTo('device', device)
   query.limit(1)
   let queryNum = 0
   let amountSum = 0
@@ -87,7 +85,6 @@ function selectAmountSumByStation(stationId, lastTime) {
       queryNum = orders.length
       orders.forEach((order)=> {
         retLastTime = order.createdAt
-        console.log('order.attributes.device.attributes.station.id=====>',order.attributes.device.attributes.station.id)
         // console.log('order.attributes.amount=====>',order.attributes.amount)
         amountSum = mathjs.chain(amountSum).add(order.attributes.amount).done()
       })
@@ -105,12 +102,12 @@ function selectAmountSumByStation(stationId, lastTime) {
 }
 
 //查询单个服务点当天收益并生成日结数据插入Account表中
-async function createStationAccount(stationId) {
+async function selectAllAmountByDeviceId(deviceId) {
   let lastTime = undefined
   let amountSum = 0
   let cost = 0
   while (1) {
-    let result = await selectAmountSumByStation(stationId,lastTime)
+    let result = await selectAmountSumBydeviceId(deviceId,lastTime)
     if (result.queryNum <= 0) {
       break
     }
@@ -121,15 +118,16 @@ async function createStationAccount(stationId) {
       amountSum = mathjs.chain(amountSum).add(result.amountSum).done()
     }
   }
+  return amountSum
   // console.log('amountSum===>', amountSum)
-  let station = AV.Object.createWithoutData('Station', stationId)
-  let Account = AV.Object.extend('StationAccount')
-  let account = new Account()
-  account.set('incoming', amountSum)
-  account.set('station', station)
-  account.set('cost', cost)
-  // account.set('profit', mathjs.chain(amountSum).sub(cost))
-  account.save()
+  // let station = AV.Object.createWithoutData('Station', stationId)
+  // let Account = AV.Object.extend('StationAccount')
+  // let account = new Account()
+  // account.set('incoming', amountSum)
+  // account.set('station', station)
+  // account.set('cost', cost)
+  // // account.set('profit', mathjs.chain(amountSum).sub(cost))
+  // account.save()
 }
 
 //查询limit数据量的服务点并生成日结数据
