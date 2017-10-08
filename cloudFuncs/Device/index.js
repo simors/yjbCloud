@@ -23,6 +23,7 @@ function constructDeviceInfo(device, includeStation) {
   deviceInfo.onlineTime = device.attributes.onlineTime
   deviceInfo.updateTime = device.attributes.updateTime
   let station = device.attributes.station
+  deviceInfo.stationId = station? station.id : undefined
   if(includeStation && station) {
     deviceInfo.station = constructStationInfo(station, false)
   }
@@ -54,31 +55,6 @@ function getDeviceInfo(deviceId) {
   })
 }
 
-// /**
-//  * 创建设备
-//  * @param {String}  deviceNo 设备编号
-//  */
-// function getDeviceInfoByNo(deviceNo) {
-//   var deviceInfo = {}
-//   var query = new AV.Query('Device')
-//   query.equalTo('deviceNo', deviceNo)
-//   query.include('station')
-//
-//   return query.first().then((device) => {
-//     var station = device.attributes.station
-//     deviceInfo.id = device.id
-//     deviceInfo.deviceNo = device.attributes.deviceNo
-//     deviceInfo.status = device.attributes.status
-//     deviceInfo.deviceAddr = device.attributes.deviceAddr
-//     deviceInfo.stationName = station.attributes.name
-//
-//     return deviceInfo
-//   }).catch((error) => {
-//     console.log("getDeviceInfoByNo", error)
-//     throw error
-//   })
-// }
-
 /**
  * 获取设备信息
  * @param {Object}  request
@@ -94,13 +70,13 @@ function fetchDeviceInfo(request, response) {
 
   var query = new AV.Query('Device')
   query.equalTo('deviceNo', deviceNo)
-
+  query.include('station')
   query.first().then((device) => {
-    if(device) {
-      response.success(constructDeviceInfo(device), false)
-    } else {
-      response.success()
+    if(!device) {
+      response.error(new Error("没有找到设备信息"))
+      return
     }
+    response.success(constructDeviceInfo(device, true))
   }).catch((error) => {
     console.log("fetchDeviceInfo error", error)
     response.error(error)

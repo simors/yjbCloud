@@ -247,6 +247,14 @@ function turnOffDevice(deviceNo, userId, socketId, orderId) {
           })
         })
       })
+    } else if(status === deviceFunc.DEVICE_STATUS_IDLE) {
+      return orderFunc.fetchOrderInfo(orderId).then((order) => {
+        return {
+          errorCode: 0,
+          errorMessage: "",
+          order: order,
+        }
+      })
     }
     return {
       errorCode: 2,

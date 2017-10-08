@@ -6,7 +6,6 @@ var PingppFunc = require('./cloudFuncs/Pingpp')
 var orderFunc = require('./cloudFuncs/Order')
 var mpJsSdkFuncs = require('./mpFuncs/JSSDK')
 var stationFunc = require('./cloudFuncs/Station')
-var baiduFunc = require('./cloudFuncs/Baidu')
 var accountsFunc= require('./cloudFuncs/Accounts')
 
 /**
@@ -62,23 +61,17 @@ AV.Cloud.define('pingppTransferEvent', PingppFunc.transferEvent)
 
 //订单
 AV.Cloud.define('orderFuncTest', orderFunc.orderFuncTest)
-AV.Cloud.define('orderFetchOrdersByStatus', orderFunc.fetchOrdersByStatus)
+AV.Cloud.define('orderFetchOwnsOrders', orderFunc.fetchOwnsOrders)
 AV.Cloud.define('orderOrderPayment', orderFunc.orderPayment)
 AV.Cloud.define('orderFetchOrders', orderFunc.fetchOrders)
 
 //微信
 AV.Cloud.define('getJsConfig', mpJsSdkFuncs.getJsConfig)
 
-//百度地图
-AV.Cloud.define('baiduGetSubAreaList', baiduFunc.getSubAreaList)
-AV.Cloud.define('baiduGetSubAreaList2', baiduFunc.getSubAreaList2)
-AV.Cloud.define('baiduGetProviceList', baiduFunc.getProviceList)
-AV.Cloud.define('baiduGetCityList', baiduFunc.getCityList)
-AV.Cloud.define('baiduGetDistrictList', baiduFunc.getDistrictList)
-AV.Cloud.define('baiduGetAllCityMap', baiduFunc.getAllCityMap)
-
 //结算
 AV.Cloud.define('selectDealData', accountsFunc.selectDealData)
+AV.Cloud.define('getYesterday', accountsFunc.getYesterday)
+AV.Cloud.define('createStationDayAccount', accountsFunc.createStationDayAccount)
 
 
 module.exports = AV.Cloud;

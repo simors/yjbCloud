@@ -29,13 +29,12 @@ function constructOrderInfo(order, includeDevice, includeUser) {
 
   var user = order.attributes.user
   var device = order.attributes.device
-  orderInfo.userId = user.id
-  orderInfo.deviceNo = device.attributes.deviceNo
-  orderInfo.deviceAddr = device.attributes.deviceAddr
-  if(includeDevice) {
+  orderInfo.userId = user? user.id : undefined
+  orderInfo.deviceId = device? device.id : undefined
+  if(includeDevice && device) {
     orderInfo.device = constructDeviceInfo(device, true)
   }
-  if(includeUser) {
+  if(includeUser && user) {
     orderInfo.user = constructUserInfo(user)
   }
   return orderInfo
@@ -99,37 +98,33 @@ function createOrder(deviceNo, userId, turnOnTime) {
   })
 }
 
-function fetchOrdersByStatus(request, response) {
-  console.log("fetchOrdersByStatus params:", request.params)
-  var userId = request.params.userId
-  var orderStatus = request.params.orderStatus
+async function fetchOwnsOrders(request, response) {
+  let currentUser = request.currentUser
   var limit = request.params.limit || 10
   var lastTurnOnTime = request.params.lastTurnOnTime
   var isRefresh = request.params.isRefresh
 
-  var user = AV.Object.createWithoutData('_User', userId)
   var query = new AV.Query('Order')
-  query.equalTo('user', user)
-  query.equalTo('status', orderStatus)
-  query.include('user')
-  query.include('device')
+  query.equalTo('user', currentUser)
   query.limit(limit)
-  query.descending('start')
   if(!isRefresh && lastTurnOnTime) {
     query.lessThan('start', new Date(lastTurnOnTime))
   }
+  query.descending('start')
+  query.include('device')
+  query.include('device.station')
 
-  query.find().then((results) => {
-    var orderList = []
-    results.forEach((leanOrder) => {
-      orderList.push(constructOrderInfo(leanOrder, true, true))
+  try {
+    let orders = await query.find()
+    let ownsOrders = []
+    orders.forEach((order) => {
+      ownsOrders.push(constructOrderInfo(order, true, false))
     })
-    response.success({orders: orderList})
-  }).catch((error) => {
-    console.log('fetchOrdersByStatus', error)
+    response.success(ownsOrders)
+  } catch (error) {
+    console.error(error)
     response.error(error)
-  })
-
+  }
 }
 
 function updateOrderStatus(orderId, status, endTime, amount) {
@@ -146,6 +141,7 @@ function updateOrderStatus(orderId, status, endTime, amount) {
   return order.save().then((leanOrder) => {
     let query = new AV.Query('Order')
     query.include('device')
+    query.include('device.station')
     query.include('user')
     return query.get(leanOrder.id)
   }).then((leanOrder) => {
@@ -322,6 +318,21 @@ async function fetchOrders(request, response) {
   }
 }
 
+/**
+ * 获取订单信息（websocket）
+ * @param {String}  orderId
+ */
+async function fetchOrderInfo(orderId) {
+  var query = new AV.Query('Order')
+  query.include('user')
+  query.include('device')
+  query.include('device.station')
+
+  let order = await query.get(orderId)
+
+  return constructOrderInfo(order, true, true)
+}
+
 function orderFuncTest(request, response) {
   var deviceNo = request.params.deviceNo
   var userId = request.params.userId
@@ -339,11 +350,12 @@ var orderFunc = {
   constructOrderInfo: constructOrderInfo,
   orderFuncTest: orderFuncTest,
   createOrder: createOrder,
-  fetchOrdersByStatus: fetchOrdersByStatus,
+  fetchOwnsOrders: fetchOwnsOrders,
   updateOrderStatus: updateOrderStatus,
   orderPayment: orderPayment,
   finishOrder: finishOrder,
   fetchOrders: fetchOrders,
+  fetchOrderInfo: fetchOrderInfo,
 }
 
 module.exports = orderFunc
