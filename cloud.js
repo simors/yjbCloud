@@ -6,7 +6,6 @@ var PingppFunc = require('./cloudFuncs/Pingpp')
 var orderFunc = require('./cloudFuncs/Order')
 var mpJsSdkFuncs = require('./mpFuncs/JSSDK')
 var stationFunc = require('./cloudFuncs/Station')
-var baiduFunc = require('./cloudFuncs/Baidu')
 
 /**
  * 云函数
@@ -58,6 +57,7 @@ AV.Cloud.define('pingppCreatePayment', PingppFunc.createPayment)
 AV.Cloud.define('pingppPaymentEvent', PingppFunc.paymentEvent)
 AV.Cloud.define('pingppCreateTransfer', PingppFunc.createTransfer)
 AV.Cloud.define('pingppTransferEvent', PingppFunc.transferEvent)
+AV.Cloud.define('pingppFetchRecharges', PingppFunc.fetchRecharges)
 
 //订单
 AV.Cloud.define('orderFuncTest', orderFunc.orderFuncTest)
