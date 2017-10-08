@@ -12,7 +12,6 @@ var dateFormat = require('dateformat')
 var StationFuncs = require('../Station')
 
 function selectDealData(request, response) {
-
   var sql = ""
   var mysqlConn = undefined
   var records = []
@@ -62,9 +61,9 @@ function getYesterday(request, response) {
 // 昨天
   var yesterday = new Date(today - oneday);
 // 上周一
-
+  return {today: today, yesterday: yesterday}
 // 上个月1号
-  response.success({today: today, yesterday: yesterday})
+//   response.success({today: today, yesterday: yesterday})
 }
 
 //查询该设备下的1000个订单收益的和
@@ -72,8 +71,11 @@ async function selectAmountSumBydeviceId(deviceId) {
   try {
     let amountSum = 0
     let orderList = await OrderFunc.getOrders(deviceId)
+    let dayInfo = getYesterday()
     orderList.forEach((order)=> {
-      amountSum = mathjs.chain(amountSum).add(order.amount).done()
+      if(order.payTime<dayInfo.today && order.payTime>=dayInfo.yesterday){
+        amountSum = mathjs.chain(amountSum).add(order.amount).done()
+      }
     })
     return amountSum
   } catch (error) {
@@ -91,13 +93,14 @@ async function createStationAccount(stationId) {
       let result = await selectAmountSumBydeviceId(deviceList[i].id)
       amountSum = mathjs.chain(amountSum).add(result).done()
     }
-
+    let dayInfo = getYesterday()
     console.log('amountSum===>', amountSum)
     let station = AV.Object.createWithoutData('Station', stationId)
     let Account = AV.Object.extend('StationAccount')
     let account = new Account()
     account.set('incoming', amountSum)
     account.set('station', station)
+    account.set('accountDay', dayInfo.yesterday)
     account.set('cost', cost)
     // account.set('profit', mathjs.chain(amountSum).sub(cost))
     account.save()
