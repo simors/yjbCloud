@@ -102,13 +102,16 @@ async function createStationAccount(stationId) {
     account.set('station', station)
     account.set('accountDay', dayInfo.yesterday)
     account.set('cost', cost)
-    // account.set('profit', mathjs.chain(amountSum).sub(cost))
-    account.save()
+    account.set('profit', mathjs.chain(amountSum).subtract(cost).done())
+    let accountInfo = await account.save()
+    return accountInfo
   } catch (error) {
     throw error
   }
-
 }
+
+//根据服务点日结数据生成服务平台日结数据
+// async function
 
 //生成服务点日结数据
 async function createStationDayAccount() {
