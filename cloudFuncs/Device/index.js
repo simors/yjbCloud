@@ -314,18 +314,30 @@ function getDeviceStatus(deviceNo) {
 /**
  * 获取设备编号列表
  */
-function getDeviceNoList() {
+async function getDeviceNoList() {
   var query = new AV.Query('Device')
-  return query.find().then((results) => {
-    let deviceNoList = []
-    results.forEach((device) => {
-      deviceNoList.push(device.attributes.deviceNo)
-    })
+  let deviceNoList = []
+  let lastCreatedAt = undefined
+
+  try {
+    while (1) {
+      if(lastCreatedAt) {
+        query.lessThan('createdAt', new Date(lastCreatedAt))
+      }
+      let results = await query.find()
+      if(results.length < 1) {
+        break
+      }
+      results.forEach((device) => {
+        deviceNoList.push(device.attributes.deviceNo)
+      })
+      lastCreatedAt = results[results.length - 1].createdAt.valueOf()
+    }
     return deviceNoList
-  }).catch((error) => {
+  } catch (error) {
     console.log("getDeviceNoList", error)
     throw error
-  })
+  }
 }
 
 /**

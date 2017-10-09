@@ -124,12 +124,31 @@ function verifyIdName(request, response) {
   })
 }
 
-function authFuncTest(request, response) {
-  let message = "测试成功"
+async function getUserId(mobilePhoneNumber) {
+  let userId = undefined
+  let query = new AV.Query('_User')
+  query.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+  let user = await query.first()
+  userId = user? user.id: undefined
+  return userId
+}
 
-  response.success({
-    message: message
-  })
+async function getUserInfoById(userId) {
+  if(!userId) {
+    return undefined
+  }
+  let user = AV.Object.createWithoutData('_User', userId)
+  if(!user) {
+    return undefined
+  }
+  let userInfo = await user.fetch()
+  return constructUserInfo(userInfo)
+}
+
+async function authFuncTest(request, response) {
+  let userId = request.params.userId
+  let userInfo = await getUserInfoById(userId)
+  response.success(userInfo)
 }
 
 var authFunc = {
@@ -139,7 +158,9 @@ var authFunc = {
   isUserSignIn: isUserSignIn,
   fetchWalletInfo: fetchWalletInfo,
   fetchDealRecords: fetchDealRecords,
-  verifyIdName: verifyIdName
+  verifyIdName: verifyIdName,
+  getUserId: getUserId,
+  getUserInfoById: getUserInfoById,
 }
 
 module.exports = authFunc

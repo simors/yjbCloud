@@ -426,8 +426,83 @@ function transferEvent(request, response) {
   })
 }
 
-function fetchRecharges(request, response) {
 
+async function fetchRecharges(request, response) {
+  let authFunc = require('../Auth')
+  let currentUser = request.currentUser
+  let start = request.params.start
+  let end = request.params.end
+  let mobilePhoneNumber = request.params.mobilePhoneNumber
+  let isRefresh = request.params.isRefresh || true    //分页查询刷新
+  let lastDealTime = request.params.lastDealTime  //分页查询历史查询最后一条记录的设备更新时间
+  let limit = request.params.limit || 10
+  let userId = undefined
+  let rechargeList = []
+
+  try {
+    let sql = ""
+    let queryParams = undefined
+    let mysqlConn = await mysqlUtil.getConnection()
+
+    if(mobilePhoneNumber && start && end) {
+      userId = await authFunc.getUserId(mobilePhoneNumber)
+      sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`>? AND `deal_time`<? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
+      if(isRefresh) {
+        queryParams = [RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), userId, limit]
+      } else {
+        queryParams = [RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(lastDealTime), 'isoDateTime'), userId, limit]
+      }
+    } else if (!mobilePhoneNumber && start && end) {
+      sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`>? AND `deal_time`<? ORDER BY `deal_time` DESC LIMIT ?"
+      if(isRefresh) {
+        queryParams = [RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), limit]
+      } else {
+        queryParams = [RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(lastDealTime), 'isoDateTime'), limit]
+      }
+    } else if (mobilePhoneNumber && !start && !end) {
+      userId = await authFunc.getUserId(mobilePhoneNumber)
+      if(isRefresh) {
+        sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
+        queryParams = [RECHARGE, userId, limit]
+      } else {
+        sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`<? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
+        queryParams = [RECHARGE, dateFormat(new Date(lastDealTime), 'isoDateTime'), userId, limit]
+      }
+    } else if (!mobilePhoneNumber && !start && !end) {
+      if(isRefresh) {
+        sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? ORDER BY `deal_time` DESC LIMIT ?"
+        queryParams = [RECHARGE, limit]
+      } else {
+        sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`<?  ORDER BY `deal_time` DESC LIMIT ?"
+        queryParams = [RECHARGE, dateFormat(new Date(lastDealTime), 'isoDateTime'), limit]
+      }
+    } else {
+      response.error(new Error("参数错误"))
+      return
+    }
+
+    let queryRes = await mysqlUtil.query(mysqlConn, sql, queryParams)
+    if(queryRes.results.length > 0) {
+      for (let deal of queryRes.results) {
+        let record = {}
+        record.id = deal.id
+        record.order_no = deal.order_no
+        record.userId = deal.from
+        record.user = await authFunc.getUserInfoById(deal.from)
+        record.cost = deal.cost
+        record.dealTime = deal.deal_time
+        rechargeList.push(record)
+      }
+    }
+
+    response.success(rechargeList)
+    if(mysqlConn) {
+      mysqlUtil.release(mysqlConn)
+    }
+  } catch (error) {
+    console.error(error)
+    response.error(error)
+  }
 }
 
 var PingppFunc = {
