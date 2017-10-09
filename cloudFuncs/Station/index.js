@@ -24,7 +24,7 @@ function constructStationInfo(station, includeAdmin) {
   stationInfo.powerUnitPrice = station.attributes.powerUnitPrice
   stationInfo.platformProp = station.attributes.platformProp
   stationInfo.stationProp = station.attributes.stationProp
-  stationInfo.adminId = admin? admin.id : undefined
+  stationInfo.adminId = admin ? admin.id : undefined
   if (includeAdmin && admin) {
     stationInfo.admin = constructUserInfo(admin)
   }
@@ -183,9 +183,9 @@ function updateStation(request, response) {
   var admin = AV.Object.createWithoutData('_User', adminId)
   var station = AV.Object.createWithoutData('Station', stationId)
   let queryName = new AV.Query('Station')
-  queryName.equalTo('name',name)
+  queryName.equalTo('name', name)
   queryName.first().then((stationRecord) => {
-    if (stationRecord&&stationRecord.id!=stationId) {
+    if (stationRecord && stationRecord.id != stationId) {
       response.error(new Error("服务网点名字重复"))
       return
     }
@@ -243,7 +243,33 @@ function fetchPartnerByStationId(request, response) {
 }
 
 /**
- * 拉取服务点下投资人列表
+ * 获取服务点下合作平台信息
+ * @param {Object}  request
+ * @param {Object}  response
+ */
+
+function getPartnerByStationId(stationId) {
+  var station = AV.Object.createWithoutData('Station', stationId)
+  var query = new AV.Query('ProfitSharing')
+  query.equalTo('station', station)
+  query.equalTo('type', 'partner')
+  query.equalTo('status', 1)
+  query.include(['station', 'shareholder'])
+  query.descending('createdDate')
+  query.find().then((sharings)=> {
+    var sharingList = []
+    sharings.forEach((sharing)=> {
+      sharingList.push(constructProfitSharing(sharing))
+    })
+    return sharingList
+  }, (err)=> {
+    throw err
+  })
+}
+
+
+/**
+ * 拉取投资人列表
  * @param {Object}  request
  * @param {Object}  response
  */
@@ -266,11 +292,10 @@ function fetchInvestorByStationId(request, response) {
   if (status != undefined) {
     query.equalTo('status', status)
   }
-  if(lastCreateTime){
-    query.lessThan('createdAt',lastCreateTime)
+  if (lastCreateTime) {
+    query.lessThan('createdAt', lastCreateTime)
   }
   query.include(['station', 'shareholder'])
-
   query.descending('createdDate')
   if (username) {
     var queryUser = new AV.Query('_User')
@@ -304,6 +329,36 @@ function fetchInvestorByStationId(request, response) {
       response.error(err)
     })
   }
+}
+
+/**
+ * 获取服务点下投资人列表
+ * @param {Object}  request
+ * @param {Object}  response
+ */
+
+function getInvestorByStationId(stationId) {
+  var station = undefined
+  var limit = 1000
+  var query = new AV.Query('ProfitSharing')
+  query.limit(limit)
+  station = AV.Object.createWithoutData('Station', stationId)
+  query.equalTo('station', station)
+  query.equalTo('type', 'investor')
+  query.equalTo('status', 1)
+  query.include(['station', 'shareholder'])
+  query.descending('createdDate')
+  query.find().then((sharings)=> {
+    var sharingList = []
+    sharings.forEach((sharing)=> {
+      console.log('sharing===>', sharing.id)
+      sharingList.push(constructProfitSharing(sharing))
+    })
+    return sharingList
+  }, (err)=> {
+    throw err
+  })
+
 }
 
 /**
@@ -788,17 +843,17 @@ function stationFuncTest(request, response) {
 
 function userFuncTest(request, response) {
 
-  var query =new AV.Query('_User')
-  query.find().then((results)=>{
+  var query = new AV.Query('_User')
+  query.find().then((results)=> {
     var userList = []
-    results.forEach((item)=>{
+    results.forEach((item)=> {
       userList.push({
         id: item.id,
         nickname: item.attributes.nickname
       })
     })
     response.success(userList)
-  },(err)=>{
+  }, (err)=> {
     response.error(err)
   })
 }
@@ -815,12 +870,12 @@ async function getStations() {
   let stationList = []
 
   try {
-    while(1) {
-      if(lastCreatedAt) {
+    while (1) {
+      if (lastCreatedAt) {
         query.lessThan('createdAt', new Date(lastCreatedAt))
       }
       let devices = await query.find()
-      if(devices.length < 1) {
+      if (devices.length < 1) {
         break
       }
       devices.forEach((device) => {
@@ -856,7 +911,9 @@ var stationFunc = {
   openPartner: openPartner,
   closePartner: closePartner,
   userFuncTest: userFuncTest,
-  getStations: getStations
+  getStations: getStations,
+  getPartnerByStationId: getPartnerByStationId,
+  getInvestorByStationId: getInvestorByStationId
 }
 
 module.exports = stationFunc
