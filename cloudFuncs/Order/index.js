@@ -26,7 +26,7 @@ function constructOrderInfo(order, includeDevice, includeUser) {
   if(order.attributes.end)
     orderInfo.endTime = order.attributes.end
   orderInfo.status = order.attributes.status
-
+  orderInfo.payTime = order.attributes.payTime
   var user = order.attributes.user
   var device = order.attributes.device
   orderInfo.userId = user? user.id : undefined
