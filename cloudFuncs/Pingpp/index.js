@@ -439,16 +439,12 @@ async function fetchRecharges(request, response) {
   let userId = undefined
   let rechargeList = []
 
-  if(!start || !end) {
-    response.error(new Error('参数错误'))
-    return
-  }
   try {
     let sql = ""
     let queryParams = undefined
     let mysqlConn = await mysqlUtil.getConnection()
 
-    if(mobilePhoneNumber) {
+    if(mobilePhoneNumber && start && end) {
       userId = await authFunc.getUserId(mobilePhoneNumber)
       sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`>? AND `deal_time`<? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
       if(isRefresh) {
@@ -456,13 +452,33 @@ async function fetchRecharges(request, response) {
       } else {
         queryParams = [RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(lastDealTime), 'isoDateTime'), userId, limit]
       }
-    } else {
+    } else if (!mobilePhoneNumber && start && end) {
       sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`>? AND `deal_time`<? ORDER BY `deal_time` DESC LIMIT ?"
       if(isRefresh) {
         queryParams = [RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), limit]
       } else {
         queryParams = [RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(lastDealTime), 'isoDateTime'), limit]
       }
+    } else if (mobilePhoneNumber && !start && !end) {
+      userId = await authFunc.getUserId(mobilePhoneNumber)
+      if(isRefresh) {
+        sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
+        queryParams = [RECHARGE, userId, limit]
+      } else {
+        sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`<? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
+        queryParams = [RECHARGE, dateFormat(new Date(lastDealTime), 'isoDateTime'), userId, limit]
+      }
+    } else if (!mobilePhoneNumber && !start && !end) {
+      if(isRefresh) {
+        sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? ORDER BY `deal_time` DESC LIMIT ?"
+        queryParams = [RECHARGE, limit]
+      } else {
+        sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`<?  ORDER BY `deal_time` DESC LIMIT ?"
+        queryParams = [RECHARGE, dateFormat(new Date(lastDealTime), 'isoDateTime'), limit]
+      }
+    } else {
+      response.error(new Error("参数错误"))
+      return
     }
 
     let queryRes = await mysqlUtil.query(mysqlConn, sql, queryParams)
