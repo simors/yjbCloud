@@ -7,6 +7,7 @@ var orderFunc = require('./cloudFuncs/Order')
 var mpJsSdkFuncs = require('./mpFuncs/JSSDK')
 var stationFunc = require('./cloudFuncs/Station')
 var accountsFunc= require('./cloudFuncs/Accounts')
+var mpUserFuncs = require('./mpFuncs/User')
 
 /**
  * 云函数
@@ -17,6 +18,7 @@ AV.Cloud.define('authFetchUserInfo', authFunc.fetchUserInfo)
 AV.Cloud.define('authFetchWalletInfo', authFunc.fetchWalletInfo)
 AV.Cloud.define('authFetchDealRecords', authFunc.fetchDealRecords)
 AV.Cloud.define('authVerifyIdName', authFunc.verifyIdName)
+AV.Cloud.define('wechatIsSubscribe', mpUserFuncs.isSubscribe)
 
 //设备
 AV.Cloud.define('deviceFetchDeviceInfo', deviceFunc.fetchDeviceInfo)
