@@ -6,6 +6,7 @@ var PingppFunc = require('./cloudFuncs/Pingpp')
 var orderFunc = require('./cloudFuncs/Order')
 var mpJsSdkFuncs = require('./mpFuncs/JSSDK')
 var stationFunc = require('./cloudFuncs/Station')
+var accountsFunc= require('./cloudFuncs/Accounts')
 
 /**
  * 云函数
@@ -67,6 +68,11 @@ AV.Cloud.define('orderFetchOrders', orderFunc.fetchOrders)
 
 //微信
 AV.Cloud.define('getJsConfig', mpJsSdkFuncs.getJsConfig)
+
+//结算
+AV.Cloud.define('selectDealData', accountsFunc.selectDealData)
+AV.Cloud.define('getYesterday', accountsFunc.getYesterday)
+AV.Cloud.define('createStationDayAccount', accountsFunc.createStationDayAccount)
 
 
 module.exports = AV.Cloud;

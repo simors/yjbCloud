@@ -803,6 +803,39 @@ function userFuncTest(request, response) {
   })
 }
 
+
+/**
+ * 查询服务点列表
+ * @param {String}  stationId
+ */
+async function getStations() {
+  let query = new AV.Query('Station')
+  query.descending('createdAt')
+  let lastCreatedAt = undefined
+  let stationList = []
+
+  try {
+    while(1) {
+      if(lastCreatedAt) {
+        query.lessThan('createdAt', new Date(lastCreatedAt))
+      }
+      let devices = await query.find()
+      if(devices.length < 1) {
+        break
+      }
+      devices.forEach((device) => {
+        stationList.push(constructStationInfo(device, false))
+      })
+      lastCreatedAt = devices[devices.length - 1].createdAt.valueOf()
+    }
+    return stationList
+  } catch (error) {
+    console.log("getDevices", error)
+    throw error
+  }
+}
+
+
 var stationFunc = {
   constructStationInfo: constructStationInfo,
   createStation: createStation,
@@ -822,7 +855,8 @@ var stationFunc = {
   updatePartner: updatePartner,
   openPartner: openPartner,
   closePartner: closePartner,
-  userFuncTest: userFuncTest
+  userFuncTest: userFuncTest,
+  getStations: getStations
 }
 
 module.exports = stationFunc
