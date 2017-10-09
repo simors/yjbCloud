@@ -80,12 +80,12 @@ function selectDealData(request, response) {
 //查询昨天日期
 function getYesterday(request, response) {
   var today = new Date();
-  // console.log('today========>',today)
+  console.log('today========>',today)
   today.setHours(0);
   today.setMinutes(0);
   today.setSeconds(0);
   today.setMilliseconds(0);
-  // console.log('today========>',today)
+  console.log('today========>',today)
   var oneday = 1000 * 60 * 60 * 24;
 // 昨天
   var yesterday = new Date(today - oneday);
@@ -96,20 +96,20 @@ function getYesterday(request, response) {
 }
 
 //查询该设备下的1000个订单收益的和
-async function selectAmountSumBydeviceId(deviceId) {
+async function selectAmountSumBydeviceId(deviceId,dayInfo) {
   try {
     let amountSum = 0
     let orderList = await OrderFunc.getOrders(deviceId)
-    let dayInfo = getYesterday()
+    // let dayInfo = getYesterday()
     orderList.forEach((order)=> {
       // console.log('order.payTime====>',order.payTime,dayInfo)
 
-      // if (order.payTime && (order.payTime < dayInfo.today) && (order.payTime >= dayInfo.yesterday) && dayInfo.status == 2 ) {
-      //   console.log('order.amount====>',order.amount)
+      if (order.payTime && (new Date(order.payTime) < new Date(dayInfo.today)) && (new Date(order.payTime) >= new Date(dayInfo.yesterday)) && order.status == 2 ) {
+        // console.log('order.amount====>',order.amount)
       if(order.amount){
         amountSum = mathjs.chain(amountSum).add(order.amount).done()
       }
-      // }
+      }
     })
     return amountSum
   } catch (error) {
@@ -118,28 +118,27 @@ async function selectAmountSumBydeviceId(deviceId) {
 }
 
 //查询单个服务点当天收益并生成日结数据插入Account表中
-async function createStationAccount(stationId) {
+async function createStationAccount(stationId,dayInfo) {
   try {
     let amountSum = 0
     let cost = 0
     let deviceList = await DeviceFuncs.getDevices(stationId)
     for (let i = 0; i < deviceList.length; i++) {
-      let result = await selectAmountSumBydeviceId(deviceList[i].id)
-      amountSum = mathjs.chain(amountSum).add(result).done()
+      let result = await selectAmountSumBydeviceId(deviceList[i].id,dayInfo)
+      amountSum = mathjs.round(mathjs.chain(amountSum).add(result).done(),2)
     }
-    let dayInfo = getYesterday()
     // console.log('amountSum===>', amountSum)
     let station = AV.Object.createWithoutData('Station', stationId)
     let Account = AV.Object.extend('StationAccount')
     let account = new Account()
-    let profit = mathjs.chain(amountSum).subtract(cost).done()
+    let profit = mathjs.round(mathjs.chain(amountSum).subtract(cost).done(),2)
     account.set('incoming', amountSum)
     account.set('station', station)
     account.set('accountDay', dayInfo.yesterday)
     account.set('cost', cost)
     account.set('profit', profit)
     let accountInfo = await account.save()
-    let isSuccess = await createPartnerAccount(accountInfo.id)
+    let isSuccess = await createPartnerAccount(accountInfo.id,dayInfo)
 
     return accountInfo
   } catch (error) {
@@ -148,13 +147,13 @@ async function createStationAccount(stationId) {
 }
 
 //根据服务点日结数据生成分成方和投资人日结数据
-async function createPartnerAccount(accountId) {
+async function createPartnerAccount(accountId,dayInfo) {
   try {
     let queryAccount = new AV.Query('StationAccount')
     queryAccount.include(['station'])
     let partnerProfit = 0
     let investorProfit = 0
-    let dayInfo = getYesterday()
+    // let dayInfo = getYesterday()
     let stationAccount = await queryAccount.get(accountId)
     let stationAccountInfo = constructStationAccountnInfo(stationAccount, true)
     // console.log('hahahahahahahah here is true',stationAccountInfo.profit,stationAccountInfo.station.platformProp)
@@ -164,7 +163,7 @@ async function createPartnerAccount(accountId) {
     let stationAccountObject = AV.Object.createWithoutData('StationAccount', accountId)
     let partnerList = await StationFuncs.getPartnerByStationId(stationAccountInfo.stationId)
     if (partnerList && partnerList.length > 0) {
-      console.log('partnerList====>',partnerList)
+      // console.log('partnerList====>',partnerList)
       for (let i = 0; i < partnerList.length; i++) {
         let partner = partnerList[i]
         let profitSharing = AV.Object.createWithoutData('ProfitSharing', partner.id)
@@ -182,7 +181,7 @@ async function createPartnerAccount(accountId) {
     let investorList = await StationFuncs.getInvestorByStationId(stationAccountInfo.stationId)
     investorProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).subtract(platfomProfit).subtract(partnerProfit).done(),2)
     if (investorList && investorList.length > 0) {
-      console.log('investorList====>',investorList)
+      // console.log('investorList====>',investorList)
 
       for (let i = 0; i < investorList.length; i++) {
         let investor = investorList[i]
@@ -190,7 +189,7 @@ async function createPartnerAccount(accountId) {
         let InvestorAccount = AV.Object.extend('InvestorAccount')
         let investorAccount = new InvestorAccount()
         investorAccount.set('StationAccount', stationAccountObject)
-        let profit = mathjs.chain(investorProfit).multiply(investor.royalty).done()
+        let profit = mathjs.round(mathjs.chain(investorProfit).multiply(investor.royalty).done(),2)
         investorAccount.set('profit', profit)
         investorAccount.set('accountDay', dayInfo.yesterday)
         investorAccount.set('ProfitSharing', profitSharing)
@@ -215,8 +214,9 @@ async function createPartnerAccount(accountId) {
 async function createStationDayAccount() {
   try {
     let stationList = await StationFuncs.getStations()
+    let dayInfo = getYesterday()
     stationList.forEach((station)=> {
-      createStationAccount(station.id)
+      createStationAccount(station.id,dayInfo)
     })
   } catch (error) {
     throw error

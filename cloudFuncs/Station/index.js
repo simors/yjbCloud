@@ -269,7 +269,7 @@ function getPartnerByStationId(stationId) {
         sharingList.push(sharingInfo)
       })
     }
-    console.log('sharingList====>', sharingList)
+    // console.log('sharingList====>', sharingList)
     return sharingList
   }, (err)=> {
     throw err
