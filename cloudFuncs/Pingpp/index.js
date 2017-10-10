@@ -485,7 +485,7 @@ async function fetchRecharges(request, response) {
     if(queryRes.results.length > 0) {
       for (let deal of queryRes.results) {
         let record = {}
-        record.id = deal.id
+        record.id = deal.charge_id
         record.order_no = deal.order_no
         record.userId = deal.from
         record.user = await authFunc.getUserInfoById(deal.from)
