@@ -170,6 +170,7 @@ async function createPartnerAccount(accountId,dayInfo) {
       // console.log('partnerList====>',partnerList)
       for (let i = 0; i < partnerList.length; i++) {
         let partner = partnerList[i]
+        let user = AV.Object.createWithoutData('_User', partner.shareholderId)
         let profitSharing = AV.Object.createWithoutData('ProfitSharing', partner.id)
         let PartnerAccount = AV.Object.extend('PartnerAccount')
         let partnerAccount = new PartnerAccount()
@@ -179,6 +180,8 @@ async function createPartnerAccount(accountId,dayInfo) {
         partnerAccount.set('accountDay', dayInfo.yesterday)
         partnerAccount.set('profitSharing', profitSharing)
         partnerAccount.set('station', station)
+        partnerAccount.set('user', user)
+
         await partnerAccount.save()
         partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(profit).done(),2)
       }
@@ -190,6 +193,7 @@ async function createPartnerAccount(accountId,dayInfo) {
 
       for (let i = 0; i < investorList.length; i++) {
         let investor = investorList[i]
+        let user = AV.Object.createWithoutData('_User', investor.shareholderId)
         let profitSharing = AV.Object.createWithoutData('ProfitSharing', investor.id)
         let InvestorAccount = AV.Object.extend('InvestorAccount')
         let investorAccount = new InvestorAccount()
@@ -199,6 +203,7 @@ async function createPartnerAccount(accountId,dayInfo) {
         investorAccount.set('accountDay', dayInfo.yesterday)
         investorAccount.set('profitSharing', profitSharing)
         investorAccount.set('station', station)
+        investorAccount.set('user', user)
         await investorAccount.save()
       }
     } else {
@@ -229,10 +234,36 @@ async function createStationDayAccount() {
   }
 }
 
+//生成上月时间第一天和最后一天
+function getLastMonth(request, response) {
+  var nowdays = new Date().toLocaleDateString();
+  nowdays = new Date(nowdays)
+  var lastDay = new Date().toLocaleDateString()
+  lastDay = new Date(lastDay).setDate(1)
+  var year = nowdays.getFullYear();
+  var month = nowdays.getMonth();
+  if(month==0)
+  {
+    month=12;
+    year=year-1;
+  }
+  if (month < 10) {
+    month = "0" + month;
+  }
+  var firstDay = year + "-" + month + "-" + "01";//上个月的第一天
+
+
+
+  var myDate = new Date(year, month, 0);
+  // var lastDay = year + "-" + month + "-" + myDate.getDate();//上个月的最后一天
+  response.success({firstDay: new Date(firstDay), lastDay: new Date(lastDay)})
+}
+
 var orderFunc = {
   getYesterday: getYesterday,
   selectDealData: selectDealData,
   createStationDayAccount: createStationDayAccount,
+  getLastMonth: getLastMonth
 
 
 }

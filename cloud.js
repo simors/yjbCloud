@@ -73,8 +73,9 @@ AV.Cloud.define('getJsConfig', mpJsSdkFuncs.getJsConfig)
 
 //结算
 AV.Cloud.define('selectDealData', accountsFunc.selectDealData)
-AV.Cloud.define('getYesterday', accountsFunc.getYesterday)
+// AV.Cloud.define('getYesterday', accountsFunc.getYesterday)
 AV.Cloud.define('createStationDayAccount', accountsFunc.createStationDayAccount)
+// AV.Cloud.define('getLastMonth', accountsFunc.getLastMonth)
 
 
 module.exports = AV.Cloud;
