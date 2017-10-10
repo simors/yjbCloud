@@ -163,7 +163,7 @@ async function createPartnerAccount(accountId,dayInfo) {
     // console.log('hahahahahahahah here is true',stationAccountInfo.profit,stationAccountInfo.station.platformProp)
     let platfomProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(stationAccountInfo.station.platformProp).done(),2)
     // console.log('stationAccountInfo=====>',stationAccountInfo.stationId)
-
+    let station = AV.Object.createWithoutData('Station', stationAccountInfo.stationId)
     let stationAccountObject = AV.Object.createWithoutData('StationAccount', accountId)
     let partnerList = await StationFuncs.getPartnerByStationId(stationAccountInfo.stationId)
     if (partnerList && partnerList.length > 0) {
@@ -173,11 +173,12 @@ async function createPartnerAccount(accountId,dayInfo) {
         let profitSharing = AV.Object.createWithoutData('ProfitSharing', partner.id)
         let PartnerAccount = AV.Object.extend('PartnerAccount')
         let partnerAccount = new PartnerAccount()
-        partnerAccount.set('StationAccount', stationAccountObject)
+        partnerAccount.set('stationAccount', stationAccountObject)
         let profit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(partner.royalty).done(),2)
         partnerAccount.set('profit', profit)
         partnerAccount.set('accountDay', dayInfo.yesterday)
-        partnerAccount.set('ProfitSharing', profitSharing)
+        partnerAccount.set('profitSharing', profitSharing)
+        partnerAccount.set('station', station)
         await partnerAccount.save()
         partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(profit).done(),2)
       }
@@ -192,11 +193,12 @@ async function createPartnerAccount(accountId,dayInfo) {
         let profitSharing = AV.Object.createWithoutData('ProfitSharing', investor.id)
         let InvestorAccount = AV.Object.extend('InvestorAccount')
         let investorAccount = new InvestorAccount()
-        investorAccount.set('StationAccount', stationAccountObject)
+        investorAccount.set('stationAccount', stationAccountObject)
         let profit = mathjs.round(mathjs.chain(investorProfit).multiply(investor.royalty).done(),2)
         investorAccount.set('profit', profit)
         investorAccount.set('accountDay', dayInfo.yesterday)
-        investorAccount.set('ProfitSharing', profitSharing)
+        investorAccount.set('profitSharing', profitSharing)
+        investorAccount.set('station', station)
         await investorAccount.save()
       }
     } else {
