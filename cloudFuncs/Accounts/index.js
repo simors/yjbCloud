@@ -240,12 +240,43 @@ function getLastMonth(request, response) {
   return {firstDay: new Date(firstDay), lastDay: new Date(lastDay)}
 }
 
+//服务点结算查询
+async function getStationAccounts(request, response) {
+  let stationId = request.params.stationId
+  let startDate = request.params.startDate
+  let endDate = request.params.endDate
+  let query = new AV.Query('StationAccount')
+  if(stationId){
+    let station = AV.Object.createWithoutData('Station',stationId)
+    query.equalTo('station', station)
+  }
+  if(startDate){
+    query.greaterThanOrEqualTo('accountDay',new Date(startDate))
+  }
+  if(endDate){
+    query.lessThanOrEqualTo('accountDay',new Date(endDate))
+  }
+  query.include(['station','station.admin'])
+  try{
+    let accounts = await query.find()
+    let accountList = []
+    accounts.forEach((account)=>{
+      accountList.push(constructStationAccountnInfo(account,true))
+    })
+    response.success({accountList: accountList})
+  }catch(error){
+    throw error
+  }
+
+}
+
 var orderFunc = {
   getYesterday: getYesterday,
   selectDealData: selectDealData,
   createStationDayAccount: createStationDayAccount,
   getLastMonth: getLastMonth,
-  
+  getStationAccounts: getStationAccounts
+
 
 
 }

@@ -76,6 +76,7 @@ AV.Cloud.define('selectDealData', accountsFunc.selectDealData)
 // AV.Cloud.define('getYesterday', accountsFunc.getYesterday)
 AV.Cloud.define('createStationDayAccount', accountsFunc.createStationDayAccount)
 // AV.Cloud.define('getLastMonth', accountsFunc.getLastMonth)
+AV.Cloud.define('getStationAccounts', accountsFunc.getStationAccounts)
 
 
 module.exports = AV.Cloud;
