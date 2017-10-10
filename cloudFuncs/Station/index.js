@@ -43,11 +43,11 @@ function constructProfitSharing(profitSharing) {
   profitSharingInfo.type = profitSharing.attributes.type
   profitSharingInfo.royalty = profitSharing.attributes.royalty
   profitSharingInfo.investment = profitSharing.attributes.investment
-  profitSharingInfo.shareholderId = shareholder.id
-  profitSharingInfo.shareholderName = shareholder.attributes.nickname
-  profitSharingInfo.shareholderPhone = shareholder.attributes.mobilePhoneNumber
-  profitSharingInfo.stationId = station.id
-  profitSharingInfo.stationName = station.attributes.name
+  profitSharingInfo.shareholderId = shareholder?shareholder.id:undefined
+  profitSharingInfo.shareholderName = shareholder?shareholder.attributes.nickname:undefined
+  profitSharingInfo.shareholderPhone = shareholder?shareholder.attributes.mobilePhoneNumber:undefined
+  profitSharingInfo.stationId = station?station.id:undefined
+  profitSharingInfo.stationName =station? station.attributes.name:undefined
   profitSharingInfo.status = profitSharing.attributes.status
   profitSharingInfo.createdAt = profitSharing.createdAt
   return profitSharingInfo
@@ -249,6 +249,9 @@ function fetchPartnerByStationId(request, response) {
  */
 
 function getPartnerByStationId(stationId) {
+  if (!stationId) {
+    return undefined
+  }
   var station = AV.Object.createWithoutData('Station', stationId)
   var query = new AV.Query('ProfitSharing')
   query.equalTo('station', station)
@@ -256,11 +259,17 @@ function getPartnerByStationId(stationId) {
   query.equalTo('status', 1)
   query.include(['station', 'shareholder'])
   query.descending('createdDate')
-  query.find().then((sharings)=> {
+  return query.find().then((sharings)=> {
     var sharingList = []
-    sharings.forEach((sharing)=> {
-      sharingList.push(constructProfitSharing(sharing))
-    })
+    // console.log('sharings====>',sharings.length)
+    if (sharings && sharings.length > 0) {
+      sharings.forEach((sharing)=> {
+        // console.log('sharing====>', sharing)
+        let sharingInfo = constructProfitSharing(sharing)
+        sharingList.push(sharingInfo)
+      })
+    }
+    // console.log('sharingList====>', sharingList)
     return sharingList
   }, (err)=> {
     throw err
@@ -302,15 +311,18 @@ function fetchInvestorByStationId(request, response) {
     queryUser.equalTo('nickname', username)
     queryUser.find().then((users)=> {
       var userList = []
-      users.forEach((user)=> {
-        var userInfo = AV.Object.createWithoutData('_User', user.id)
-        userList.push(userInfo)
-      })
+      if (users && users.length > 0) {
+        users.forEach((user)=> {
+          var userInfo = AV.Object.createWithoutData('_User', user.id)
+          userList.push(userInfo)
+        })
+      }
       query.containedIn('shareholder', userList)
       query.find().then((sharings)=> {
         var sharingList = []
         sharings.forEach((sharing)=> {
-          sharingList.push(constructProfitSharing(sharing))
+          let sharingInfo = constructProfitSharing(sharing)
+          sharingList.push(sharingInfo)
         })
         response.success(sharingList)
       }, (err)=> {
@@ -320,10 +332,14 @@ function fetchInvestorByStationId(request, response) {
   } else {
     query.find().then((sharings)=> {
       var sharingList = []
-      sharings.forEach((sharing)=> {
-        console.log('sharing===>', sharing.id)
-        sharingList.push(constructProfitSharing(sharing))
-      })
+      if (sharings && sharings.length > 0) {
+        sharings.forEach((sharing)=> {
+          // console.log('sharing===>', sharing.id)
+
+          let sharingInfo = constructProfitSharing(sharing)
+          sharingList.push(sharingInfo)
+        })
+      }
       response.success(sharingList)
     }, (err)=> {
       response.error(err)
@@ -338,6 +354,9 @@ function fetchInvestorByStationId(request, response) {
  */
 
 function getInvestorByStationId(stationId) {
+  if (!stationId) {
+    return undefined
+  }
   var station = undefined
   var limit = 1000
   var query = new AV.Query('ProfitSharing')
@@ -348,12 +367,14 @@ function getInvestorByStationId(stationId) {
   query.equalTo('status', 1)
   query.include(['station', 'shareholder'])
   query.descending('createdDate')
-  query.find().then((sharings)=> {
+  return query.find().then((sharings)=> {
     var sharingList = []
-    sharings.forEach((sharing)=> {
-      console.log('sharing===>', sharing.id)
-      sharingList.push(constructProfitSharing(sharing))
-    })
+    if(sharings&&sharings.length>0){
+      sharings.forEach((sharing)=> {
+        // console.log('sharing===>', sharing.id)
+        sharingList.push(constructProfitSharing(sharing))
+      })
+    }
     return sharingList
   }, (err)=> {
     throw err
