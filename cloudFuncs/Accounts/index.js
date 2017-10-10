@@ -79,17 +79,21 @@ function selectDealData(request, response) {
 
 //查询昨天日期
 function getYesterday(request, response) {
-  var today = new Date();
+  var today = new Date().toLocaleDateString();
+  today = new Date(today)
   console.log('today========>',today)
-  today.setHours(0);
-  today.setMinutes(0);
-  today.setSeconds(0);
-  today.setMilliseconds(0);
+  // today.setHours(0);
+  // today.setMinutes(0);
+  // today.setSeconds(0);
+  // today.setMilliseconds(0);
   console.log('today========>',today)
   var oneday = 1000 * 60 * 60 * 24;
 // 昨天
   var yesterday = new Date(today - oneday);
 // 上周一
+  console.log('today=====>',today)
+  console.log('yesterday=====>',yesterday)
+
   return {today: today, yesterday: yesterday}
 // 上个月1号
 //   response.success({today: today, yesterday: yesterday})
