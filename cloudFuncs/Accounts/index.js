@@ -573,6 +573,43 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
   }
 }
 
+/*
+ * 获取服务点日结信息
+ * @ params {}
+ */
+async function getStationAccountsDetail(request, response){
+  let stationId = request.params.stationId
+  let startDate = request.params.startDate
+  let endDate = request.params.endDate
+  let lastCreatedAt = request.params.lastCreatedAt
+  let query = new AV.Query('StationAccount')
+  if(stationId){
+    let station = AV.Object.createWithoutData('Station', stationId)
+    query.equalTo('station', station)
+  }
+  if (startDate) {
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
+  }
+  if (endDate) {
+    query.lessThan('accountDay', new Date(endDate))
+  }
+  if(lastCreatedAt){
+    query.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+  query.descending('createdAt')
+  query.include(['station,station.admin'])
+  try{
+    let accounts = await query.find()
+    let accountList = []
+    accounts.forEach((account)=>{
+      accountList.push(constructStationAccountnInfo(account,true))
+    })
+    response.success(accountList)
+  }catch(error){
+    response.error(error)
+  }
+
+}
 
 var orderFunc = {
   getYesterday: getYesterday,
@@ -581,7 +618,8 @@ var orderFunc = {
   getLastMonth: getLastMonth,
   getStationAccounts: getStationAccounts,
   getPartnerAccounts: getPartnerAccounts,
-  getInvestorAccounts: getInvestorAccounts
+  getInvestorAccounts: getInvestorAccounts,
+  getStationAccountsDetail: getStationAccountsDetail
 
 
 }
