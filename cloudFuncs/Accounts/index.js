@@ -472,13 +472,116 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
 }
 
 
+/**
+ * 获取投资人的结算统计
+ * @param {}
+ */
+async function getInvestorAccounts(request, response) {
+  let stationId = request.params.stationId
+  let userId = request.params.userId
+  let startDate = request.params.startDate
+  let endDate = request.params.endDate
+  let query = new AV.Query('_User')
+  if (userId) {
+    query.equalTo('objectId', userId)
+  }
+  // if(startDate){
+  //   query.greaterThanOrEqualTo('accountDay',new Date(startDate))
+  // }
+  // if(endDate){
+  //   query.lessThanOrEqualTo('accountDay',new Date(endDate))
+  // }
+  // query.include(['station','station.admin'])
+  try {
+    let partners = await query.find()
+    let accountList = []
+    // console.log('station.length====>',stations.length)
+    for (let i = 0; i < partners.length; i++) {
+      let account = await getAccountsByInvestorId(partners[i].id, stationId, startDate, endDate)
+      // console.log('account=========>',account)
+      if (account && account.stationId) {
+        accountList.push(account)
+      }
+    }
+    // stations.forEach((station)=>{
+    // })
+    response.success({accountList: accountList})
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * 获取单个分成方的结算统计
+ * @param {}
+ */
+async function getAccountsByInvestorId(investorId, stationId, startDate, endDate) {
+  let query = new AV.Query('InvestorAccount')
+  let lastCreatedAt = undefined
+  let profit = 0
+
+  if (investorId) {
+    let investor = AV.Object.createWithoutData('_User', investorId)
+    query.equalTo('user', investor)
+  }
+  if (stationId) {
+    let station = AV.Object.createWithoutData('Station', stationId)
+    query.equalTo('station', station)
+  }
+  if (startDate) {
+    // console.log('startDate+=======>',new Date(new Date(startDate)-1000))
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
+  }
+  if (endDate) {
+    // console.log('startDate+=======>',new Date(endDate))
+
+    query.lessThan('accountDay', new Date(endDate))
+  }
+  query.include(['station', 'station.admin', 'user'])
+  query.limit(1000)
+  query.descending('createdAt')
+  let accountInfo = {}
+  try {
+    while (1) {
+      if (lastCreatedAt) {
+        // console.log('lastCreatedAt======>',new Date(lastCreatedAt))
+        query.lessThan('createdAt', new Date(lastCreatedAt))
+      }
+      let accounts = await query.find()
+      if (accounts.length < 1) {
+        break
+      }
+      accounts.forEach((account) => {
+        // console.log('account.attributes.========>', account.attributes)
+        if (account) {
+          profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(), 2)
+          accountInfo = constructSharingAccountnInfo(account, true,true)
+        }
+      })
+      lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
+    }
+    if (accountInfo && accountInfo.stationId) {
+      accountInfo.profit = profit
+      return accountInfo
+    } else {
+      return accountInfo
+    }
+    // console.log('accountInfo=======>',accountInfo)
+  } catch (error) {
+    console.log("getAccounts", error)
+    throw error
+  }
+}
+
+
 var orderFunc = {
   getYesterday: getYesterday,
   // selectDealData: selectDealData,
   createStationDayAccount: createStationDayAccount,
   getLastMonth: getLastMonth,
   getStationAccounts: getStationAccounts,
-  getPartnerAccounts: getPartnerAccounts
+  getPartnerAccounts: getPartnerAccounts,
+  getInvestorAccounts: getInvestorAccounts
 
 
 }
