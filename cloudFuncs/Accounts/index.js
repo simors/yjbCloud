@@ -11,7 +11,7 @@ var mathjs = require('mathjs')
 var dateFormat = require('dateformat')
 var StationFuncs = require('../Station')
 
-//服务点日结
+//服务点日结数据构造方法
 function constructStationAccountnInfo(account, includeStation) {
   if (!account) {
     return undefined
@@ -34,7 +34,32 @@ function constructStationAccountnInfo(account, includeStation) {
     accountInfo.station = constructStationInfo(station)
   }
   accountInfo.createdAt = account.createdAt
+  return accountInfo
+}
 
+//分成方以及投资人日结数据构造方法
+function constructSharingAccountnInfo(account, includeStation, includeUser) {
+  if (!account) {
+    return undefined
+  }
+  let constructStationInfo = StationFuncs.constructStationInfo
+  let constructUserInfo = require('../Auth').constructUserInfo
+  let accountInfo = {}
+
+  let station = account.attributes.station
+  let user = account.attributes.user
+  accountInfo.id = account.id
+  accountInfo.accountDay = account.attributes.accountDay
+  accountInfo.profit = account.attributes.profit
+  accountInfo.stationId = station ? station.id : undefined
+  accountInfo.userId = user ? user.id : undefined
+  if (includeStation && station) {
+    accountInfo.station = constructStationInfo(station)
+  }
+  if (includeUser && user) {
+    accountInfo.user = constructUserInfo(user)
+  }
+  accountInfo.createdAt = account.createdAt
   return accountInfo
 }
 //
@@ -246,8 +271,7 @@ async function getStationAccounts(request, response) {
   let endDate = request.params.endDate
   let query = new AV.Query('Station')
   if (stationId) {
-    let station = AV.Object.createWithoutData('Station', stationId)
-    query.equalTo('station', station)
+    query.equalTo('objectId', stationId)
   }
   // if(startDate){
   //   query.greaterThanOrEqualTo('accountDay',new Date(startDate))
@@ -263,7 +287,7 @@ async function getStationAccounts(request, response) {
     for (let i = 0; i < stations.length; i++) {
       let account = await getAccountByStationId(stations[i].id, startDate, endDate)
       // console.log('account=========>',account)
-      if(account&&account.stationId){
+      if (account && account.stationId) {
         accountList.push(account)
       }
     }
@@ -310,25 +334,25 @@ async function getAccountByStationId(stationId, startDate, endDate) {
         query.lessThan('createdAt', new Date(lastCreatedAt))
       }
       let accounts = await query.find()
-      console.log('accounts.length=====>',accounts.length,stationId)
+      console.log('accounts.length=====>', accounts.length, stationId)
       if (accounts.length < 1) {
         break
       }
       accounts.forEach((account) => {
         // console.log('account.attributes.========>', account.attributes)
-        if(account){
-          incoming = mathjs.round(mathjs.chain(incoming).add(account.attributes.incoming).done(),2)
-          profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(),2)
-          cost = mathjs.round(mathjs.chain(cost).add(account.attributes.cost).done(),2)
-          platformProfit = mathjs.round(mathjs.chain(platformProfit).add(account.attributes.platformProfit).done(),2)
-          partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(account.attributes.partnerProfit).done(),2)
-          investorProfit = mathjs.round(mathjs.chain(investorProfit).add(account.attributes.investorProfit).done(),2)
+        if (account) {
+          incoming = mathjs.round(mathjs.chain(incoming).add(account.attributes.incoming).done(), 2)
+          profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(), 2)
+          cost = mathjs.round(mathjs.chain(cost).add(account.attributes.cost).done(), 2)
+          platformProfit = mathjs.round(mathjs.chain(platformProfit).add(account.attributes.platformProfit).done(), 2)
+          partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(account.attributes.partnerProfit).done(), 2)
+          investorProfit = mathjs.round(mathjs.chain(investorProfit).add(account.attributes.investorProfit).done(), 2)
         }
         accountInfo = constructStationAccountnInfo(account, true)
       })
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
     }
-    if(accountInfo&&accountInfo.stationId){
+    if (accountInfo && accountInfo.stationId) {
       accountInfo.incoming = incoming
       accountInfo.profit = profit
       accountInfo.cost = cost
@@ -336,24 +360,125 @@ async function getAccountByStationId(stationId, startDate, endDate) {
       accountInfo.partnerProfit = partnerProfit
       accountInfo.investorProfit = investorProfit
       return accountInfo
-    }else{
+    } else {
       return accountInfo
     }
     // console.log('accountInfo=======>',accountInfo)
-
-
   } catch (error) {
     console.log("getAccounts", error)
     throw error
   }
 }
 
+/**
+ * 获取分成方的结算统计
+ * @param {}
+ */
+async function getPartnerAccounts(request, response) {
+  let stationId = request.params.stationId
+  let userId = request.params.userId
+  let startDate = request.params.startDate
+  let endDate = request.params.endDate
+  let query = new AV.Query('_User')
+  if (userId) {
+    query.equalTo('objectId', userId)
+  }
+  // if(startDate){
+  //   query.greaterThanOrEqualTo('accountDay',new Date(startDate))
+  // }
+  // if(endDate){
+  //   query.lessThanOrEqualTo('accountDay',new Date(endDate))
+  // }
+  // query.include(['station','station.admin'])
+  try {
+    let partners = await query.find()
+    let accountList = []
+    // console.log('station.length====>',stations.length)
+    for (let i = 0; i < partners.length; i++) {
+      let account = await getAccountsByPartnerId(partners[i].id, stationId, startDate, endDate)
+      // console.log('account=========>',account)
+      if (account && account.stationId) {
+        accountList.push(account)
+      }
+    }
+    // stations.forEach((station)=>{
+    // })
+    response.success({accountList: accountList})
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * 获取单个分成方的结算统计
+ * @param {}
+ */
+async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) {
+  let query = new AV.Query('PartnerAccount')
+  let lastCreatedAt = undefined
+  let profit = 0
+
+  if (partnerId) {
+    let partner = AV.Object.createWithoutData('_User', partnerId)
+    query.equalTo('user', partner)
+  }
+  if (stationId) {
+    let station = AV.Object.createWithoutData('Station', stationId)
+    query.equalTo('station', station)
+  }
+  if (startDate) {
+    // console.log('startDate+=======>',new Date(new Date(startDate)-1000))
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
+  }
+  if (endDate) {
+    // console.log('startDate+=======>',new Date(endDate))
+
+    query.lessThan('accountDay', new Date(endDate))
+  }
+  query.include(['station', 'station.admin', 'user'])
+  query.limit(1000)
+  query.descending('createdAt')
+  let accountInfo = {}
+  try {
+    while (1) {
+      if (lastCreatedAt) {
+        // console.log('lastCreatedAt======>',new Date(lastCreatedAt))
+        query.lessThan('createdAt', new Date(lastCreatedAt))
+      }
+      let accounts = await query.find()
+      if (accounts.length < 1) {
+        break
+      }
+      accounts.forEach((account) => {
+        // console.log('account.attributes.========>', account.attributes)
+        if (account) {
+          profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(), 2)
+          accountInfo = constructSharingAccountnInfo(account, true,true)
+        }
+      })
+      lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
+    }
+    if (accountInfo && accountInfo.stationId) {
+      accountInfo.profit = profit
+      return accountInfo
+    } else {
+      return accountInfo
+    }
+    // console.log('accountInfo=======>',accountInfo)
+  } catch (error) {
+    console.log("getAccounts", error)
+    throw error
+  }
+}
+
+
 var orderFunc = {
   getYesterday: getYesterday,
   // selectDealData: selectDealData,
   createStationDayAccount: createStationDayAccount,
   getLastMonth: getLastMonth,
-  getStationAccounts: getStationAccounts
+  getStationAccounts: getStationAccounts,
+  getPartnerAccounts: getPartnerAccounts
 
 
 }

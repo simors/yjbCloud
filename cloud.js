@@ -77,6 +77,7 @@ AV.Cloud.define('getJsConfig', mpJsSdkFuncs.getJsConfig)
 AV.Cloud.define('createStationDayAccount', accountsFunc.createStationDayAccount)
 // AV.Cloud.define('getLastMonth', accountsFunc.getLastMonth)
 AV.Cloud.define('getStationAccounts', accountsFunc.getStationAccounts)
+AV.Cloud.define('getPartnerAccounts', accountsFunc.getPartnerAccounts)
 
 
 module.exports = AV.Cloud;
