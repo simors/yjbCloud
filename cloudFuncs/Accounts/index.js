@@ -604,6 +604,7 @@ async function getStationAccountsDetail(request, response){
     accounts.forEach((account)=>{
       accountList.push(constructStationAccountnInfo(account,true))
     })
+    console.log('accountList.length======>',accountList.length)
     response.success(accountList)
   }catch(error){
     response.error(error)
