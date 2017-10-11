@@ -25,7 +25,7 @@ function constructStationAccountnInfo(account, includeStation) {
   accountInfo.profit = account.attributes.profit
   accountInfo.cost = account.attributes.cost
   accountInfo.incoming = account.attributes.incoming
-  accountInfo.platfomProfit = account.attributes.platfomProfit
+  accountInfo.platformProfit = account.attributes.platformProfit
   accountInfo.partnerProfit = account.attributes.partnerProfit
   accountInfo.investorProfit = account.attributes.investorProfit
   accountInfo.powerUnitPrice = account.attributes.powerUnitPrice
@@ -37,48 +37,48 @@ function constructStationAccountnInfo(account, includeStation) {
 
   return accountInfo
 }
-
-function selectDealData(request, response) {
-  var sql = ""
-  var mysqlConn = undefined
-  var records = []
-  var startDate = '2017-09-05 00:00:00'
-  var endDate = dateFormat('2017-09-09 00:00:00')
-  console.log('startDate====>', startDate)
-  mysqlUtil.getConnection().then((conn) => {
-    mysqlConn = conn
-    sql = "SELECT sum(cost) as costSum FROM `DealRecords` WHERE `deal_time`<? AND `deal_type`=1 ORDER BY `deal_time` "
-    mysqlUtil.query(conn, sql, [startDate]).then((queryRes) => {
-      // console.log('queryRes',queryRes)
-      if (queryRes.results.length > 0) {
-        queryRes.results.forEach((deal) => {
-          var record = {
-            // order_no: deal.order_no,
-            // from: deal.from,
-            // to: deal.to,
-            // cost: deal.cost,
-            // dealTime: deal.deal_time,
-            // dealType: deal.deal_type,
-            costSum: deal.costSum
-          }
-          records.push(record)
-        })
-      }
-      console.log('records====>', records)
-      response.success(records)
-    }).catch((error) => {
-      console.log('getUserDealRecords', error)
-      throw error
-    }).finally(() => {
-      if (mysqlConn) {
-        mysqlUtil.release(mysqlConn)
-      }
-    })
-  })
-}
+//
+// function selectDealData(request, response) {
+//   var sql = ""
+//   var mysqlConn = undefined
+//   var records = []
+//   var startDate = '2017-09-05 00:00:00'
+//   var endDate = dateFormat('2017-09-09 00:00:00')
+//   console.log('startDate====>', startDate)
+//   mysqlUtil.getConnection().then((conn) => {
+//     mysqlConn = conn
+//     sql = "SELECT sum(cost) as costSum FROM `DealRecords` WHERE `deal_time`<? AND `deal_type`=1 ORDER BY `deal_time` "
+//     mysqlUtil.query(conn, sql, [startDate]).then((queryRes) => {
+//       // console.log('queryRes',queryRes)
+//       if (queryRes.results.length > 0) {
+//         queryRes.results.forEach((deal) => {
+//           var record = {
+//             // order_no: deal.order_no,
+//             // from: deal.from,
+//             // to: deal.to,
+//             // cost: deal.cost,
+//             // dealTime: deal.deal_time,
+//             // dealType: deal.deal_type,
+//             costSum: deal.costSum
+//           }
+//           records.push(record)
+//         })
+//       }
+//       console.log('records====>', records)
+//       response.success(records)
+//     }).catch((error) => {
+//       console.log('getUserDealRecords', error)
+//       throw error
+//     }).finally(() => {
+//       if (mysqlConn) {
+//         mysqlUtil.release(mysqlConn)
+//       }
+//     })
+//   })
+// }
 
 //查询昨天日期
-function getYesterday(request, response) {
+function getYesterday() {
   var today = new Date().toLocaleDateString();
   today = new Date(today)
   var oneday = 1000 * 60 * 60 * 24;
@@ -177,7 +177,6 @@ async function createPartnerAccount(accountId, dayInfo) {
     investorProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).subtract(platfomProfit).subtract(partnerProfit).done(), 2)
     if (investorList && investorList.length > 0) {
       // console.log('investorList====>',investorList)
-
       for (let i = 0; i < investorList.length; i++) {
         let investor = investorList[i]
         let user = AV.Object.createWithoutData('_User', investor.shareholderId)
@@ -199,7 +198,7 @@ async function createPartnerAccount(accountId, dayInfo) {
     }
     stationAccountObject.set('investorProfit', investorProfit)
     stationAccountObject.set('partnerProfit', partnerProfit)
-    stationAccountObject.set('platfomProfit', platfomProfit)
+    stationAccountObject.set('platformProfit', platfomProfit)
     await stationAccountObject.save()
     return {success: true}
   } catch (err) {
@@ -245,38 +244,116 @@ async function getStationAccounts(request, response) {
   let stationId = request.params.stationId
   let startDate = request.params.startDate
   let endDate = request.params.endDate
-  let query = new AV.Query('StationAccount')
-  if(stationId){
-    let station = AV.Object.createWithoutData('Station',stationId)
+  let query = new AV.Query('Station')
+  if (stationId) {
+    let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
   }
-  if(startDate){
-    query.greaterThanOrEqualTo('accountDay',new Date(startDate))
-  }
-  if(endDate){
-    query.lessThanOrEqualTo('accountDay',new Date(endDate))
-  }
-  query.include(['station','station.admin'])
-  try{
-    let accounts = await query.find()
+  // if(startDate){
+  //   query.greaterThanOrEqualTo('accountDay',new Date(startDate))
+  // }
+  // if(endDate){
+  //   query.lessThanOrEqualTo('accountDay',new Date(endDate))
+  // }
+  // query.include(['station','station.admin'])
+  try {
+    let stations = await query.find()
     let accountList = []
-    accounts.forEach((account)=>{
-      accountList.push(constructStationAccountnInfo(account,true))
-    })
+    // console.log('station.length====>',stations.length)
+    for (let i = 0; i < stations.length; i++) {
+      let account = await getAccountByStationId(stations[i].id, startDate, endDate)
+      // console.log('account=========>',account)
+      if(account&&account.stationId){
+        accountList.push(account)
+      }
+    }
+    // stations.forEach((station)=>{
+    // })
     response.success({accountList: accountList})
-  }catch(error){
+  } catch (error) {
     throw error
   }
+}
 
+//查询每个服务点的收益结算
+async function getAccountByStationId(stationId, startDate, endDate) {
+  let query = new AV.Query('StationAccount')
+  let lastCreatedAt = undefined
+  let incoming = 0
+  let profit = 0
+  let cost = 0
+  let platformProfit = 0
+  let partnerProfit = 0
+  let investorProfit = 0
+
+  if (stationId) {
+    let station = AV.Object.createWithoutData('Station', stationId)
+    query.equalTo('station', station)
+  }
+  if (startDate) {
+    console.log('startDate+=======>',new Date(new Date(startDate)-1000))
+    query.greaterThanOrEqualTo('accountDay', new Date(new Date(startDate)-1000))
+  }
+  if (endDate) {
+    console.log('startDate+=======>',new Date(endDate))
+
+    query.lessThan('accountDay', new Date(endDate))
+  }
+  query.include(['station', 'station.admin'])
+  query.limit(1000)
+  query.descending('createdAt')
+  let accountInfo = {}
+  try {
+    while (1) {
+      if (lastCreatedAt) {
+        // console.log('lastCreatedAt======>',new Date(lastCreatedAt))
+        query.lessThan('createdAt', new Date(lastCreatedAt))
+      }
+      let accounts = await query.find()
+      console.log('accounts.length=====>',accounts.length,stationId)
+      if (accounts.length < 1) {
+        break
+      }
+      accounts.forEach((account) => {
+        // console.log('account.attributes.========>', account.attributes)
+        if(account){
+          incoming = mathjs.round(mathjs.chain(incoming).add(account.attributes.incoming).done(),2)
+          profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(),2)
+          cost = mathjs.round(mathjs.chain(cost).add(account.attributes.cost).done(),2)
+          platformProfit = mathjs.round(mathjs.chain(platformProfit).add(account.attributes.platformProfit).done(),2)
+          partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(account.attributes.partnerProfit).done(),2)
+          investorProfit = mathjs.round(mathjs.chain(investorProfit).add(account.attributes.investorProfit).done(),2)
+        }
+        accountInfo = constructStationAccountnInfo(account, true)
+      })
+      lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
+    }
+    if(accountInfo&&accountInfo.stationId){
+      accountInfo.incoming = incoming
+      accountInfo.profit = profit
+      accountInfo.cost = cost
+      accountInfo.platformProfit = platformProfit
+      accountInfo.partnerProfit = partnerProfit
+      accountInfo.investorProfit = investorProfit
+      return accountInfo
+    }else{
+      return accountInfo
+    }
+    // console.log('accountInfo=======>',accountInfo)
+
+
+  } catch (error) {
+    console.log("getAccounts", error)
+    throw error
+  }
 }
 
 var orderFunc = {
   getYesterday: getYesterday,
-  selectDealData: selectDealData,
+  // selectDealData: selectDealData,
   createStationDayAccount: createStationDayAccount,
   getLastMonth: getLastMonth,
   getStationAccounts: getStationAccounts
-
 
 
 }
