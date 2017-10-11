@@ -291,11 +291,11 @@ async function getAccountByStationId(stationId, startDate, endDate) {
     query.equalTo('station', station)
   }
   if (startDate) {
-    console.log('startDate+=======>',new Date(new Date(startDate)-1000))
-    query.greaterThanOrEqualTo('accountDay', new Date(new Date(startDate)-1000))
+    // console.log('startDate+=======>',new Date(new Date(startDate)-1000))
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
   }
   if (endDate) {
-    console.log('startDate+=======>',new Date(endDate))
+    // console.log('startDate+=======>',new Date(endDate))
 
     query.lessThan('accountDay', new Date(endDate))
   }
