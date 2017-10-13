@@ -115,37 +115,36 @@ function getYesterday() {
 async function selectAmountSumBydeviceId(device, dayInfo) {
   let usePowerSum = 0
   let powerSum = 0
+  let amountSum = 0
   try {
-    let amountSum = 0
-    console.log('device=====>',device)
+    // console.log('device=====>',device)
     let standbyPowerSum = mathjs.round(mathjs.chain(device.standbyPower).multiply(24).done(), 2)
-    console.log('standbyPowerSum=====>',standbyPowerSum)
+    // console.log('standbyPowerSum=====>',standbyPowerSum)
     let useTime = 0
-
-    let orderList = await OrderFunc.getOrders(device.id)
+    let orderList = await OrderFunc.getOrders(device.id,dayInfo.yesterday,dayInfo.today)
     // let dayInfo = getYesterday()
-    orderList.forEach((order)=> {
-      // console.log('order.payTime====>',order.payTime,dayInfo)
+    if(orderList&&orderList.length>0){
+      orderList.forEach((order)=> {
+        // console.log('order.payTime====>',order.payTime,dayInfo)
+         // console.log('order.amount====>',order.amount)
+          if (order.amount) {
+            let endTime = new Date(order.endTime)
+            // console.log('endTime======>',endTime)
+            //
+            let startTime = new Date(order.createTime)
+            // console.log('startTime======>',startTime)
+            // let lastTimeD = endTime - startTime
 
-      if (order.payTime && (new Date(order.payTime) < new Date(dayInfo.today)) && (new Date(order.payTime) >= new Date(dayInfo.yesterday)) && order.status == 2) {
-        // console.log('order.amount====>',order.amount)
-        if (order.amount) {
-          let endTime = new Date(order.endTime)
-          // console.log('endTime======>',endTime)
-          //
-          let startTime = new Date(order.createTime)
-          // console.log('startTime======>',startTime)
-          // let lastTimeD = endTime - startTime
+            let lastTime = mathjs.round(mathjs.chain(endTime - startTime).multiply(1/3600000).done(), 3)
+            // console.log('lastTime======>',lastTime)
+            useTime = mathjs.chain(useTime).add(lastTime).done()
+            // console.log('useTime======>',useTime)
+            amountSum = mathjs.chain(amountSum).add(order.amount).done()
+            console.log('amountSum======>',amountSum)
+          }
 
-          let lastTime = mathjs.round(mathjs.chain(endTime - startTime).multiply(1/3600000).done(), 3)
-          // console.log('lastTime======>',lastTime)
-          useTime = mathjs.chain(useTime).add(lastTime).done()
-          // console.log('useTime======>',useTime)
-          amountSum = mathjs.chain(amountSum).add(order.amount).done()
-          console.log('amountSum======>',amountSum)
-        }
-      }
-    })
+      })
+    }
     usePowerSum = mathjs.chain(useTime).multiply(device.usePower).done()
     powerSum = mathjs.chain(usePowerSum).add(standbyPowerSum).done()
     return {amountSum: amountSum, powerSum: powerSum}
