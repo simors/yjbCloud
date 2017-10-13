@@ -1,5 +1,6 @@
 var AV = require('leanengine')
 var authFunc = require('./cloudFuncs/Auth')
+var userFunc = require('./cloudFuncs/Auth/User')  // TODO: merge into auth
 var activityFunc = require('./cloudFuncs/Activity')
 var deviceFunc = require('./cloudFuncs/Device')
 var PingppFunc = require('./cloudFuncs/Pingpp')
@@ -8,17 +9,23 @@ var mpJsSdkFuncs = require('./mpFuncs/JSSDK')
 var stationFunc = require('./cloudFuncs/Station')
 var accountsFunc= require('./cloudFuncs/Accounts')
 var mpUserFuncs = require('./mpFuncs/User')
+var promotionFunc = require('./cloudFuncs/Promotion')
 
 /**
  * 云函数
  */
 //用户
 AV.Cloud.define('authFuncTest', authFunc.authFuncTest)
-AV.Cloud.define('authFetchUserInfo', authFunc.fetchUserInfo)
 AV.Cloud.define('authFetchWalletInfo', authFunc.fetchWalletInfo)
 AV.Cloud.define('authFetchDealRecords', authFunc.fetchDealRecords)
 AV.Cloud.define('authVerifyIdName', authFunc.verifyIdName)
 AV.Cloud.define('wechatIsSubscribe', mpUserFuncs.isSubscribe)
+
+AV.Cloud.define('authFetchRolesAndPermissions', userFunc.authFetchRolesAndPermissions);
+AV.Cloud.define('userListFetch', userFunc.userListFetch);
+AV.Cloud.define('userCreate', userFunc.createUser);
+AV.Cloud.define('userDelete', userFunc.deleteUser);
+AV.Cloud.define('userUpdate', userFunc.updateUser);
 
 //设备
 AV.Cloud.define('deviceFetchDeviceInfo', deviceFunc.fetchDeviceInfo)
@@ -54,6 +61,9 @@ AV.Cloud.define('activityIncrActivityPageView', activityFunc.incrActivityPageVie
 AV.Cloud.define('activityCreateActivity', activityFunc.createActivity)
 AV.Cloud.define('activityDeleteActivity', activityFunc.deleteActivity)
 AV.Cloud.define('activityGetActivitiesList', activityFunc.getActivitiesList)
+
+AV.Cloud.define('promotionCreatePromotion', promotionFunc.createPromotion)
+AV.Cloud.define('promotionFetchPromotions', promotionFunc.fetchPromotions)
 
 //支付
 AV.Cloud.define('pingppCreatePayment', PingppFunc.createPayment)
