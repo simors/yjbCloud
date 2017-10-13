@@ -36,6 +36,7 @@ function constructStationInfo(station, includeAdmin) {
 }
 
 function constructProfitSharing(profitSharing) {
+  let constructUserInfo = require('../Auth').constructUserInfo
   var profitSharingInfo = {}
   var shareholder = profitSharing.attributes.shareholder
   var station = profitSharing.attributes.station

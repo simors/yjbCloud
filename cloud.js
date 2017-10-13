@@ -75,9 +75,14 @@ AV.Cloud.define('orderFetchOrders', orderFunc.fetchOrders)
 AV.Cloud.define('getJsConfig', mpJsSdkFuncs.getJsConfig)
 
 //结算
-AV.Cloud.define('selectDealData', accountsFunc.selectDealData)
-AV.Cloud.define('getYesterday', accountsFunc.getYesterday)
+// AV.Cloud.define('selectDealData', accountsFunc.selectDealData)
+// AV.Cloud.define('getYesterday', accountsFunc.getYesterday)
 AV.Cloud.define('createStationDayAccount', accountsFunc.createStationDayAccount)
+// AV.Cloud.define('getLastMonth', accountsFunc.getLastMonth)
+AV.Cloud.define('getStationAccounts', accountsFunc.getStationAccounts)
+AV.Cloud.define('getPartnerAccounts', accountsFunc.getPartnerAccounts)
+AV.Cloud.define('getInvestorAccounts', accountsFunc.getInvestorAccounts)
+AV.Cloud.define('getStationAccountsDetail', accountsFunc.getStationAccountsDetail)
 
 
 module.exports = AV.Cloud;
