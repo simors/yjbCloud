@@ -80,6 +80,9 @@ AV.Cloud.define('getStationAccounts', accountsFunc.getStationAccounts)
 AV.Cloud.define('getPartnerAccounts', accountsFunc.getPartnerAccounts)
 AV.Cloud.define('getInvestorAccounts', accountsFunc.getInvestorAccounts)
 AV.Cloud.define('getStationAccountsDetail', accountsFunc.getStationAccountsDetail)
+AV.Cloud.define('getPartnerAccountsDetail', accountsFunc.getPartnerAccountsDetail)
+AV.Cloud.define('getInvestorAccountsDetail', accountsFunc.getInvestorAccountsDetail)
+AV.Cloud.define('testMathjs', accountsFunc.testMathjs)
 
 
 module.exports = AV.Cloud;

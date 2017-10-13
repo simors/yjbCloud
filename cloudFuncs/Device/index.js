@@ -22,6 +22,9 @@ function constructDeviceInfo(device, includeStation) {
   deviceInfo.deviceAddr = device.attributes.deviceAddr
   deviceInfo.onlineTime = device.attributes.onlineTime
   deviceInfo.updateTime = device.attributes.updateTime
+  deviceInfo.standbyPower = device.attributes.standbyPower
+  deviceInfo.usePower = device.attributes.usePower
+
   let station = device.attributes.station
   deviceInfo.stationId = station? station.id : undefined
   if(includeStation && station) {
