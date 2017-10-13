@@ -717,14 +717,15 @@ async function getInvestorAccountsDetail(request, response) {
 }
 
 //测试mathjs（
-function testMathjs(request, response) {
-  let high = new Date('2017/05/01 00:00:00')
-  // console.log('high====>',high)
-  let low = new Date()
-  let sum = mathjs.chain(low - high).add(123123123).done()
-  let lll = mathjs.chain(1000).multiply(1 / 60).done()
-  response.success({high: high, low: low, sum: sum, lll: lll})
-}
+// function testMathjs(request, response) {
+//   let high = new Date('2017/05/01 00:00:00')
+//   // console.log('high====>',high)
+//   let low = new Date()
+//   let sum = mathjs.chain(low - high).add(123123123).done()
+//   let lll = mathjs.chain(1000).multiply(1 / 60).done()
+//   response.success({high: high, low: low, sum: sum, lll: lll})
+// }
+
 var accountFunc = {
   getYesterday: getYesterday,
   // selectDealData: selectDealData,
@@ -736,7 +737,7 @@ var accountFunc = {
   getStationAccountsDetail: getStationAccountsDetail,
   getPartnerAccountsDetail: getPartnerAccountsDetail,
   getInvestorAccountsDetail: getInvestorAccountsDetail,
-  testMathjs: testMathjs
+  // testMathjs: testMathjs
 
 
 }
