@@ -335,9 +335,11 @@ async function fetchOrderInfo(orderId) {
 
 /**
  * 查询订单列表
- * @param {String}  deviceId
+ * @param {String}  deviceId    //设备id
+ * @param {Date}    start       //查询起始时间
+ * @param {Date}    end         //查询结束时间
  */
-async function getOrders(deviceId) {
+async function getOrders(deviceId, start, end) {
   if(!deviceId) {
     return undefined
   }
@@ -345,6 +347,8 @@ async function getOrders(deviceId) {
   let query = new AV.Query('Order')
   let device = AV.Object.createWithoutData('Device', deviceId)
   query.equalTo('device', device)
+  query.lessThan('end', end)
+  query.greaterThanOrEqualTo('end', start)
   query.descending('createdAt')
 
   let lastCreatedAt = undefined
