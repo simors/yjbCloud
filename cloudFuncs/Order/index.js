@@ -343,12 +343,15 @@ async function getOrders(deviceId, start, end) {
   if(!deviceId) {
     return undefined
   }
+  // console.log('deviceId=====>',deviceId)
+  // console.log('start=====>',start)
+  // console.log('end=====>',end)
 
   let query = new AV.Query('Order')
   let device = AV.Object.createWithoutData('Device', deviceId)
   query.equalTo('device', device)
-  query.lessThan('end', end)
-  query.greaterThanOrEqualTo('end', start)
+  query.lessThan('payTime', new Date(end))
+  query.greaterThanOrEqualTo('payTime', new Date(start))
   query.descending('createdAt')
 
   let lastCreatedAt = undefined
@@ -360,6 +363,7 @@ async function getOrders(deviceId, start, end) {
         query.lessThan('createdAt', new Date(lastCreatedAt))
       }
       let orders = await query.find()
+      console.log('order=======>',orders.length)
       if(orders.length < 1) {
         break
       }

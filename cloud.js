@@ -1,5 +1,6 @@
 var AV = require('leanengine')
 var authFunc = require('./cloudFuncs/Auth')
+var userFunc = require('./cloudFuncs/Auth/User')  // TODO: merge into auth
 var activityFunc = require('./cloudFuncs/Activity')
 var deviceFunc = require('./cloudFuncs/Device')
 var PingppFunc = require('./cloudFuncs/Pingpp')
@@ -20,6 +21,12 @@ AV.Cloud.define('authFetchDealRecords', authFunc.fetchDealRecords)
 AV.Cloud.define('authVerifyIdName', authFunc.verifyIdName)
 AV.Cloud.define('wechatIsSubscribe', mpUserFuncs.isSubscribe)
 AV.Cloud.define('authSetUserMobilePhone', authFunc.setUserMobilePhone)
+
+AV.Cloud.define('authFetchRolesAndPermissions', userFunc.authFetchRolesAndPermissions);
+AV.Cloud.define('userListFetch', userFunc.userListFetch);
+AV.Cloud.define('userCreate', userFunc.createUser);
+AV.Cloud.define('userDelete', userFunc.deleteUser);
+AV.Cloud.define('userUpdate', userFunc.updateUser);
 
 //设备
 AV.Cloud.define('deviceFetchDeviceInfo', deviceFunc.fetchDeviceInfo)
@@ -78,12 +85,15 @@ AV.Cloud.define('getJsConfig', mpJsSdkFuncs.getJsConfig)
 //结算
 // AV.Cloud.define('selectDealData', accountsFunc.selectDealData)
 // AV.Cloud.define('getYesterday', accountsFunc.getYesterday)
-AV.Cloud.define('createStationDayAccount', accountsFunc.createStationDayAccount)
+AV.Cloud.define('accountCreateStationDayAccount', accountsFunc.createStationDayAccount)
 // AV.Cloud.define('getLastMonth', accountsFunc.getLastMonth)
-AV.Cloud.define('getStationAccounts', accountsFunc.getStationAccounts)
-AV.Cloud.define('getPartnerAccounts', accountsFunc.getPartnerAccounts)
-AV.Cloud.define('getInvestorAccounts', accountsFunc.getInvestorAccounts)
-AV.Cloud.define('getStationAccountsDetail', accountsFunc.getStationAccountsDetail)
+AV.Cloud.define('accountGetStationAccounts', accountsFunc.getStationAccounts)
+AV.Cloud.define('accountGetPartnerAccounts', accountsFunc.getPartnerAccounts)
+AV.Cloud.define('accountGetInvestorAccounts', accountsFunc.getInvestorAccounts)
+AV.Cloud.define('accountGetStationAccountsDetail', accountsFunc.getStationAccountsDetail)
+AV.Cloud.define('accountGetPartnerAccountsDetail', accountsFunc.getPartnerAccountsDetail)
+AV.Cloud.define('accountGetInvestorAccountsDetail', accountsFunc.getInvestorAccountsDetail)
+// AV.Cloud.define('testMathjs', accountsFunc.testMathjs)
 
 
 module.exports = AV.Cloud;

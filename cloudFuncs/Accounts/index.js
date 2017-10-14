@@ -112,44 +112,70 @@ function getYesterday() {
 }
 
 //查询该设备下的1000个订单收益的和
-async function selectAmountSumBydeviceId(deviceId, dayInfo) {
+async function selectAmountSumBydeviceId(device, dayInfo) {
+  let usePowerSum = 0
+  let powerSum = 0
+  let amountSum = 0
   try {
-    let amountSum = 0
-    let orderList = await OrderFunc.getOrders(deviceId)
+    // console.log('device=====>',device)
+    let standbyPowerSum = mathjs.round(mathjs.chain(device.standbyPower).multiply(24).done(), 2)
+    // console.log('standbyPowerSum=====>',standbyPowerSum)
+    let useTime = 0
+    let orderList = await OrderFunc.getOrders(device.id,dayInfo.yesterday,dayInfo.today)
     // let dayInfo = getYesterday()
-    orderList.forEach((order)=> {
-      // console.log('order.payTime====>',order.payTime,dayInfo)
+    if(orderList&&orderList.length>0){
+      orderList.forEach((order)=> {
+        // console.log('order.payTime====>',order.payTime,dayInfo)
+         // console.log('order.amount====>',order.amount)
+          if (order.amount) {
+            let endTime = new Date(order.endTime)
+            // console.log('endTime======>',endTime)
+            //
+            let startTime = new Date(order.createTime)
+            // console.log('startTime======>',startTime)
+            // let lastTimeD = endTime - startTime
 
-      if (order.payTime && (new Date(order.payTime) < new Date(dayInfo.today)) && (new Date(order.payTime) >= new Date(dayInfo.yesterday)) && order.status == 2) {
-        // console.log('order.amount====>',order.amount)
-        if (order.amount) {
-          amountSum = mathjs.chain(amountSum).add(order.amount).done()
-        }
-      }
-    })
-    return amountSum
+            let lastTime = mathjs.round(mathjs.chain(endTime - startTime).multiply(1/3600000).done(), 3)
+            // console.log('lastTime======>',lastTime)
+            useTime = mathjs.chain(useTime).add(lastTime).done()
+            // console.log('useTime======>',useTime)
+            amountSum = mathjs.chain(amountSum).add(order.amount).done()
+            console.log('amountSum======>',amountSum)
+          }
+
+      })
+    }
+    usePowerSum = mathjs.chain(useTime).multiply(device.usePower).done()
+    powerSum = mathjs.chain(usePowerSum).add(standbyPowerSum).done()
+    return {amountSum: amountSum, powerSum: powerSum}
   } catch (error) {
     throw error
   }
 }
 
 //查询单个服务点当天收益并生成日结数据插入Account表中
-async function createStationAccount(stationId, dayInfo) {
+async function createStationAccount(station, dayInfo) {
+  // console.log('station======>', station)
+  let amountSum = 0
+  let cost = 0
+  let powerSum = 0
+  let profit = 0
+  // let station = station
   try {
-    let amountSum = 0
-    let cost = 0
-    let deviceList = await DeviceFuncs.getDevices(stationId)
+    let deviceList = await DeviceFuncs.getDevices(station.id)
     for (let i = 0; i < deviceList.length; i++) {
-      let result = await selectAmountSumBydeviceId(deviceList[i].id, dayInfo)
-      amountSum = mathjs.round(mathjs.chain(amountSum).add(result).done(), 2)
+      let result = await selectAmountSumBydeviceId(deviceList[i], dayInfo)
+      amountSum = mathjs.round(mathjs.chain(amountSum).add(result.amountSum).done(), 2)
+      powerSum = mathjs.round(mathjs.chain(powerSum).add(result.powerSum).done(), 2)
     }
     // console.log('amountSum===>', amountSum)
-    let station = AV.Object.createWithoutData('Station', stationId)
+    let stationInfo = AV.Object.createWithoutData('Station', station.id)
     let Account = AV.Object.extend('StationAccount')
     let account = new Account()
-    let profit = mathjs.round(mathjs.chain(amountSum).subtract(cost).done(), 2)
+    cost = mathjs.round(mathjs.chain(station.powerUnitPrice).multiply(powerSum).done(), 2)
+    profit = mathjs.round(mathjs.chain(amountSum).subtract(cost).done(), 2)
     account.set('incoming', amountSum)
-    account.set('station', station)
+    account.set('station', stationInfo)
     account.set('accountDay', dayInfo.yesterday)
     account.set('cost', cost)
     account.set('profit', profit)
@@ -237,9 +263,9 @@ async function createStationDayAccount() {
   try {
     let stationList = await StationFuncs.getStations()
     let dayInfo = getYesterday()
-    stationList.forEach((station)=> {
-      createStationAccount(station.id, dayInfo)
-    })
+    for (let i = 0; i < stationList.length; i++) {
+      await createStationAccount(stationList[i], dayInfo)
+    }
   } catch (error) {
     throw error
   }
@@ -453,7 +479,7 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
         // console.log('account.attributes.========>', account.attributes)
         if (account) {
           profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(), 2)
-          accountInfo = constructSharingAccountnInfo(account, true,true)
+          accountInfo = constructSharingAccountnInfo(account, true, true)
         }
       })
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
@@ -555,7 +581,7 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
         // console.log('account.attributes.========>', account.attributes)
         if (account) {
           profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(), 2)
-          accountInfo = constructSharingAccountnInfo(account, true,true)
+          accountInfo = constructSharingAccountnInfo(account, true, true)
         }
       })
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
@@ -577,13 +603,13 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
  * 获取服务点日结信息
  * @ params {}
  */
-async function getStationAccountsDetail(request, response){
+async function getStationAccountsDetail(request, response) {
   let stationId = request.params.stationId
   let startDate = request.params.startDate
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
   let query = new AV.Query('StationAccount')
-  if(stationId){
+  if (stationId) {
     let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
   }
@@ -593,26 +619,113 @@ async function getStationAccountsDetail(request, response){
   if (endDate) {
     query.lessThan('accountDay', new Date(endDate))
   }
-  if(lastCreatedAt){
+  if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
   query.descending('createdAt')
   query.include(['station,station.admin'])
-  try{
+  try {
     let accounts = await query.find()
     let accountList = []
-    accounts.forEach((account)=>{
-      accountList.push(constructStationAccountnInfo(account,true))
+    accounts.forEach((account)=> {
+      accountList.push(constructStationAccountnInfo(account, true))
     })
-    console.log('accountList.length======>',accountList.length)
+    console.log('accountList.length======>', accountList.length)
     response.success(accountList)
-  }catch(error){
+  } catch (error) {
     response.error(error)
   }
-
 }
 
-var orderFunc = {
+
+/*
+ * 获取分成平台日结信息
+ * @ params {}
+ */
+async function getPartnerAccountsDetail(request, response) {
+  let stationId = request.params.stationId
+  let startDate = request.params.startDate
+  let endDate = request.params.endDate
+  let lastCreatedAt = request.params.lastCreatedAt
+  let query = new AV.Query('PartnerAccount')
+  if (stationId) {
+    let station = AV.Object.createWithoutData('Station', stationId)
+    query.equalTo('station', station)
+  }
+  if (startDate) {
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
+  }
+  if (endDate) {
+    query.lessThan('accountDay', new Date(endDate))
+  }
+  if (lastCreatedAt) {
+    query.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+  query.descending('createdAt')
+  query.include(['station', 'user'])
+  try {
+    let accounts = await query.find()
+    let accountList = []
+    accounts.forEach((account)=> {
+      accountList.push(constructSharingAccountnInfo(account, true, true))
+    })
+    console.log('accountList.length======>', accountList.length)
+    response.success(accountList)
+  } catch (error) {
+    response.error(error)
+  }
+}
+
+
+/*
+ * 获取投资人日结信息
+ * @ params {}
+ */
+async function getInvestorAccountsDetail(request, response) {
+  let stationId = request.params.stationId
+  let startDate = request.params.startDate
+  let endDate = request.params.endDate
+  let lastCreatedAt = request.params.lastCreatedAt
+  let query = new AV.Query('InvestorAccount')
+  if (stationId) {
+    let station = AV.Object.createWithoutData('Station', stationId)
+    query.equalTo('station', station)
+  }
+  if (startDate) {
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
+  }
+  if (endDate) {
+    query.lessThan('accountDay', new Date(endDate))
+  }
+  if (lastCreatedAt) {
+    query.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+  query.descending('createdAt')
+  query.include(['station', 'user'])
+  try {
+    let accounts = await query.find()
+    let accountList = []
+    accounts.forEach((account)=> {
+      accountList.push(constructSharingAccountnInfo(account, true, true))
+    })
+    console.log('accountList.length======>', accountList.length)
+    response.success(accountList)
+  } catch (error) {
+    response.error(error)
+  }
+}
+
+//测试mathjs（
+// function testMathjs(request, response) {
+//   let high = new Date('2017/05/01 00:00:00')
+//   // console.log('high====>',high)
+//   let low = new Date()
+//   let sum = mathjs.chain(low - high).add(123123123).done()
+//   let lll = mathjs.chain(1000).multiply(1 / 60).done()
+//   response.success({high: high, low: low, sum: sum, lll: lll})
+// }
+
+var accountFunc = {
   getYesterday: getYesterday,
   // selectDealData: selectDealData,
   createStationDayAccount: createStationDayAccount,
@@ -620,9 +733,12 @@ var orderFunc = {
   getStationAccounts: getStationAccounts,
   getPartnerAccounts: getPartnerAccounts,
   getInvestorAccounts: getInvestorAccounts,
-  getStationAccountsDetail: getStationAccountsDetail
+  getStationAccountsDetail: getStationAccountsDetail,
+  getPartnerAccountsDetail: getPartnerAccountsDetail,
+  getInvestorAccountsDetail: getInvestorAccountsDetail,
+  // testMathjs: testMathjs
 
 
 }
 
-module.exports = orderFunc
+module.exports = accountFunc
