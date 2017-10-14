@@ -22,10 +22,15 @@ function constructUserInfo(user) {
   userInfo.city = userAttr.city
   userInfo.idNumber = userAttr.idNumber
   userInfo.idName = userAttr.idName
+  userInfo.idNameVerified = userAttr.idNameVerified
   userInfo.mobilePhoneNumber = userAttr.mobilePhoneNumber
   userInfo.mobilePhoneVerified = userAttr.mobilePhoneVerified
   userInfo.language = userAttr.language
   userInfo.avatar = userAttr.avatar
+  userInfo.authData = userAttr.authData
+  userInfo.subscribe = userAttr.subscribe
+  userInfo.createdAt = user.createdAt
+  userInfo.updatedAt = user.updatedAt
 
   return userInfo
 }
