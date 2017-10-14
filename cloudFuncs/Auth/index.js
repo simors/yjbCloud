@@ -2,7 +2,6 @@
  * Created by wanpeng on 2017/8/7.
  */
 var AV = require('leanengine');
-var mpAuthFuncs = require('../../mpFuncs/Auth')
 var PingppFunc = require('../Pingpp')
 
 function constructUserInfo(user) {
@@ -24,6 +23,7 @@ function constructUserInfo(user) {
   userInfo.idNumber = userAttr.idNumber
   userInfo.idName = userAttr.idName
   userInfo.mobilePhoneNumber = userAttr.mobilePhoneNumber
+  userInfo.mobilePhoneVerified = userAttr.mobilePhoneVerified
   userInfo.language = userAttr.language
   userInfo.avatar = userAttr.avatar
 
@@ -115,6 +115,28 @@ async function getUserInfoById(userId) {
   return constructUserInfo(userInfo)
 }
 
+async function setUserMobilePhone(request, response) {
+  let currentUser = request.currentUser
+  let phone = request.params.phone
+  let smsCode = request.params.smsCode
+
+  if(!currentUser) {
+    response.error(new Error("用户未登录"))
+    return
+  }
+  let result = await AV.Cloud.verifySmsCode(smsCode, phone)
+  if(!result) {
+    response.error(new Error("无效的短信验证码"))
+    return
+  }
+  currentUser.setMobilePhoneNumber(phone)
+  currentUser.set('mobilePhoneVerified', true)
+
+  let user = await currentUser.save()
+  let userInfo = await user.fetch()
+  response.success(constructUserInfo(userInfo))
+}
+
 async function authFuncTest(request, response) {
   let userId = request.params.userId
   let userInfo = await getUserInfoById(userId)
@@ -130,6 +152,7 @@ var authFunc = {
   verifyIdName: verifyIdName,
   getUserId: getUserId,
   getUserInfoById: getUserInfoById,
+  setUserMobilePhone: setUserMobilePhone,
 }
 
 module.exports = authFunc
