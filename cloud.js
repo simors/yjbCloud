@@ -34,7 +34,6 @@ AV.Cloud.define('deviceGenerateDeviceQrcode', deviceFunc.generateDeviceQrcode)
 AV.Cloud.define('deviceFuncTest', deviceFunc.deviceFuncTest)
 AV.Cloud.define('deviceFetchDevices', deviceFunc.fetchDevices)
 AV.Cloud.define('deviceChangeDeviceStatus', deviceFunc.changeDeviceStatus)
-AV.Cloud.define('deviceRegisterDevice', deviceFunc.registerDevice)
 AV.Cloud.define('deviceAssociateWithStation', deviceFunc.associateWithStation)
 AV.Cloud.define('deviceUpdateDevice', deviceFunc.updateDevice)
 

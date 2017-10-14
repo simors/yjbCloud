@@ -33,31 +33,6 @@ function constructDeviceInfo(device, includeStation) {
   return deviceInfo
 }
 
-function getDeviceInfo(deviceId) {
-  var deviceInfo = {}
-  var query = new AV.Query('Device')
-  query.include('station')
-
-  return query.get(deviceId).then((device) => {
-    deviceInfo.id = device.id
-
-    var station = device.attributes.station
-    if(station) {
-      deviceInfo.stationId = station.id
-    }
-    deviceInfo.deviceNo = device.attributes.deviceNo
-    deviceInfo.status = device.attributes.status
-    deviceInfo.deviceAddr = device.attributes.deviceAddr
-    deviceInfo.onlineTime = device.attributes.onlineTime.valueOf()
-    deviceInfo.updateTime = device.attributes.updateTime.valueOf()
-
-    return deviceInfo
-  }).catch((error) => {
-    console.log("getDeviceInfo", error)
-    throw error
-  })
-}
-
 /**
  * 获取设备信息
  * @param {Object}  request
@@ -171,6 +146,8 @@ function createDevice(deviceNo, onlineTime) {
       device.set('onlineTime', onlineTime)
       device.set('updateTime', onlineTime)
       device.set('deviceAddr', "")
+      device.set('standbyPower', 1)
+      device.set('usePower', 10)
       device.set('status', DEVICE_STATUS_UNREGISTER)
 
       //TODO 通知管理平台新设备上线
@@ -179,36 +156,6 @@ function createDevice(deviceNo, onlineTime) {
   }).catch((error) => {
     console.log("createDevice", error)
     throw error
-  })
-}
-
-/**
- * 设备注册，关联设备和服务点
- * @param {Object}  request
- * @param {Object}  response
- */
-function registerDevice(request, response) {
-  var currentUser = request.currentUser
-  var deviceNo = request.params.deviceNo
-  var deviceAddr = request.params.deviceAddr
-  var stationId = request.params.stationId
-
-  var query = new AV.Query('Device')
-  var station = AV.Object.createWithoutData('Station', stationId)
-  query.equalTo('deviceNo', deviceNo)
-
-  query.first().then((device) => {
-    device.set('status', DEVICE_STATUS_IDLE)
-    device.set('updateTime', new Date())
-    device.set('deviceAddr', deviceAddr)
-    device.set('station', station)
-
-    device.save().then((leanDevice) => {
-      response.success(getDeviceInfo(leanDevice.id))
-    })
-  }).catch((error) => {
-    console.log("registerDevice", error)
-    response.success(error)
   })
 }
 
@@ -433,7 +380,6 @@ var deviceFunc = {
   updateDeviceStatus: updateDeviceStatus,
   changeDeviceStatus: changeDeviceStatus,
   getDeviceNoList: getDeviceNoList,
-  registerDevice: registerDevice,
   associateWithStation: associateWithStation,
   updateDevice: updateDevice,
   getDevices: getDevices,
