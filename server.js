@@ -1,5 +1,6 @@
 'use strict';
-require('babel-core/register')
+require('babel-register')
+require("babel-polyfill")
 var AV = require('leanengine');
 var wechat_api = require('./mpFuncs').wechat_api
 var mpMenuFuncs = require('./mpFuncs/Menu')
