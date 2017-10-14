@@ -83,8 +83,8 @@ async function authFetchUserList(req) {
 
   // TODO: filter params
 
-  const users = [];
-  const userRolePairs = {};
+  const jsonUsers = [];
+  const userIdRoleIdPairs = {};
 
   // TODO: limit
 
@@ -111,19 +111,19 @@ async function authFetchUserList(req) {
         roleIdsPerUser.push(i.get('role').id);
       });
 
-      userRolePairs[leanUser.id] = roleIdsPerUser;
+      userIdRoleIdPairs[leanUser.id] = roleIdsPerUser;
     }
   ));
 
   // put outside to keep data items in order
   leanUsers.forEach((i) => {
-    users.push({
+    jsonUsers.push({
       ...i.toJSON(),
-      roles: userRolePairs[i.id],
+      roles: userIdRoleIdPairs[i.id],
     })
   });
 
-  return users;
+  return jsonUsers;
 }
 
 async function authCreateUser(req) {
@@ -196,22 +196,22 @@ async function authCreateUser(req) {
   const leanUser = await user.save();
 
   // create _User and _Role pointer and insert into User_Role_Map
-  const userRolePairs = [];
+  const leanUserRolePairs = [];
 
   const ptrUser = AV.Object.createWithoutData('_User', leanUser.id);
 
   roles.forEach((i) => {
     const ptrRole = AV.Object.createWithoutData('_Role', i);
 
-    const userRolePair = new UserRoleMap({
+    const leanUserRolePair = new UserRoleMap({
       user: ptrUser,
       role: ptrRole
     });
 
-    userRolePairs.push(userRolePair);
+    leanUserRolePairs.push(leanUserRolePair);
   });
 
-  await AV.Object.saveAll(userRolePairs);
+  await AV.Object.saveAll(leanUserRolePairs);
 }
 
 async function authDeleteUser(req) {
@@ -283,32 +283,43 @@ async function authUpdateUser(req) {
 
   const leanUserRolePairs = await query.find();
 
-  const oldRoles = [];
-
+  const oldRoleIds = new Set();
   leanUserRolePairs.forEach((i) => {
-    oldRoles.push(i.get('role').id);
+    oldRoleIds.add(i.get('role').id);
   });
 
-  const rolesToAdd = [...roles].filter(i => ! new Set(oldRoles).has(i));
-  const rolesToRemove = [...oldRoles].filter(i => ! new Set(roles).has(i));
+  const newRoleIds = new Set(roles);
 
-  const ptrUserRolePairsToAdd = [];
-  const ptrUserRolePairsToRemove = [];
+  const roleIdsToAdd = new Set([...newRoleIds].filter(i => !oldRoleIds.has(i)));
+  const roleIdsToRemove = new Set([...oldRoleIds].filter(i => !newRoleIds.has(i)));
 
-  rolesToAdd.forEach((i) => {
-    const ptrUserRolePair = AV.Object.createWithoutData('User_Role_Map', i);
+  const leanUserRolePairsToAdd = [];
+  const leanUserRolePairsToRemove = [];
 
-    ptrUserRolePairsToAdd.push(ptrUserRolePair);
+  const UserRoleMap = AV.Object.extend('User_Role_Map');
+
+  roleIdsToAdd.forEach((i) => {
+    const ptrRole = AV.Object.createWithoutData('_Role', i);
+
+    const leanUserRolePair = new UserRoleMap({
+      user: ptrUser,
+      role: ptrRole
+    });
+
+    leanUserRolePairsToAdd.push(leanUserRolePair);
   });
 
-  rolesToRemove.forEach((i) => {
-    const ptrUserRolePair = AV.Object.createWithoutData('User_Role_Map', i);
 
-    ptrUserRolePairsToRemove.push(ptrUserRolePair);
-  });
+  if (roleIdsToRemove.size > 0) {
+    leanUserRolePairs.forEach((i) => {
+      if (roleIdsToRemove.has(i.get('role').id)) {
+        leanUserRolePairsToRemove.push(i);
+      }
+    });
+  }
 
-  await AV.Object.saveAll(ptrUserRolePairsToAdd);
-  await AV.Object.destroyAll(ptrUserRolePairsToRemove);
+  await AV.Object.saveAll(leanUserRolePairsToAdd);
+  await AV.Object.destroyAll(leanUserRolePairsToRemove);
 
   // update _User
 
