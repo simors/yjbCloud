@@ -776,7 +776,11 @@ async function getDayAccountsSum(request, response) {
   query.descending('createdAt')
   try {
     let accounts = await query.find()
-    response.success(accounts)
+    let accountList = []
+    accounts.forEach((item)=>[
+      accountList.push(constructStationAccountnInfo(item))
+    ])
+    response.success(accountList)
   } catch (error) {
     response.error(error)
   }
