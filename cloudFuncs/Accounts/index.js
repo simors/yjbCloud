@@ -752,6 +752,35 @@ async function getInvestorAccountsDetail(request, response) {
 //   response.success({high: high, low: low, sum: sum, lll: lll})
 // }
 
+/*
+ * 获取总和日结信息
+ * @ params {}
+ */
+async function getDayAccountsSum(request, response) {
+  let startDate = request.params.startDate
+  let endDate = request.params.endDate
+  let limit = request.params.limit || 30
+  let lastCreatedAt = request.params.lastCreatedAt
+  let query = new AV.Query('DayAccountSum')
+
+  if (startDate) {
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
+  }
+  if (endDate) {
+    query.lessThan('accountDay', new Date(endDate))
+  }
+  if (lastCreatedAt) {
+    query.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+  query.limit(limit)
+  query.descending('createdAt')
+  try {
+    let accounts = await query.find()
+    response.success(accounts)
+  } catch (error) {
+    response.error(error)
+  }
+}
 var accountFunc = {
   getYesterday: getYesterday,
   // selectDealData: selectDealData,
@@ -763,6 +792,8 @@ var accountFunc = {
   getStationAccountsDetail: getStationAccountsDetail,
   getPartnerAccountsDetail: getPartnerAccountsDetail,
   getInvestorAccountsDetail: getInvestorAccountsDetail,
+  getDayAccountsSum: getDayAccountsSum
+
   // testMathjs: testMathjs
 
 
