@@ -10,7 +10,7 @@ var stationFunc = require('./cloudFuncs/Station')
 var accountsFunc= require('./cloudFuncs/Accounts')
 var mpUserFuncs = require('./mpFuncs/User')
 var promotionFunc = require('./cloudFuncs/Promotion')
-
+var excelFunc = require('./cloudFuncs/Util/excel')
 /**
  * 云函数
  */
@@ -94,6 +94,7 @@ AV.Cloud.define('accountGetStationAccountsDetail', accountsFunc.getStationAccoun
 AV.Cloud.define('accountGetPartnerAccountsDetail', accountsFunc.getPartnerAccountsDetail)
 AV.Cloud.define('accountGetInvestorAccountsDetail', accountsFunc.getInvestorAccountsDetail)
 // AV.Cloud.define('testMathjs', accountsFunc.testMathjs)
+AV.Cloud.define('stationAccountToExcel', excelFunc.stationAccountToExcel)
 
 
 module.exports = AV.Cloud;
