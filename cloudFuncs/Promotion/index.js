@@ -5,7 +5,6 @@ import AV from 'leanengine'
 import * as errno from '../errno'
 import amqp from 'amqplib'
 import Promise from 'bluebird'
-import redis from 'redis'
 import GLOBAL_CONFIG from '../../config'
 
 
@@ -14,8 +13,6 @@ const PROMOTION_STATUS_AWAIT = 0           //等待触发
 const PROMOTION_STATUS_UNDERWAY = 1        //进行中
 const PROMOTION_STATUS_INVALID = 2         //无效
 
-//redis
-const PREFIX = 'promotion:'
 var Promotion = AV.Object.extend('Promotion')
 
 function constructCategoryInfo(category) {
@@ -35,7 +32,7 @@ function constructCategoryInfo(category) {
   return categoryInfo
 }
 
-async function constructPromotionInfo(promotion, includeCategory, includeUser) {
+function constructPromotionInfo(promotion, includeCategory, includeUser) {
   let constructUserInfo = require('../Auth').constructUserInfo
 
   if(!promotion) {
@@ -57,7 +54,7 @@ async function constructPromotionInfo(promotion, includeCategory, includeUser) {
   promotionInfo.createdAt = promotion.createdAt
   promotionInfo.awards = promotionAttr.awards
   promotionInfo.userId = promotionAttr.user.id
-  promotionInfo.stat = await getPromotionStatFromRedis(promotion.id)
+  promotionInfo.stat = promotionAttr.stat
   if(includeCategory) {
     promotionInfo.category = constructCategoryInfo(promotionAttr.category)
   }
@@ -80,85 +77,20 @@ async function getCategoryTitle(categoryId) {
 }
 
 /**
- * redis上创建活动统计记录
- * @param {String}  promotionId
- * @param {String}  categoryId
- */
-async function createPromotionStatToRedis(promotionId, categoryId) {
-  let promises = []
-
-  Promise.promisifyAll(redis.RedisClient.prototype)
-  let client = redis.createClient(GLOBAL_CONFIG.REDIS_PORT, GLOBAL_CONFIG.REDIS_URL)
-  client.auth(GLOBAL_CONFIG.REDIS_AUTH)
-  client.select(GLOBAL_CONFIG.REDIS_DB)
-  client.on('error', function (err) {
-    throw err
-  })
-
-  try {
-    let categoryTitle = await getCategoryTitle(categoryId)
-    let categoryPrommise = client.setAsync(PREFIX + promotionId + ':category', categoryTitle)
-    if(categoryTitle == '充值奖励') {
-      let participationPromise = client.setAsync(PREFIX + promotionId + ':participation', 0)
-      let rechargeAmountPromise = client.setAsync(PREFIX + promotionId + ':rechargeAmount', 0)
-      let awardAmountPromise = client.setAsync(PREFIX + promotionId + ':awardAmount', 0)
-      promises.push(categoryPrommise, participationPromise, rechargeAmountPromise, awardAmountPromise)
-    } else if(categoryTitle == '积分活动') {
-
-    }
-
-    let result = await Promise.all(promises)
-    client.quit()
-  } catch (error) {
-    throw error
-  }
-}
-
-/**
- * 获取redis上的活动统计记录
- * @param {String}  promotionId
- */
-async function getPromotionStatFromRedis(promotionId) {
-  let promotionStat = {}
-  Promise.promisifyAll(redis.RedisClient.prototype)
-  let client = redis.createClient(GLOBAL_CONFIG.REDIS_PORT, GLOBAL_CONFIG.REDIS_URL)
-  client.auth(GLOBAL_CONFIG.REDIS_AUTH)
-  client.select(GLOBAL_CONFIG.REDIS_DB)
-  client.on('error', function (err) {
-    throw err
-  })
-
-  try {
-    let categoryTitle = await client.getAsync(PREFIX + promotionId + ':category')
-    if(categoryTitle == '充值奖励') {
-      promotionStat.participation = await client.getAsync(PREFIX + promotionId + ':participation')
-      promotionStat.rechargeAmount = await client.getAsync(PREFIX + promotionId + ':rechargeAmount')
-      promotionStat.awardAmount = await client.getAsync(PREFIX + promotionId + ':awardAmount')
-    } else if(categoryTitle == '积分活动') {
-
-    }
-    client.quit()
-    return promotionStat
-  } catch (error) {
-    throw error
-  }
-}
-
-/**
  * 新增营销活动
  * 详情请见：
  * Examples:
  * @param request
  */
 async function createPromotion(request) {
-  let currentUser = request.currentUser
-  let title = request.params.title
-  let start = request.params.start
-  let end = request.params.end
-  let description = request.params.description
-  let categoryId = request.params.categoryId
-  let region = [].concat(request.params.region)
-  let awards = request.params.awards
+  const {currentUser, params} = request
+  let title = params.title
+  let start = params.start
+  let end = params.end
+  let description = params.description
+  let categoryId = params.categoryId
+  let region = [].concat(params.region)
+  let awards = params.awards
 
   if(!categoryId || !title || !start || !end || !awards ) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
@@ -183,6 +115,36 @@ async function createPromotion(request) {
 }
 
 /**
+ * 获取营销活动类型列表
+ * @param request
+ */
+async function fetchPromotionCategoryList(request) {
+  const {currentUser, params} = request
+
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  let lastCreatedAt = undefined
+  let categoryList = []
+  let query = new AV.Query('PromotionCategory')
+  query.descending('createdAt')
+  while (1) {
+    if(lastCreatedAt) {
+      query.lessThan('createdAt', new Date(lastCreatedAt))
+    }
+    let categories = await query.find()
+    if(categories.length < 1) {
+      break
+    }
+    categories.forEach((category) => {
+      categoryList.push(constructCategoryInfo(category))
+    })
+    lastCreatedAt = categories[categories.length - 1].createdAt.valueOf()
+  }
+  return categoryList
+}
+
+/**
  * 查询营销活动
  * 详情请见：
  * Examples:
@@ -190,15 +152,16 @@ async function createPromotion(request) {
  * @param response
  */
 async function fetchPromotions(request, response) {
-  let currentUser = request.currentUser
-  let status = request.params.status
-  let start = request.params.start
-  let end = request.params.end
-  let limit = request.params.limit || 10
-  let isRefresh = request.params.isRefresh || true
-  let lastcreatedAt = request.params.createdAt
+  const {currentUser, params} = request
 
-  let query = new AV.Query('Order')
+  let status = params.status
+  let start = params.start
+  let end = params.end
+  let limit = params.limit || 10
+  let isRefresh = params.isRefresh || true
+  let lastcreatedAt = params.lastcreatedAt
+
+  let query = new AV.Query('Promotion')
   query.include('category')
   query.include('user')
   query.limit(limit)
@@ -237,6 +200,7 @@ var promotionFunc = {
   constructPromotionInfo: constructPromotionInfo,
   createPromotion: createPromotion,
   fetchPromotions: fetchPromotions,
+  fetchPromotionCategoryList: fetchPromotionCategoryList,
 }
 
 module.exports = promotionFunc
