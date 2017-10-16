@@ -16,22 +16,28 @@ function constructUserInfo(user) {
 
   var userInfo = {}
   userInfo.id = user.id
+  userInfo.email = userAttr.email
+  userInfo.emailVerified = userAttr.emailVerified
+  userInfo.mobilePhoneNumber = userAttr.mobilePhoneNumber
+  userInfo.mobilePhoneVerified = userAttr.mobilePhoneVerified
+  userInfo.authData = userAttr.authData
+  userInfo.username = userAttr.username
   userInfo.nickname = userAttr.nickname
+  userInfo.avatar = userAttr.avatar
   userInfo.sex = userAttr.sex
+  userInfo.language = userAttr.language
   userInfo.country = userAttr.country
   userInfo.province = userAttr.province
   userInfo.city = userAttr.city
   userInfo.idNumber = userAttr.idNumber
   userInfo.idName = userAttr.idName
   userInfo.idNameVerified = userAttr.idNameVerified
-  userInfo.mobilePhoneNumber = userAttr.mobilePhoneNumber
-  userInfo.mobilePhoneVerified = userAttr.mobilePhoneVerified
-  userInfo.language = userAttr.language
-  userInfo.avatar = userAttr.avatar
-  userInfo.authData = userAttr.authData
-  userInfo.subscribe = userAttr.subscribe
   userInfo.createdAt = user.createdAt
   userInfo.updatedAt = user.updatedAt
+  userInfo.type = userAttr.type
+  // userInfo.roles = userAttr.roles  // TODO: N -> M map
+  userInfo.note = userAttr.note
+  userInfo.subscribe = userAttr.subscribe
 
   return userInfo
 }
