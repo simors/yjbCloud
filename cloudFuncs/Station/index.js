@@ -66,7 +66,7 @@ function createStation(request, response) {
   var province = request.params.province              //省份
   var city = request.params.city                      //城市
   var area = request.params.area                      //区
-  var userId = request.params.userId                //网点管理员userId
+  var adminId = request.params.adminId                //网点管理员userId
   var unitPrice = request.params.unitPrice            //设备使用单价，单位：元／分钟
   var deposit = request.params.deposit                //设备使用押金，单位：¥元
   var powerUnitPrice = request.params.powerUnitPrice  //电费单价，单位：元／KWh
@@ -81,7 +81,7 @@ function createStation(request, response) {
       response.error(new Error("服务网点名字重复"))
       return
     }
-    var user = AV.Object.createWithoutData('_User', userId)
+    var admin = AV.Object.createWithoutData('_User', adminId)
     var Station = AV.Object.extend('Station')
     var station = new Station()
     station.set('name', name)
@@ -94,7 +94,7 @@ function createStation(request, response) {
     station.set('powerUnitPrice', powerUnitPrice)
     station.set('platformProp', platformProp)
     station.set('stationProp', stationProp)
-    station.set('admin', user)
+    station.set('admin', admin)
     station.save().then((leanStation) => {
       var query = new AV.Query('Station')
       query.include('admin')
