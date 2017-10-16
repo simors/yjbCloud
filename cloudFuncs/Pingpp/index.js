@@ -242,7 +242,8 @@ function createPayment(request, response) {
     order_no: order_no,// 推荐使用 8-20 位，要求数字或字母，不允许其他字符
     app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
     channel: channel,// 支付使用的第三方支付渠道取值，请参考：https://www.pingxx.com/api#api-c-new
-    amount: amount,//订单总金额, 人民币单位：分（如订单总金额为 1 元，此处请填 100）
+    // amount: amount,//订单总金额, 人民币单位：分（如订单总金额为 1 元，此处请填 100）
+    amount: 0.01, //TODO 提现测试 部署生产环境需修改
     client_ip: "127.0.0.1",// 发起支付请求客户端的 IP 地址，格式为 IPV4，如: 127.0.0.1
     currency: "cny",
     subject: subject,
@@ -383,7 +384,6 @@ function transferEvent(request, response) {
   var transfer = request.params.data.object
   var toUser = transfer.metadata.toUser
   var fromUser = transfer.metadata.fromUser
-  // var amount = (transfer.amount * 0.01).toFixed(2)         //单位为 元
   var amount = mathjs.number(transfer.amount) * 0.01
   var dealType = transfer.metadata.dealType
 
