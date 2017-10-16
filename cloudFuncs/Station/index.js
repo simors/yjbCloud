@@ -35,7 +35,7 @@ function constructStationInfo(station, includeAdmin) {
   return stationInfo
 }
 
-function constructProfitSharing(profitSharing) {
+function constructProfitSharing(profitSharing,includeUser) {
   let constructUserInfo = require('../Auth').constructUserInfo
   var profitSharingInfo = {}
   var shareholder = profitSharing.attributes.shareholder
@@ -44,13 +44,17 @@ function constructProfitSharing(profitSharing) {
   profitSharingInfo.type = profitSharing.attributes.type
   profitSharingInfo.royalty = profitSharing.attributes.royalty
   profitSharingInfo.investment = profitSharing.attributes.investment
+
   profitSharingInfo.shareholderId = shareholder?shareholder.id:undefined
-  profitSharingInfo.shareholderName = shareholder?shareholder.attributes.nickname:undefined
+  profitSharingInfo.shareholderName = shareholder?shareholder.attributes.idName:undefined
   profitSharingInfo.shareholderPhone = shareholder?shareholder.attributes.mobilePhoneNumber:undefined
   profitSharingInfo.stationId = station?station.id:undefined
   profitSharingInfo.stationName =station? station.attributes.name:undefined
   profitSharingInfo.status = profitSharing.attributes.status
   profitSharingInfo.createdAt = profitSharing.createdAt
+  if (includeUser && shareholder) {
+    profitSharingInfo.shareholder = constructUserInfo(shareholder)
+  }
   return profitSharingInfo
 }
 
