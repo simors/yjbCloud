@@ -671,10 +671,15 @@ async function getStationAccountsDetail(request, response) {
  */
 async function getPartnerAccountsDetail(request, response) {
   let stationId = request.params.stationId
+  let userId = request.params.userId
   let startDate = request.params.startDate
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
   let query = new AV.Query('PartnerAccount')
+  if (userId) {
+    let user = AV.Object.createWithoutData('_User', userId)
+    query.equalTo('user', user)
+  }
   if (stationId) {
     let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
@@ -711,9 +716,14 @@ async function getPartnerAccountsDetail(request, response) {
 async function getInvestorAccountsDetail(request, response) {
   let stationId = request.params.stationId
   let startDate = request.params.startDate
+  let userId = request.params.userId
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
   let query = new AV.Query('InvestorAccount')
+  if (userId) {
+    let user = AV.Object.createWithoutData('_User', userId)
+    query.equalTo('user', user)
+  }
   if (stationId) {
     let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
