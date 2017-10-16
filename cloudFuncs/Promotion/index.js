@@ -1,12 +1,13 @@
 /**
  * Created by wanpeng on 2017/10/11.
  */
-var AV = require('leanengine')
-var amqp = require('amqplib')
-var Promise = require('bluebird')
-var redis = require('redis')
-var GLOBAL_CONFIG = require('../../config')
-var utilFunc = require('../Util')
+import AV from 'leanengine'
+import * as errno from '../errno'
+import amqp from 'amqplib'
+import Promise from 'bluebird'
+import redis from 'redis'
+import GLOBAL_CONFIG from '../../config'
+
 
 //营销活动状态
 const PROMOTION_STATUS_AWAIT = 0           //等待触发
@@ -148,9 +149,8 @@ async function getPromotionStatFromRedis(promotionId) {
  * 详情请见：
  * Examples:
  * @param request
- * @param response
  */
-async function createPromotion(request, response) {
+async function createPromotion(request) {
   let currentUser = request.currentUser
   let title = request.params.title
   let start = request.params.start
@@ -161,33 +161,25 @@ async function createPromotion(request, response) {
   let awards = request.params.awards
 
   if(!categoryId || !title || !start || !end || !awards ) {
-    response.error(new Error("参数错误"))
-    return
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
-  try {
-    let promotion = new Promotion()
-    let category = AV.Object.createWithoutData('PromotionCategory', categoryId)
+  let promotion = new Promotion()
+  let category = AV.Object.createWithoutData('PromotionCategory', categoryId)
 
-    promotion.set('title', title)
-    promotion.set('start', new Date(start))
-    promotion.set('end', new Date(end))
-    promotion.set('description', description)
-    promotion.set('category', category)
-    promotion.set('region', region)
-    promotion.set('status', PROMOTION_STATUS_AWAIT)
-    promotion.set('awards', awards)
-    promotion.set('user', currentUser)
+  promotion.set('title', title)
+  promotion.set('start', new Date(start))
+  promotion.set('end', new Date(end))
+  promotion.set('description', description)
+  promotion.set('category', category)
+  promotion.set('region', region)
+  promotion.set('status', PROMOTION_STATUS_AWAIT)
+  promotion.set('awards', awards)
+  promotion.set('user', currentUser)
 
-    let result = await promotion.save()
-    let leanPromotion = await result.fetch()
-    await createPromotionStatToRedis(leanPromotion.id, categoryId)
-    let promotionInfo = await constructPromotionInfo(leanPromotion, false)
-    response.success(promotionInfo)
-  } catch (error) {
-    console.error(error)
-    response.error(error)
-  }
+  let result = await promotion.save()
+  let leanPromotion = await result.fetch()
+  return constructPromotionInfo(leanPromotion, false, true)
 }
 
 /**

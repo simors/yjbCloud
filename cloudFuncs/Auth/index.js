@@ -1,8 +1,9 @@
 /**
  * Created by wanpeng on 2017/8/7.
  */
-var AV = require('leanengine');
-var PingppFunc = require('../Pingpp')
+import AV from 'leanengine'
+import PingppFunc from '../Pingpp'
+import * as errno from '../errno'
 
 function constructUserInfo(user) {
   if(!user) {
@@ -142,6 +143,27 @@ async function setUserMobilePhone(request, response) {
   response.success(constructUserInfo(userInfo))
 }
 
+/**
+ * 更新用户微信公众号关注状态
+ * @param {String}    openid    用户微信openid
+ * @param {Boolean}   subscribe 用户是否关注公众号
+ */
+async function updateUserSubscribe(openid, subscribe) {
+  if(!openid || subscribe == undefined) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  var query = new AV.Query('_User')
+  query.equalTo('authData.weixin.openid', openid)
+
+  let user = await query.first()
+  if(!user) {
+    return undefined
+  }
+  user.set('subscribe', subscribe)
+  let result = await user.save()
+  return result
+}
+
 async function authFuncTest(request, response) {
   let userId = request.params.userId
   let userInfo = await getUserInfoById(userId)
@@ -158,6 +180,7 @@ var authFunc = {
   getUserId: getUserId,
   getUserInfoById: getUserInfoById,
   setUserMobilePhone: setUserMobilePhone,
+  updateUserSubscribe: updateUserSubscribe
 }
 
 module.exports = authFunc
