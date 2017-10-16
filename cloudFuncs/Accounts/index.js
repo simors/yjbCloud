@@ -180,9 +180,12 @@ async function createStationAccount(station, dayInfo) {
     account.set('cost', cost)
     account.set('profit', profit)
     let accountInfo = await account.save()
-    let isSuccess = await createPartnerAccount(accountInfo.id, dayInfo)
+    let query = new AV.Query('StationAccount')
 
-    return accountInfo
+    await createPartnerAccount(accountInfo.id, dayInfo)
+    let newStationAccount = await query.get(accountInfo.id)
+    // console.log('newStation=====>',newStation)
+    return newStationAccount
   } catch (error) {
     throw error
   }
@@ -250,8 +253,8 @@ async function createPartnerAccount(accountId, dayInfo) {
     stationAccountObject.set('investorProfit', investorProfit)
     stationAccountObject.set('partnerProfit', partnerProfit)
     stationAccountObject.set('platformProfit', platfomProfit)
-    await stationAccountObject.save()
-    return {success: true}
+    let stationInfo = await stationAccountObject.save()
+    return stationInfo
   } catch (err) {
     throw err
   }
@@ -260,19 +263,43 @@ async function createPartnerAccount(accountId, dayInfo) {
 
 //生成服务点日结数据
 async function createStationDayAccount() {
+  let cost = 0
+  let profit = 0
+  let incoming = 0
+  let platformProfit = 0
+  let partnerProfit = 0
+  let investorProfit = 0
+
   try {
     let stationList = await StationFuncs.getStations()
     let dayInfo = getYesterday()
     for (let i = 0; i < stationList.length; i++) {
-      await createStationAccount(stationList[i], dayInfo)
+      let stationAccount = await createStationAccount(stationList[i], dayInfo)
+      let attr = stationAccount.attributes
+      cost = mathjs.chain(cost).add(attr.cost).done()
+      profit = mathjs.chain(profit).add(attr.profit).done()
+      incoming = mathjs.chain(incoming).add(attr.incoming).done()
+      platformProfit = mathjs.chain(platformProfit).add(attr.platformProfit).done()
+      partnerProfit = mathjs.chain(partnerProfit).add(attr.partnerProfit).done()
+      investorProfit = mathjs.chain(investorProfit).add(attr.investorProfit).done()
     }
+    let DayAccount = AV.Object.extend('DayAccountSum')
+    let dayAccount = new DayAccount()
+    dayAccount.set('cost', cost)
+    dayAccount.set('profit', profit)
+    dayAccount.set('incoming', incoming)
+    dayAccount.set('platformProfit', platformProfit)
+    dayAccount.set('partnerProfit', partnerProfit)
+    dayAccount.set('investorProfit', investorProfit)
+    dayAccount.set('accountDay', new Date(dayInfo.yesterday))
+    await dayAccount.save()
   } catch (error) {
     throw error
   }
 }
 
 //生成上月时间第一天和最后一天
-function getLastMonth(request, response) {
+function getLastMonth() {
   var nowdays = new Date().toLocaleDateString();
   nowdays = new Date(nowdays)
   var lastDay = new Date().toLocaleDateString()
@@ -725,6 +752,39 @@ async function getInvestorAccountsDetail(request, response) {
 //   response.success({high: high, low: low, sum: sum, lll: lll})
 // }
 
+/*
+ * 获取总和日结信息
+ * @ params {}
+ */
+async function getDayAccountsSum(request, response) {
+  let startDate = request.params.startDate
+  let endDate = request.params.endDate
+  let limit = request.params.limit || 30
+  let lastCreatedAt = request.params.lastCreatedAt
+  let query = new AV.Query('DayAccountSum')
+
+  if (startDate) {
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
+  }
+  if (endDate) {
+    query.lessThan('accountDay', new Date(endDate))
+  }
+  if (lastCreatedAt) {
+    query.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+  query.limit(limit)
+  query.descending('createdAt')
+  try {
+    let accounts = await query.find()
+    let accountList = []
+    accounts.forEach((item)=>[
+      accountList.push(constructStationAccountnInfo(item))
+    ])
+    response.success(accountList)
+  } catch (error) {
+    response.error(error)
+  }
+}
 var accountFunc = {
   getYesterday: getYesterday,
   // selectDealData: selectDealData,
@@ -736,6 +796,8 @@ var accountFunc = {
   getStationAccountsDetail: getStationAccountsDetail,
   getPartnerAccountsDetail: getPartnerAccountsDetail,
   getInvestorAccountsDetail: getInvestorAccountsDetail,
+  getDayAccountsSum: getDayAccountsSum
+
   // testMathjs: testMathjs
 
 
