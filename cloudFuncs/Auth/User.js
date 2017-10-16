@@ -50,10 +50,9 @@ async function authFetchRolesAndPermissions(req) {
         permissionIdsPerRole.push(permissionId);
       });
 
-      const jsonRole = i.toJSON();
       jsonAllRoles.push({
-        ...jsonRole,
-        id: jsonRole.objectId,
+        ...i.toJSON(),
+        id: i.id,
         permissions: permissionIdsPerRole,
       });
     }
@@ -65,10 +64,9 @@ async function authFetchRolesAndPermissions(req) {
   const leanAllPermissions = await query.find();
 
   leanAllPermissions.forEach((i) => {
-    const jsonPermission = i.toJSON();
     jsonAllPermissions.push({
-      ...jsonPermission,
-      id: jsonPermission.objectId,
+      ...i.toJSON(),
+      id: i.id,
     });
   });
 
@@ -123,10 +121,9 @@ async function authFetchUserList(req) {
 
   // put outside to keep data items in order
   leanUsers.forEach((i) => {
-    const jsonUser = i.toJSON();
     jsonUsers.push({
-      ...jsonUser,
-      id: jsonUser.objectId,
+      ...i.toJSON(),
+      id: i.id,
       roles: userIdRoleIdPairs[i.id],
     })
   });
