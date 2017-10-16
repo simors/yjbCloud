@@ -62,8 +62,9 @@ AV.Cloud.define('activityCreateActivity', activityFunc.createActivity)
 AV.Cloud.define('activityDeleteActivity', activityFunc.deleteActivity)
 AV.Cloud.define('activityGetActivitiesList', activityFunc.getActivitiesList)
 
-AV.Cloud.define('promotionCreatePromotion', promotionFunc.createPromotion)
-AV.Cloud.define('promotionFetchPromotions', promotionFunc.fetchPromotions)
+AV.Cloud.define('promCreatePromotion', promotionFunc.createPromotion)
+AV.Cloud.define('promFetchPromotions', promotionFunc.fetchPromotions)
+AV.Cloud.define('promFetchPromotionCategoryList', promotionFunc.fetchPromotionCategoryList)
 
 //支付
 AV.Cloud.define('pingppCreatePayment', PingppFunc.createPayment)
