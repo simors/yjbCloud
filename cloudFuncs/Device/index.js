@@ -135,9 +135,11 @@ function createDevice(deviceNo, onlineTime) {
 
   return query.first().then((device) => {
     if(device) {
-      device.set('status', DEVICE_STATUS_IDLE)
+      let currentStatus = device.attributes.status
+      if(currentStatus != DEVICE_STATUS_UNREGISTER) {
+        device.set('status', DEVICE_STATUS_IDLE)
+      }
       device.set('updateTime', onlineTime)
-
       return device.save()
     } else {
       var Device = AV.Object.extend('Device')
