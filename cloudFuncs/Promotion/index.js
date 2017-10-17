@@ -118,6 +118,65 @@ async function createPromotion(request) {
 }
 
 /**
+ * 编辑营销活动
+ * @param request
+ */
+async function editPromotion(request) {
+  const {currentUser, params} = request
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  let promotionId = params.promotionId
+  if(!promotionId) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let title = params.title
+  let start = params.start
+  let end = params.end
+  let description = params.description
+  let region = [].concat(params.region)
+  let awards = params.awards
+  let status = params.status
+
+  if(!title && !start && !end && !description && region.length == 0 && !awards && !status) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let promotion = AV.Object.createWithoutData('Promotion', promotionId)
+  if(!promotion) {
+    throw new AV.Cloud.Error('没找到该活动对象', {code: errno.ENODATA})
+  }
+  let leanPromotion = await promotion.fetch()
+  if(leanPromotion.attributes.user.id != currentUser.id) {
+    throw new AV.Cloud.Error('该用户没有操作权限', {code: errno.EPERM})
+  }
+  if(title) {
+    promotion.set('title', title)
+  }
+  if(start) {
+    promotion.set('start', new Date(start))
+  }
+  if(end) {
+    promotion.set('end', new Date(end))
+  }
+  if(description) {
+    promotion.set('description', description)
+  }
+  if(region) {
+    promotion.set('region', region)
+  }
+  if(awards) {
+    promotion.set('awards', awards)
+  }
+  if(status) {
+    promotion.set('status', status)
+  }
+
+  let result = await promotion.save()
+  leanPromotion = await result.fetch()
+  return constructPromotionInfo(leanPromotion, false, false)
+}
+
+/**
  * 获取营销活动类型列表
  * @param request
  */
@@ -201,6 +260,7 @@ var promotionFunc = {
   createPromotion: createPromotion,
   fetchPromotions: fetchPromotions,
   fetchPromotionCategoryList: fetchPromotionCategoryList,
+  editPromotion: editPromotion,
 }
 
 module.exports = promotionFunc
