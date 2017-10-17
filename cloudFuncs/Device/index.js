@@ -90,7 +90,7 @@ function fetchDevices(request, response) {
   var deviceNo = request.params.deviceNo              //设备编号
   var stationId = request.params.stationId            //服务网点id
   var limit = request.params.limit || 10              //分页查询限制
-  var isRefresh = request.params.isRefresh || true    //分页查询刷新
+  var isRefresh = request.params.isRefresh    //分页查询刷新
   var lastUpdateTime = request.params.lastUpdateTime  //分页查询历史查询最后一条记录的设备更新时间
 
 

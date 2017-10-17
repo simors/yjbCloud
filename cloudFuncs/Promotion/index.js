@@ -84,6 +84,9 @@ async function getCategoryTitle(categoryId) {
  */
 async function createPromotion(request) {
   const {currentUser, params} = request
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
   let title = params.title
   let start = params.start
   let end = params.end
@@ -145,26 +148,28 @@ async function fetchPromotionCategoryList(request) {
 }
 
 /**
- * 查询营销活动
- * 详情请见：
+ * 查询营销活动类型列表
+ * 备注：无分页查询
  * Examples:
  * @param request
  * @param response
  */
-async function fetchPromotions(request, response) {
+async function fetchPromotions(request) {
   const {currentUser, params} = request
 
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
   let status = params.status
   let start = params.start
   let end = params.end
-  let limit = params.limit || 10
-  let isRefresh = params.isRefresh || true
-  let lastcreatedAt = params.lastcreatedAt
+  let lastCreatedAt = undefined
+  let promotionList = []
 
   let query = new AV.Query('Promotion')
+  query.descending('createdAt')
   query.include('category')
   query.include('user')
-  query.limit(limit)
 
   if(status != undefined) {
     query.equalTo('status', status)
@@ -172,28 +177,23 @@ async function fetchPromotions(request, response) {
   if(start) {
     query.greaterThanOrEqualTo('createdAt', new Date(start))
   }
-
   if(end) {
     query.lessThan('createdAt', new Date(end))
   }
-
-  if(!isRefresh && lastcreatedAt) {
-    query.lessThan('createdAt', new Date(lastcreatedAt))
-  }
-  query.descending('createdAt')
-
-  try {
+  while (1) {
+    if(lastCreatedAt) {
+      query.lessThan('createdAt', new Date(lastCreatedAt))
+    }
     let results = await query.find()
-    let promotionList = []
+    if(results.length < 1) {
+      break
+    }
     results.forEach((promotion) => {
       promotionList.push(constructPromotionInfo(promotion, true, true))
     })
-    response.success(promotionList)
-  } catch (error) {
-    console.error(error)
-    response.error(error)
+    lastCreatedAt = results[results.length - 1].createdAt.valueOf()
   }
-
+  return promotionList
 }
 
 var promotionFunc = {

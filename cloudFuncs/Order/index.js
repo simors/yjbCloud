@@ -269,7 +269,7 @@ async function fetchOrders(request, response) {
   let end = request.params.end
   let status = request.params.status
   let limit = request.params.limit || 10
-  let isRefresh = request.params.isRefresh || true    //分页查询刷新
+  let isRefresh = request.params.isRefresh    //分页查询刷新
   let lastStartTime = request.params.lastStartTime  //分页查询历史查询最后一条记录的设备更新时间
   let mobilePhoneNumber = request.params.mobilePhoneNumber
   let stationId = request.params.stationId

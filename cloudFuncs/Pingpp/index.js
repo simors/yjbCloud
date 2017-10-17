@@ -433,7 +433,7 @@ async function fetchRecharges(request, response) {
   let start = request.params.start
   let end = request.params.end
   let mobilePhoneNumber = request.params.mobilePhoneNumber
-  let isRefresh = request.params.isRefresh || true    //分页查询刷新
+  let isRefresh = request.params.isRefresh        //分页查询刷新
   let lastDealTime = request.params.lastDealTime  //分页查询历史查询最后一条记录的设备更新时间
   let limit = request.params.limit || 10
   let userId = undefined
