@@ -140,3 +140,8 @@ export const ERROR_BASE         =   1000;
 export const ERROR_BASE_AUTH    =   -(ERROR_BASE);
 export const ERROR_BASE_DEVICE  =   -(ERROR_BASE + 1000);
 export const ERROR_BASE_ORDER   =   -(ERROR_BASE + 2000);
+export const ERROR_BASE_STATION   =   -(ERROR_BASE + 3000);
+export const ERROR_BASE_ACCOUNT   =   -(ERROR_BASE + 4000);
+
+
+export const ERROR_STATION_DISABLE = (ERROR_BASE_STATION - 1)     /*FDFASDSAF S*/

@@ -118,7 +118,6 @@ async function selectAmountSumBydeviceId(device, dayInfo) {
   let amountSum = 0
   try {
     // console.log('device=====>',device)
-    let standbyPowerSum = mathjs.round(mathjs.chain(device.standbyPower).multiply(24).done(), 2)
     // console.log('standbyPowerSum=====>',standbyPowerSum)
     let useTime = 0
     let orderList = await OrderFunc.getOrders(device.id,dayInfo.yesterday,dayInfo.today)
@@ -146,6 +145,7 @@ async function selectAmountSumBydeviceId(device, dayInfo) {
       })
     }
     usePowerSum = mathjs.chain(useTime).multiply(device.usePower).done()
+    let standbyPowerSum = mathjs.round(mathjs.chain(device.standbyPower).multiply(24-useTime).done(), 2)
     powerSum = mathjs.chain(usePowerSum).add(standbyPowerSum).done()
     return {amountSum: amountSum, powerSum: powerSum}
   } catch (error) {
