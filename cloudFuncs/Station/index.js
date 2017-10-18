@@ -858,15 +858,6 @@ function getStationInfoByDeviceNo(deviceNo) {
   })
 }
 
-function stationFuncTest(request, response) {
-  var deviceNo = request.params.deviceNo
-  getStationInfoByDeviceNo(deviceNo).then((stationInfo) => {
-    response.success(stationInfo)
-  }).catch((error) => {
-    response.error(error)
-  })
-}
-
 function userFuncTest(request, response) {
 
   var query = new AV.Query('_User')
@@ -916,6 +907,33 @@ async function getStations() {
   }
 }
 
+/**
+ * 增加服务点设备数量
+ * @param {String}  stationId
+ * @param {String}  type = 'add' or 'sub'
+ */
+async function changeDeviceNum(stationId, type) {
+  let station = AV.Object.createWithoutData('Station', stationId)
+  if(type == 'add'){
+    station.increment('deviceNo', 1)
+  }else if(type == 'sub'){
+    station.increment('deviceNo', -1)
+  }else{
+    throw error
+  }
+  try{
+    let stationInfo = await station.save()
+    return stationInfo
+  }catch (error){
+    throw error
+  }
+}
+
+function stationFuncTest(request, response) {
+  let stationId = request.params.stationId
+
+  response.success(changeDeviceNum(stationId,'sub'))
+}
 
 var stationFunc = {
   constructStationInfo: constructStationInfo,
@@ -929,7 +947,6 @@ var stationFunc = {
   createInvestor: createInvestor,
   updateInvestor: updateInvestor,
   getStationInfoByDeviceNo: getStationInfoByDeviceNo,
-  stationFuncTest: stationFuncTest,
   closeInvestor: closeInvestor,
   openInvestor: openInvestor,
   createPartner: createPartner,
@@ -939,7 +956,9 @@ var stationFunc = {
   userFuncTest: userFuncTest,
   getStations: getStations,
   getPartnerByStationId: getPartnerByStationId,
-  getInvestorByStationId: getInvestorByStationId
+  getInvestorByStationId: getInvestorByStationId,
+  changeDeviceNum: changeDeviceNum,
+  stationFuncTest: stationFuncTest
 }
 
 module.exports = stationFunc

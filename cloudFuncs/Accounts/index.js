@@ -182,8 +182,7 @@ async function createStationAccount(station, dayInfo) {
     let accountInfo = await account.save()
     let query = new AV.Query('StationAccount')
 
-    await createPartnerAccount(accountInfo.id, dayInfo)
-    let newStationAccount = await query.get(accountInfo.id)
+    let newStationAccount = await createPartnerAccount(accountInfo.id, dayInfo)
     // console.log('newStation=====>',newStation)
     return newStationAccount
   } catch (error) {
@@ -253,7 +252,7 @@ async function createPartnerAccount(accountId, dayInfo) {
     stationAccountObject.set('investorProfit', investorProfit)
     stationAccountObject.set('partnerProfit', partnerProfit)
     stationAccountObject.set('platformProfit', platfomProfit)
-    let stationInfo = await stationAccountObject.save()
+    let stationInfo = await stationAccountObject.save(null,{fetchWhenSave: true})
     return stationInfo
   } catch (err) {
     throw err
