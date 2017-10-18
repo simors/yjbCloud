@@ -80,6 +80,11 @@ export function constructPermissionInfo(leanPerm) {
   return permInfo;
 }
 
+/**
+ * Get role codes for specified user.
+ * @param userId
+ * @returns {Promise.<Array>} role codes
+ */
 async function authGetRolesByUser(userId) {
   const ptrUser = AV.Object.createWithoutData('_User', userId);
 
@@ -89,24 +94,56 @@ async function authGetRolesByUser(userId) {
 
   const leanUserRolePairs = await query.find();
 
-  const roles = [];
+  const roleCodes = [];
   leanUserRolePairs.forEach((i) => {
-    // TODO: permissions associated with the role?
-    roles.push(constructRoleInfo(i.get('role')));
+    const role = constructRoleInfo(i.get('role'));
+
+    roleCodes.push(role.code);
   });
 
-  return roles;
+  return roleCodes;
 }
 
+/**
+ * Get role ids for specified user.
+ * Mainly for internal use.
+ * @param userId
+ * @returns {Promise.<Array>}
+ */
+async function authGetRoleIdsByUser(userId) {
+  const ptrUser = AV.Object.createWithoutData('_User', userId);
+
+  const query = new AV.Query('User_Role_Map');
+  query.equalTo('user', ptrUser);
+  query.include(['role']);
+
+  const leanUserRolePairs = await query.find();
+
+  const roleIds = [];
+  leanUserRolePairs.forEach((i) => {
+    const leanRole = i.get('role');
+    const role = constructRoleInfo(leanRole);
+
+    roleIds.push(role.id);
+  });
+
+  return roleIds;
+}
+
+/**
+ * Get permission codes for specified user.
+ * @param userId
+ * @returns {Promise.<Array>} permission codes
+ */
 async function authGetPermissionsByUser(userId) {
-  const roles = authGetRolesByUser(userId);
+  const roleIds = authGetRoleIdsByUser(userId);
 
   const leanPermissionsById = new Map();
 
   // get permissions for each role
-  await Promise.all(roles.map(
+  await Promise.all(roleIds.map(
     async (i) => {
-      const ptrRole = AV.Object.createWithoutData('_Role', i.id);
+      const ptrRole = AV.Object.createWithoutData('_Role', i);
       const query = new AV.Query('Role_Permission_Map');
       query.equalTo('role', ptrRole);
       query.include(['permission']);
@@ -122,12 +159,54 @@ async function authGetPermissionsByUser(userId) {
     }
   ));
 
-  const permissions = [];
+  const permissionCodes = [];
   for (const i of leanPermissionsById.values()) {
-    permissions.push(constructPermissionInfo(i));
+    const permission = constructPermissionInfo(i);
+
+    permissionCodes.push(permission.code);
   }
 
-  return permissions;
+  return permissionCodes;
+}
+
+/**
+ * Get permission ids for specified user.
+ * Mainly for internal use.
+ * @param userId
+ * @returns {Promise.<Array>} permission ids
+ */
+async function authGetPermissionIdsByUser(userId) {
+  const roleIds = authGetRoleIdsByUser(userId);
+
+  const leanPermissionsById = new Map();
+
+  // get permissions for each role
+  await Promise.all(roleIds.map(
+    async (i) => {
+      const ptrRole = AV.Object.createWithoutData('_Role', i);
+      const query = new AV.Query('Role_Permission_Map');
+      query.equalTo('role', ptrRole);
+      query.include(['permission']);
+      // TODO: limit
+
+      const leanRolePermissionPairs = await query.find();
+
+      leanRolePermissionPairs.forEach((i) => {
+        const leanPermission = i.get('permission');
+
+        leanPermissionsById.set(leanPermission.id, leanPermission);
+      });
+    }
+  ));
+
+  const permissionIds = [];
+  for (const i of leanPermissionsById.values()) {
+    const permission = constructPermissionInfo(i);
+
+    permissionIds.push(permission.id);
+  }
+
+  return permissionIds;
 }
 
 function isUserSignIn(openid) {
