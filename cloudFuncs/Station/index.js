@@ -35,7 +35,7 @@ function constructStationInfo(station, includeAdmin) {
   return stationInfo
 }
 
-function constructProfitSharing(profitSharing,includeUser) {
+function constructProfitSharing(profitSharing, includeUser) {
   let constructUserInfo = require('../Auth').constructUserInfo
   var profitSharingInfo = {}
   var shareholder = profitSharing.attributes.shareholder
@@ -45,11 +45,11 @@ function constructProfitSharing(profitSharing,includeUser) {
   profitSharingInfo.royalty = profitSharing.attributes.royalty
   profitSharingInfo.investment = profitSharing.attributes.investment
 
-  profitSharingInfo.shareholderId = shareholder?shareholder.id:undefined
-  profitSharingInfo.shareholderName = shareholder?shareholder.attributes.idName:undefined
-  profitSharingInfo.shareholderPhone = shareholder?shareholder.attributes.mobilePhoneNumber:undefined
-  profitSharingInfo.stationId = station?station.id:undefined
-  profitSharingInfo.stationName =station? station.attributes.name:undefined
+  profitSharingInfo.shareholderId = shareholder ? shareholder.id : undefined
+  profitSharingInfo.shareholderName = shareholder ? shareholder.attributes.idName : undefined
+  profitSharingInfo.shareholderPhone = shareholder ? shareholder.attributes.mobilePhoneNumber : undefined
+  profitSharingInfo.stationId = station ? station.id : undefined
+  profitSharingInfo.stationName = station ? station.attributes.name : undefined
   profitSharingInfo.status = profitSharing.attributes.status
   profitSharingInfo.createdAt = profitSharing.createdAt
   if (includeUser && shareholder) {
@@ -239,7 +239,7 @@ function fetchPartnerByStationId(request, response) {
   query.find().then((sharings)=> {
     var sharingList = []
     sharings.forEach((sharing)=> {
-      sharingList.push(constructProfitSharing(sharing))
+      sharingList.push(constructProfitSharing(sharing, true))
     })
     response.success(sharingList)
   }, (err)=> {
@@ -270,7 +270,7 @@ function getPartnerByStationId(stationId) {
     if (sharings && sharings.length > 0) {
       sharings.forEach((sharing)=> {
         // console.log('sharing====>', sharing)
-        let sharingInfo = constructProfitSharing(sharing)
+        let sharingInfo = constructProfitSharing(sharing, true)
         sharingList.push(sharingInfo)
       })
     }
@@ -326,7 +326,7 @@ function fetchInvestorByStationId(request, response) {
       query.find().then((sharings)=> {
         var sharingList = []
         sharings.forEach((sharing)=> {
-          let sharingInfo = constructProfitSharing(sharing)
+          let sharingInfo = constructProfitSharing(sharing, true)
           sharingList.push(sharingInfo)
         })
         response.success(sharingList)
@@ -341,7 +341,7 @@ function fetchInvestorByStationId(request, response) {
         sharings.forEach((sharing)=> {
           // console.log('sharing===>', sharing.id)
 
-          let sharingInfo = constructProfitSharing(sharing)
+          let sharingInfo = constructProfitSharing(sharing, true)
           sharingList.push(sharingInfo)
         })
       }
@@ -374,10 +374,10 @@ function getInvestorByStationId(stationId) {
   query.descending('createdDate')
   return query.find().then((sharings)=> {
     var sharingList = []
-    if(sharings&&sharings.length>0){
+    if (sharings && sharings.length > 0) {
       sharings.forEach((sharing)=> {
         // console.log('sharing===>', sharing.id)
-        sharingList.push(constructProfitSharing(sharing))
+        sharingList.push(constructProfitSharing(sharing, true))
       })
     }
     return sharingList

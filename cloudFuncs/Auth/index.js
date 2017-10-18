@@ -5,7 +5,7 @@ import AV from 'leanengine'
 import PingppFunc from '../Pingpp'
 import * as errno from '../errno'
 
-function constructUserInfo(user) {
+export function constructUserInfo(user, roles=undefined) {
   if(!user) {
     return undefined
   }
@@ -16,24 +16,118 @@ function constructUserInfo(user) {
 
   var userInfo = {}
   userInfo.id = user.id
+  userInfo.state = userAttr.state
+  userInfo.email = userAttr.email
+  userInfo.emailVerified = userAttr.emailVerified
+  userInfo.mobilePhoneNumber = userAttr.mobilePhoneNumber
+  userInfo.mobilePhoneVerified = userAttr.mobilePhoneVerified
+  userInfo.authData = userAttr.authData
+  userInfo.username = userAttr.username
   userInfo.nickname = userAttr.nickname
+  userInfo.avatar = userAttr.avatar
   userInfo.sex = userAttr.sex
+  userInfo.language = userAttr.language
   userInfo.country = userAttr.country
   userInfo.province = userAttr.province
   userInfo.city = userAttr.city
   userInfo.idNumber = userAttr.idNumber
   userInfo.idName = userAttr.idName
   userInfo.idNameVerified = userAttr.idNameVerified
-  userInfo.mobilePhoneNumber = userAttr.mobilePhoneNumber
-  userInfo.mobilePhoneVerified = userAttr.mobilePhoneVerified
-  userInfo.language = userAttr.language
-  userInfo.avatar = userAttr.avatar
-  userInfo.authData = userAttr.authData
-  userInfo.subscribe = userAttr.subscribe
   userInfo.createdAt = user.createdAt
   userInfo.updatedAt = user.updatedAt
+  userInfo.type = userAttr.type         // 'end' / 'admin
+  userInfo.note = userAttr.note
+  userInfo.subscribe = userAttr.subscribe
+  userInfo.roles = roles;
 
   return userInfo
+}
+
+export function constructRoleInfo(leanRole, permissions=undefined) {
+  if(!leanRole) {
+    return undefined;
+  }
+
+  const roleAttr = leanRole.attributes;
+  if(!roleAttr) {
+    return undefined;
+  }
+
+  const roleInfo = {};
+  roleInfo.id = leanRole.id;
+  roleInfo.code = roleAttr.code;
+  roleInfo.displayName = roleAttr.displayName;
+  roleInfo.permissions = permissions;
+
+  return roleInfo;
+}
+
+export function constructPermissionInfo(leanPerm) {
+  if(!leanPerm) {
+    return undefined;
+  }
+
+  const permAttr = leanPerm.attributes;
+  if(!permAttr) {
+    return undefined;
+  }
+
+  const permInfo = {};
+  permInfo.id = leanPerm.id;
+  permInfo.code = permAttr.code;
+  permInfo.displayName = permAttr.displayName;
+
+  return permInfo;
+}
+
+async function authGetRolesByUser(userId) {
+  const ptrUser = AV.Object.createWithoutData('_User', userId);
+
+  const query = new AV.Query('User_Role_Map');
+  query.equalTo('user', ptrUser);
+  query.include(['role']);
+
+  const leanUserRolePairs = await query.find();
+
+  const roles = [];
+  leanUserRolePairs.forEach((i) => {
+    // TODO: permissions associated with the role?
+    roles.push(constructRoleInfo(i.get('role')));
+  });
+
+  return roles;
+}
+
+async function authGetPermissionsByUser(userId) {
+  const roles = authGetRolesByUser(userId);
+
+  const leanPermissionsById = new Map();
+
+  // get permissions for each role
+  await Promise.all(roles.map(
+    async (i) => {
+      const ptrRole = AV.Object.createWithoutData('_Role', i.id);
+      const query = new AV.Query('Role_Permission_Map');
+      query.equalTo('role', ptrRole);
+      query.include(['permission']);
+      // TODO: limit
+
+      const leanRolePermissionPairs = await query.find();
+
+      leanRolePermissionPairs.forEach((i) => {
+        const leanPermission = i.get('permission');
+
+        leanPermissionsById.set(leanPermission.id, leanPermission);
+      });
+    }
+  ));
+
+  const permissions = [];
+  for (const i of leanPermissionsById.values()) {
+    permissions.push(constructPermissionInfo(i));
+  }
+
+  return permissions;
 }
 
 function isUserSignIn(openid) {
