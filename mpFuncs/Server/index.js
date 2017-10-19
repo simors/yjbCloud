@@ -57,7 +57,7 @@ function scanEvent(req, res, next) {
     if(result) {
       res.reply({
         type: 'text',
-        content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/openDevice?deviceNo=" + deviceNo + "'>开柜使用</a>"
+        content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/openDevice/" + deviceNo + "'>开柜使用</a>"
       })
     } else {
       res.reply({
