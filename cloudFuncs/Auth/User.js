@@ -14,20 +14,20 @@ async function authGetRolesAndPermissions(req) {
 
   // to get:
   // 1. roles for current user, 2. all roles, 3. all permissions
-  const jsonCurRoleIds = [];
+  const jsonCurRoleCodes = [];
   const jsonRoles = [];
   const jsonPermissions = [];
 
   // roles for current user
   let query = new AV.Query('User_Role_Map');
   query.equalTo('user', currentUser);
-  // query.include(['role']);
+  query.include(['role']);
 
   const leanUserRolePairs = await query.find();
 
   leanUserRolePairs.forEach((i) => {
-    const roleId = i.get('role').id;
-    jsonCurRoleIds.push(roleId);
+    const roleCode = i.get('role').code;
+    jsonCurRoleCodes.push(roleCode);
   });
 
   // all roles
@@ -43,21 +43,21 @@ async function authGetRolesAndPermissions(req) {
       // const ptrRole = AV.Object.createWithoutData('_Role', i.id);
       const query = new AV.Query('Role_Permission_Map');
       query.equalTo('role', i);
-      // query.include(['permission']);
+      query.include(['permission']);
       // TODO: limit
 
       const leanRolePermissionPairs = await query.find();
 
-      const permissionIds = new Set();
+      const permissionCodes = new Set();
       leanRolePermissionPairs.forEach((i) => {
-        const permissionId = i.get('permission').id;
-        permissionIds.add(permissionId);
+        const permissionCode = i.get('permission').code;
+        permissionCodes.add(permissionCode);
       });
 
       jsonRoles.push({
         ...i.toJSON(),
         id: i.id,
-        permissions: permissionIds,
+        permissions: permissionCodes,
       });
     }
   ));
@@ -76,7 +76,7 @@ async function authGetRolesAndPermissions(req) {
   });
 
   return {
-    jsonCurRoleIds,
+    jsonCurRoleCodes,
     jsonRoles,
     jsonPermissions,
   };
