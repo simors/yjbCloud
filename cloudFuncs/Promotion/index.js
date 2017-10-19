@@ -132,7 +132,7 @@ async function editPromotion(request) {
   let awards = params.awards
   let disabled = params.disabled
 
-  if(!title && !start && !end && !description && region.length == 0 && !awards && !disabled) {
+  if(!title && !start && !end && !description && region.length == 0 && !awards && disabled === undefined) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
   let promotion = AV.Object.createWithoutData('Promotion', promotionId)
@@ -161,7 +161,7 @@ async function editPromotion(request) {
   if(awards) {
     promotion.set('awards', awards)
   }
-  if(disabled) {
+  if(disabled != undefined) {
     promotion.set('disabled', disabled)
   }
 
