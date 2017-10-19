@@ -7,12 +7,6 @@ import amqp from 'amqplib'
 import Promise from 'bluebird'
 import GLOBAL_CONFIG from '../../config'
 
-
-//营销活动状态
-const PROMOTION_STATUS_AWAIT = 0           //等待触发
-const PROMOTION_STATUS_UNDERWAY = 1        //进行中
-const PROMOTION_STATUS_INVALID = 2         //无效
-
 var Promotion = AV.Object.extend('Promotion')
 
 function constructCategoryInfo(category) {
@@ -49,7 +43,7 @@ function constructPromotionInfo(promotion, includeCategory, includeUser) {
   promotionInfo.start = promotionAttr.start
   promotionInfo.end = promotionAttr.end
   promotionInfo.region = promotionAttr.region
-  promotionInfo.status = promotionAttr.status
+  promotionInfo.disabled = promotionAttr.disabled
   promotionInfo.categoryId = promotionAttr.category.id
   promotionInfo.createdAt = promotion.createdAt
   promotionInfo.awards = promotionAttr.awards
@@ -108,7 +102,7 @@ async function createPromotion(request) {
   promotion.set('description', description)
   promotion.set('category', category)
   promotion.set('region', region)
-  promotion.set('status', PROMOTION_STATUS_AWAIT)
+  promotion.set('disabled', false)
   promotion.set('awards', awards)
   promotion.set('user', currentUser)
 
@@ -136,9 +130,9 @@ async function editPromotion(request) {
   let description = params.description
   let region = [].concat(params.region)
   let awards = params.awards
-  let status = params.status
+  let disabled = params.disabled
 
-  if(!title && !start && !end && !description && region.length == 0 && !awards && !status) {
+  if(!title && !start && !end && !description && region.length == 0 && !awards && !disabled) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
   let promotion = AV.Object.createWithoutData('Promotion', promotionId)
@@ -167,8 +161,8 @@ async function editPromotion(request) {
   if(awards) {
     promotion.set('awards', awards)
   }
-  if(status) {
-    promotion.set('status', status)
+  if(disabled) {
+    promotion.set('disabled', disabled)
   }
 
   let result = await promotion.save()
@@ -219,7 +213,7 @@ async function fetchPromotions(request) {
   if(!currentUser) {
     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
   }
-  let status = params.status
+  let disabled = params.disabled
   let start = params.start
   let end = params.end
   let lastCreatedAt = undefined
@@ -230,8 +224,8 @@ async function fetchPromotions(request) {
   query.include('category')
   query.include('user')
 
-  if(status != undefined) {
-    query.equalTo('status', status)
+  if(disabled != undefined) {
+    query.equalTo('disabled', disabled)
   }
   if(start) {
     query.greaterThanOrEqualTo('createdAt', new Date(start))
