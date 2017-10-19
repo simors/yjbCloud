@@ -5,7 +5,7 @@ import AV from 'leanengine'
 import PingppFunc from '../Pingpp'
 import * as errno from '../errno'
 
-export function constructUserInfo(user, roles=undefined) {
+export function constructUserInfo(user) {
   if(!user) {
     return undefined
   }
@@ -38,7 +38,6 @@ export function constructUserInfo(user, roles=undefined) {
   userInfo.type = userAttr.type         // 'end' / 'admin
   userInfo.note = userAttr.note
   userInfo.subscribe = userAttr.subscribe
-  userInfo.roles = roles;
 
   return userInfo
 }
@@ -78,6 +77,32 @@ export function constructPermissionInfo(leanPerm) {
   permInfo.displayName = permAttr.displayName;
 
   return permInfo;
+}
+
+/**
+ * Test if current login user belongs to one of the provided roles.
+ * @param {String} userId
+ * @param {Array} roleCodes, e.g., [100, 200]
+ * @returns {Promise.<Boolean>}
+ */
+async function authValidRoles(userId, roleCodes) {
+  const validRoleCodes = await authGetRolesByUser(userId);
+
+  const intersect = new Set([...validRoleCodes].filter(i => new Set(roleCodes).has(i)));
+  return intersect.size > 0;
+}
+
+/**
+ * Test if current login user has one of the provided permissions.
+ * @param {String} userId
+ * @param {Array} permissionCodes, e.g., [1000, 1002]
+ * @returns {Promise.<Boolean>}
+ */
+async function authValidPermissions(userId, permissionCodes) {
+  const validPermissionCodes = await authGetPermissionsByUser(userId);
+
+  const intersect = new Set([...validPermissionCodes].filter(i => new Set(permissionCodes).has(i)));
+  return intersect.size > 0;
 }
 
 /**
@@ -345,6 +370,14 @@ async function authFuncTest(request, response) {
 
 var authFunc = {
   constructUserInfo: constructUserInfo,
+  constructRoleInfo: constructRoleInfo,
+  constructPermissionInfo: constructPermissionInfo,
+  authValidRoles: authValidRoles,
+  authValidPermissions: authValidPermissions,
+  authGetRolesByUser: authGetRolesByUser,
+  authGetRoleIdsByUser: authGetRoleIdsByUser,
+  authGetPermissionsByUser: authGetPermissionsByUser,
+  authGetPermissionIdsByUser,
   authFuncTest: authFuncTest,
   isUserSignIn: isUserSignIn,
   fetchWalletInfo: fetchWalletInfo,

@@ -1,6 +1,6 @@
 import AV from 'leanengine';
 import * as errno from '../errno';
-import {constructUserInfo} from './index';
+import {constructUserInfo, constructRoleInfo, constructPermissionInfo} from './index';
 
 async function authGetRolesAndPermissions(req) {
   const {currentUser, params} = req;
@@ -26,9 +26,12 @@ async function authGetRolesAndPermissions(req) {
   const leanUserRolePairs = await query.find();
 
   leanUserRolePairs.forEach((i) => {
-    const roleCode = i.get('role').code;
+    const role = constructRoleInfo(i.get('role'));
+    const roleCode = role.code;
     jsonCurRoleCodes.push(roleCode);
   });
+
+  console.log('jsonCurRoleCodes: ', jsonCurRoleCodes);
 
   // all roles
   query = new AV.Query('_Role');
@@ -50,7 +53,8 @@ async function authGetRolesAndPermissions(req) {
 
       const permissionCodes = new Set();
       leanRolePermissionPairs.forEach((i) => {
-        const permissionCode = i.get('permission').code;
+        const permission = constructPermissionInfo(i.get('permission'));
+        const permissionCode = permission.code;
         permissionCodes.add(permissionCode);
       });
 
