@@ -8,6 +8,7 @@ var mpMsgFuncs = require('../../mpFuncs/Message')
 var Promise = require('bluebird')
 const uuidv4 = require('uuid/v4')
 var mathjs = require('mathjs')
+import * as errno from '../errno'
 
 //设备状态
 const ORDER_STATUS_UNPAID = 0  //未支付
@@ -263,59 +264,50 @@ async function finishOrder(deviceNo, finishTime) {
  * @param {Object}  request
  * @param {Object}  response
  */
-async function fetchOrders(request, response) {
-  let currentUser = request.currentUser
-  let start = request.params.start
-  let end = request.params.end
-  let status = request.params.status
-  let limit = request.params.limit || 10
-  let isRefresh = request.params.isRefresh    //分页查询刷新
-  let lastStartTime = request.params.lastStartTime  //分页查询历史查询最后一条记录的设备更新时间
-  let mobilePhoneNumber = request.params.mobilePhoneNumber
-  let stationId = request.params.stationId
+async function fetchOrders(request) {
+  const {currentUser, params} = request
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  const {start, end, status, limit, isRefresh, mobilePhoneNumber, stationId, lastCreatedAt} = params
 
-  let query = new AV.Query('Order')
+  let startQuery = new AV.Query('Order')
+  let endQuery = new AV.Query('Order')
+  let otherQuery = new AV.Query('Order')
+  if(start) {
+    startQuery.greaterThanOrEqualTo('createdAt', new Date(start))
+  }
+  if(end) {
+    endQuery.lessThan('createdAt', new Date(end))
+  }
+  if(status != undefined) {
+    otherQuery.equalTo('status', status)
+  }
+  if(!isRefresh && lastCreatedAt) {
+    otherQuery.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+
+  let query = AV.Query.and(startQuery, endQuery, otherQuery)
   query.include('user')
   query.include('device')
   query.include('device.station')
-  query.limit(limit)
+  query.limit(limit || 10)
+  query.descending('createdAt')
 
-  if(status != undefined) {
-    query.equalTo('status', status)
-  }
-
-  if(start) {
-    query.greaterThanOrEqualTo('start', new Date(start))
-  }
-
-  if(end) {
-    query.lessThan('start', new Date(end))
-  }
-
-  if(!isRefresh && lastStartTime) {
-    query.lessThan('start', new Date(lastStartTime))
-  }
-  query.descending('updateAt')
-
-  try {
-    let results = await query.find()
-    let orderList = []
-    results.forEach((order) => {
-      let device = order.attributes.device
-      let user = order.attributes.user
-      if(mobilePhoneNumber && (mobilePhoneNumber != user.attributes.mobilePhoneNumber)) {
-        return
-      }
-      if(stationId && (stationId != device.attributes.station.id)) {
-        return
-      }
-      orderList.push(constructOrderInfo(order, true, true))
-    })
-    response.success(orderList)
-  } catch (error) {
-    console.error(error)
-    response.error(error)
-  }
+  let results = await query.find()
+  let orderList = []
+  results.forEach((order) => {
+    let device = order.attributes.device
+    let user = order.attributes.user
+    if(mobilePhoneNumber && (mobilePhoneNumber != user.attributes.mobilePhoneNumber)) {
+      return
+    }
+    if(stationId && (stationId != device.attributes.station.id)) {
+      return
+    }
+    orderList.push(constructOrderInfo(order, true, true))
+  })
+  return orderList
 }
 
 /**
