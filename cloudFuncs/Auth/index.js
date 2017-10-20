@@ -16,7 +16,7 @@ export function constructUserInfo(user) {
 
   var userInfo = {}
   userInfo.id = user.id
-  userInfo.state = userAttr.state
+  userInfo.status = userAttr.status
   userInfo.email = userAttr.email
   userInfo.emailVerified = userAttr.emailVerified
   userInfo.mobilePhoneNumber = userAttr.mobilePhoneNumber
@@ -35,14 +35,15 @@ export function constructUserInfo(user) {
   userInfo.idNameVerified = userAttr.idNameVerified
   userInfo.createdAt = user.createdAt
   userInfo.updatedAt = user.updatedAt
-  userInfo.type = userAttr.type         // 'end' / 'admin
+  userInfo.type = userAttr.type         // 'admin' / 'both'
   userInfo.note = userAttr.note
   userInfo.subscribe = userAttr.subscribe
+  userInfo.roles = userAttr.roles
 
   return userInfo
 }
 
-export function constructRoleInfo(leanRole, permissions=undefined) {
+export function constructRoleInfo(leanRole) {
   if(!leanRole) {
     return undefined;
   }
@@ -56,7 +57,6 @@ export function constructRoleInfo(leanRole, permissions=undefined) {
   roleInfo.id = leanRole.id;
   roleInfo.code = roleAttr.code;
   roleInfo.displayName = roleAttr.displayName;
-  roleInfo.permissions = permissions;
 
   return roleInfo;
 }
