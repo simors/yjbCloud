@@ -343,34 +343,35 @@ async function getOrders(deviceId, start, end) {
   if(!deviceId) {
     return undefined
   }
-  // console.log('deviceId=====>',deviceId)
-  // console.log('start=====>',start)
-  // console.log('end=====>',end)
 
-  let query = new AV.Query('Order')
+  let startQuery = new AV.Query('Order')
+  let endQuery = new AV.Query('Order')
+  let deviceQuery = new AV.Query('Order')
+  startQuery.greaterThanOrEqualTo('payTime', new Date(start))
+  endQuery.lessThan('payTime', new Date(end))
+
   let device = AV.Object.createWithoutData('Device', deviceId)
-  query.equalTo('device', device)
-  query.lessThan('payTime', new Date(end))
-  query.greaterThanOrEqualTo('payTime', new Date(start))
-  query.descending('createdAt')
+  deviceQuery.equalTo('device', device)
+  deviceQuery.equalTo('status', ORDER_STATUS_PAID)
+  let query = AV.Query.and(deviceQuery, startQuery, endQuery)
+  query.descending('payTime')
 
-  let lastCreatedAt = undefined
+  let lastPayTime = undefined
   let orderList = []
 
   try {
     while (1) {
-      if(lastCreatedAt) {
-        query.lessThan('createdAt', new Date(lastCreatedAt))
+      if(lastPayTime) {
+        query.lessThan('payTime', new Date(lastPayTime))
       }
       let orders = await query.find()
-      console.log('order=======>',orders.length)
       if(orders.length < 1) {
         break
       }
       orders.forEach((order) => {
         orderList.push(constructOrderInfo(order, false, false))
       })
-      lastCreatedAt = orders[orders.length - 1].createdAt.valueOf()
+      lastPayTime = orders[orders.length - 1].attributes.payTime.valueOf()
     }
     return orderList
   } catch (error) {
@@ -379,10 +380,12 @@ async function getOrders(deviceId, start, end) {
   }
 }
 
-function orderFuncTest(request, response) {
-  let deviceId = request.params.deviceId
+async function orderFuncTest(request) {
+  const {currentUser, params} = request
+  const {deviceId, start, end} = params
 
-  response.success(getOrders(deviceId))
+  let results = await getOrders(deviceId, start, end)
+  return results
 }
 
 
