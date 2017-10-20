@@ -1,6 +1,6 @@
 import AV from 'leanengine';
 import * as errno from '../errno';
-import {constructUserInfo} from './index';
+import {constructUserInfo, constructRoleInfo, constructPermissionInfo} from './index';
 
 async function authGetRolesAndPermissions(req) {
   const {currentUser, params} = req;
@@ -14,21 +14,24 @@ async function authGetRolesAndPermissions(req) {
 
   // to get:
   // 1. roles for current user, 2. all roles, 3. all permissions
-  const jsonCurRoleIds = [];
+  const jsonCurRoleCodes = [];
   const jsonRoles = [];
   const jsonPermissions = [];
 
   // roles for current user
   let query = new AV.Query('User_Role_Map');
   query.equalTo('user', currentUser);
-  // query.include(['role']);
+  query.include(['role']);
 
   const leanUserRolePairs = await query.find();
 
   leanUserRolePairs.forEach((i) => {
-    const roleId = i.get('role').id;
-    jsonCurRoleIds.push(roleId);
+    const role = constructRoleInfo(i.get('role'));
+    const roleCode = role.code;
+    jsonCurRoleCodes.push(roleCode);
   });
+
+  console.log('jsonCurRoleCodes: ', jsonCurRoleCodes);
 
   // all roles
   query = new AV.Query('_Role');
@@ -43,21 +46,22 @@ async function authGetRolesAndPermissions(req) {
       // const ptrRole = AV.Object.createWithoutData('_Role', i.id);
       const query = new AV.Query('Role_Permission_Map');
       query.equalTo('role', i);
-      // query.include(['permission']);
+      query.include(['permission']);
       // TODO: limit
 
       const leanRolePermissionPairs = await query.find();
 
-      const permissionIds = new Set();
+      const permissionCodes = new Set();
       leanRolePermissionPairs.forEach((i) => {
-        const permissionId = i.get('permission').id;
-        permissionIds.add(permissionId);
+        const permission = constructPermissionInfo(i.get('permission'));
+        const permissionCode = permission.code;
+        permissionCodes.add(permissionCode);
       });
 
       jsonRoles.push({
         ...i.toJSON(),
         id: i.id,
-        permissions: permissionIds,
+        permissions: permissionCodes,
       });
     }
   ));
@@ -76,7 +80,7 @@ async function authGetRolesAndPermissions(req) {
   });
 
   return {
-    jsonCurRoleIds,
+    jsonCurRoleCodes,
     jsonRoles,
     jsonPermissions,
   };
