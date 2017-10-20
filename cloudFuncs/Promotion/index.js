@@ -290,18 +290,14 @@ async function isPromotionExist(categoryId, start, end, region) {
   return results.length > 0? true : false
 }
 /**
- * 微信端用户查询有效活动
+ * 微信端用户查询有效活动列表
  * @param request
  */
-async function getValidPromotion(request) {
-  const {currentUser, params, meta} = request
+async function getValidPromotionList(request) {
+  const {currentUser, meta} = request
   const remoteAddress = meta.remoteAddress
   if(!currentUser) {
     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
-  }
-  const {categoryId} = params
-  if(!categoryId) {
-    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
   if(!remoteAddress) {
     throw new AV.Cloud.Error('获取用户ip失败', {code: errno.ERROR_PROM_NOIP})
@@ -309,7 +305,6 @@ async function getValidPromotion(request) {
 
   let userAddrInfo = await utilFunc.getIpInfo(remoteAddress)
   let userRegion = [userAddrInfo.region_id, userAddrInfo.city_id]
-  let categoryQuery = new AV.Query('Promotion')
   let timeQuery = new AV.Query('Promotion')
   let regionQueryA = new AV.Query('Promotion')
   let regionQueryB = new AV.Query('Promotion')
@@ -323,14 +318,17 @@ async function getValidPromotion(request) {
 
   statusQuery.equalTo('disabled', false)
 
-  let query = AV.Query.and(categoryQuery, statusQuery, timeQuery, regionQuery)
+  let query = AV.Query.and(statusQuery, timeQuery, regionQuery)
   query.include('user')
   query.include('category')
-  let validPromotion = await query.first()
-  if(validPromotion) {
-    return constructPromotionInfo(validPromotion, true, true)
+  let results = await query.find()
+  let promotionList = []
+  if(results.length > 0) {
+    results.forEach((promotion) => {
+      promotionList.push(constructPromotionInfo(promotion, true, true))
+    })
   }
-  return undefined
+  return promotionList
 }
 
 async function promotionFuncTest(request) {
@@ -354,7 +352,7 @@ var promotionFunc = {
   fetchPromotions: fetchPromotions,
   fetchPromotionCategoryList: fetchPromotionCategoryList,
   editPromotion: editPromotion,
-  getValidPromotion: getValidPromotion,
+  getValidPromotionList: getValidPromotionList,
 }
 
 module.exports = promotionFunc
