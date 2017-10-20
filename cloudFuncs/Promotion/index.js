@@ -6,6 +6,8 @@ import * as errno from '../errno'
 import amqp from 'amqplib'
 import Promise from 'bluebird'
 import GLOBAL_CONFIG from '../../config'
+import moment from 'moment'
+import utilFunc from '../Util'
 
 var Promotion = AV.Object.extend('Promotion')
 
@@ -92,6 +94,11 @@ async function createPromotion(request) {
   if(!categoryId || !title || !start || !end || !awards ) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
+
+  // let isPromExist = await isPromotionExist(categoryId, start, end, region)
+  // if(isPromExist) {
+  //   throw new AV.Cloud.Error('重复的活动', {code: errno.ERROR_PROM_REPEAT})
+  // }
 
   let promotion = new Promotion()
   let category = AV.Object.createWithoutData('PromotionCategory', categoryId)
@@ -201,7 +208,7 @@ async function fetchPromotionCategoryList(request) {
 }
 
 /**
- * 查询营销活动类型列表
+ * 查询营销活动列表
  * 备注：无分页查询
  * Examples:
  * @param request
@@ -248,13 +255,106 @@ async function fetchPromotions(request) {
   }
   return promotionList
 }
+/**
+ * 判断指定条件内的活动是否存在
+ * 备注：同类型的活动在时间和空间上不能重叠
+ * @param {String} categoryId  活动类型id
+ * @param {String} start       活动开始时间
+ * @param {String} end         活动结束时间
+ * @param {Array}  region      活动区域
+ */
+async function isPromotionExist(categoryId, start, end, region) {
+  if(!categoryId || !start || !end || !region) {
+    return undefined
+  }
+
+  let startQuery = new AV.Query('Promotion')
+  let endQuery = new AV.Query('Promotion')
+  let regionQuery = new AV.Query('Promotion')
+  let categoryQuery = new AV.Query('Promotion')
+  let timeQuery = undefined
+
+  let category = AV.Object.createWithoutData('PromotionCategory', categoryId)
+  categoryQuery.equalTo('category', category)
+  if(region.length === 1) {
+    regionQuery.containedIn('region', region)
+  } else if (region.length ===2) {
+
+  } else {
+    return undefined
+  }
+
+  let query = AV.Query.and(categoryQuery, regionQuery)
+  let results = await query.find()
+  console.log("results:", results)
+  return results.length > 0? true : false
+}
+/**
+ * 微信端用户查询有效活动
+ * @param request
+ */
+async function getValidPromotion(request) {
+  const {currentUser, params, meta} = request
+  const remoteAddress = meta.remoteAddress
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  const {categoryId} = params
+  if(!categoryId) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  if(!remoteAddress) {
+    throw new AV.Cloud.Error('获取用户ip失败', {code: errno.ERROR_PROM_NOIP})
+  }
+
+  let userAddrInfo = await utilFunc.getIpInfo(remoteAddress)
+  let userRegion = [userAddrInfo.region_id, userAddrInfo.city_id]
+  let categoryQuery = new AV.Query('Promotion')
+  let timeQuery = new AV.Query('Promotion')
+  let regionQueryA = new AV.Query('Promotion')
+  let regionQueryB = new AV.Query('Promotion')
+  let statusQuery = new AV.Query('Promotion')
+  timeQuery.greaterThan('end', new Date())
+  timeQuery.lessThanOrEqualTo('start', new Date())
+
+  regionQueryA.containsAll('region', userRegion)
+  regionQueryB.containedIn('region', userRegion)
+  let regionQuery = AV.Query.or(regionQueryA, regionQueryB)
+
+  statusQuery.equalTo('disabled', false)
+
+  let query = AV.Query.and(categoryQuery, statusQuery, timeQuery, regionQuery)
+  query.include('user')
+  query.include('category')
+  let validPromotion = await query.first()
+  if(validPromotion) {
+    return constructPromotionInfo(validPromotion, true, true)
+  }
+  return undefined
+}
+
+async function promotionFuncTest(request) {
+  console.log("request:", request)
+  const {currentUser, params, meta} = request
+  console.log("meta:", meta)
+
+  // let categoryId = params.categoryId
+  // let start = params.categoryId
+  // let end = params.end
+  // let region = params.region
+  // let result = await isPromotionExist(categoryId, start, end, region)
+  // return result
+  return true
+}
 
 var promotionFunc = {
+  promotionFuncTest: promotionFuncTest,
   constructPromotionInfo: constructPromotionInfo,
   createPromotion: createPromotion,
   fetchPromotions: fetchPromotions,
   fetchPromotionCategoryList: fetchPromotionCategoryList,
   editPromotion: editPromotion,
+  getValidPromotion: getValidPromotion,
 }
 
 module.exports = promotionFunc

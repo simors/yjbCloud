@@ -11,7 +11,11 @@ var accountsFunc= require('./cloudFuncs/Accounts')
 var mpUserFuncs = require('./mpFuncs/User')
 var promotionFunc = require('./cloudFuncs/Promotion')
 var excelFunc = require('./cloudFuncs/Util/excel')
+<<<<<<< HEAD
 var profitFunc = require('./cloudFuncs/Profit')
+=======
+var utilFunc = require('./cloudFuncs/Util')
+>>>>>>> a32c03dc21c4b59975322d617a3952ad96b4cf6c
 /**
  * 云函数
  */
@@ -67,6 +71,8 @@ AV.Cloud.define('promCreatePromotion', promotionFunc.createPromotion)
 AV.Cloud.define('promFetchPromotions', promotionFunc.fetchPromotions)
 AV.Cloud.define('promFetchPromotionCategoryList', promotionFunc.fetchPromotionCategoryList)
 AV.Cloud.define('promEditPromotion', promotionFunc.editPromotion)
+AV.Cloud.define('promGetValidPromotion', promotionFunc.getValidPromotion)
+AV.Cloud.define('promotionFuncTest', promotionFunc.promotionFuncTest)
 
 //支付
 AV.Cloud.define('pingppCreatePayment', PingppFunc.createPayment)
@@ -99,6 +105,9 @@ AV.Cloud.define('accountGetDayAccountsSum', accountsFunc.getDayAccountsSum)
 
 // AV.Cloud.define('testMathjs', accountsFunc.testMathjs)
 AV.Cloud.define('stationAccountToExcel', excelFunc.stationAccountToExcel)
+
+//Util
+AV.Cloud.define('utilFuncTest', utilFunc.utilFuncTest)
 
 // 投资收益
 AV.Cloud.define('profitQueryProfit', profitFunc.reqAdminProfit)

@@ -142,6 +142,11 @@ export const ERROR_BASE_DEVICE  =   -(ERROR_BASE + 1000);
 export const ERROR_BASE_ORDER   =   -(ERROR_BASE + 2000);
 export const ERROR_BASE_STATION   =   -(ERROR_BASE + 3000);
 export const ERROR_BASE_ACCOUNT   =   -(ERROR_BASE + 4000);
+export const ERROR_BASE_PROMOTION = -(ERROR_BASE + 5000);
 
 
 export const ERROR_STATION_DISABLE = (ERROR_BASE_STATION - 1)     /*FDFASDSAF S*/
+
+
+export const ERROR_PROM_REPEAT  = (ERROR_BASE_PROMOTION - 1)       /* 活动重复 */
+export const ERROR_PROM_NOIP    = (ERROR_BASE_PROMOTION - 2)       /* 无法获取用户ip信息 */

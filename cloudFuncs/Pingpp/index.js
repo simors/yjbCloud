@@ -228,7 +228,6 @@ function updateWalletInfo(conn, deal) {
 
 function createPayment(request, response) {
   var order_no = uuidv4().replace(/-/g, '').substr(0, 16)
-  // var amount = parseInt(request.params.amount * 100).toFixed(0) //人民币分
   var amount = mathjs.number(request.params.amount) * 100
   var channel = request.params.channel
   var metadata = request.params.metadata
@@ -243,7 +242,7 @@ function createPayment(request, response) {
     app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
     channel: channel,// 支付使用的第三方支付渠道取值，请参考：https://www.pingxx.com/api#api-c-new
     // amount: amount,//订单总金额, 人民币单位：分（如订单总金额为 1 元，此处请填 100）
-    amount: 0.01, //TODO 提现测试 部署生产环境需修改
+    amount: mathjs.chain(amount).multiply(0.1).done(), //TODO 提现测试 部署生产环境需修改
     client_ip: "127.0.0.1",// 发起支付请求客户端的 IP 地址，格式为 IPV4，如: 127.0.0.1
     currency: "cny",
     subject: subject,
@@ -268,7 +267,7 @@ function createPayment(request, response) {
 function paymentEvent(request, response) {
   var charge = request.params.data.object
   // var amount = charge.amount * 0.01         //单位为 元
-  var amount = mathjs.number(charge.amount) * 0.01 * 100  //TODO 支付测试金额缩小100倍，部署正式环境需废除
+  var amount = mathjs.number(charge.amount) * 0.01 * 10  //TODO 支付测试金额缩小100倍，部署正式环境需废除
   var dealType = Number(charge.metadata.dealType)
   var toUser = charge.metadata.toUser
   var fromUser = charge.metadata.fromUser
@@ -334,7 +333,6 @@ function paymentEvent(request, response) {
 
 function createTransfer(request, response) {
   var order_no = uuidv4().replace(/-/g, '').substr(0, 16)
-  // var amount = parseFloat(request.params.amount).toFixed(2) * 100 //人民币分
   var amount = mathjs.number(request.params.amount) * 100
   var metadata = request.params.metadata
   var dealType = metadata.dealType
@@ -354,7 +352,8 @@ function createTransfer(request, response) {
       order_no: order_no,
       app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
       channel: "wx_pub",
-      amount: amount,
+      // amount: amount,
+      amount: mathjs.chain(amount).multiply(0.01).done(),  //TODO 提现测试 部署生产环境需修改
       currency: "cny",
       type: "b2c",
       recipient: openid, //微信openId
@@ -385,6 +384,7 @@ function transferEvent(request, response) {
   var toUser = transfer.metadata.toUser
   var fromUser = transfer.metadata.fromUser
   var amount = mathjs.number(transfer.amount) * 0.01
+  amount = mathjs.chain(amount).multiply(100).done() //TODO 提现测试 部署生产环境需修改
   var dealType = transfer.metadata.dealType
 
   var mysqlConn = undefined
