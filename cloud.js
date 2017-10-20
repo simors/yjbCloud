@@ -11,6 +11,7 @@ var accountsFunc= require('./cloudFuncs/Accounts')
 var mpUserFuncs = require('./mpFuncs/User')
 var promotionFunc = require('./cloudFuncs/Promotion')
 var excelFunc = require('./cloudFuncs/Util/excel')
+var profitFunc = require('./cloudFuncs/Profit')
 var utilFunc = require('./cloudFuncs/Util')
 /**
  * 云函数
@@ -104,6 +105,11 @@ AV.Cloud.define('stationAccountToExcel', excelFunc.stationAccountToExcel)
 
 //Util
 AV.Cloud.define('utilFuncTest', utilFunc.utilFuncTest)
+
+// 投资收益
+AV.Cloud.define('profitQueryProfit', profitFunc.reqAdminProfit)
+AV.Cloud.define('profitTestIncProfit', profitFunc.reqTestIncProfit)
+AV.Cloud.define('profitTestDecProfit', profitFunc.reqTestDecProfit)
 
 
 module.exports = AV.Cloud;
