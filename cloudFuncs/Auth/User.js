@@ -31,8 +31,6 @@ async function authGetRolesAndPermissions(req) {
     jsonCurRoleCodes.push(roleCode);
   });
 
-  console.log('jsonCurRoleCodes: ', jsonCurRoleCodes);
-
   // all roles
   query = new AV.Query('_Role');
   query.ascending('code');
@@ -59,8 +57,7 @@ async function authGetRolesAndPermissions(req) {
       });
 
       jsonRoles.push({
-        ...i.toJSON(),
-        id: i.id,
+        ...constructRoleInfo(i),
         permissions: permissionCodes,
       });
     }
@@ -73,10 +70,7 @@ async function authGetRolesAndPermissions(req) {
   const leanPermissions = await query.find();
 
   leanPermissions.forEach((i) => {
-    jsonPermissions.push({
-      ...i.toJSON(),
-      id: i.id,
-    });
+    jsonPermissions.push(constructPermissionInfo(i));
   });
 
   return {
@@ -86,6 +80,84 @@ async function authGetRolesAndPermissions(req) {
   };
 }
 
+/**
+ * List end users, i.e., which has no user type defined, or has user type of 'both'.
+ * @param {object} req
+ * params = {
+ *   limit?: number,
+ *   mobilePhoneNumber?: string,
+ *   province?: string,
+ *   city?: string,
+ *   status?: string, 'disabled'
+ * }
+ * @returns {Promise.<Array>} an Array of json representation User(s)
+ */
+async function authListEndUsers(req) {
+  const {currentUser, params} = req;
+
+  if (!currentUser) {
+    // no token provided
+    throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
+  }
+
+  const {skip=0, limit=10, mobilePhoneNumber, province, city, status} = params;
+
+  const jsonUsers = [];
+
+  const values = [];
+  let cql = 'select count(*),* from _User';
+  cql += ' where (type is not exists or type=?)';
+  values.push('both');
+  if (mobilePhoneNumber) {
+    cql += ' and mobilePhoneNumber=?';
+    values.push(mobilePhoneNumber);
+  }
+  if (province) {
+    cql += ' and province=?';
+    values.push(province);
+  }
+  if (city) {
+    cql += ' and city=?';
+    values.push(city);
+  }
+  if (status) {
+    if (status === 'disabled') {
+      cql += ' and status=?';
+      values.push('disabled');
+    } else {
+      cql += ' and (status!=?)';
+      values.push('disabled');
+    }
+  }
+  cql += ' limit ?,?'; values.push(skip);
+  values.push(limit);
+  cql += ' order by -createdAt';
+
+  const {count, results} = await AV.Query.doCloudQuery(cql, values);
+
+  results.forEach((i) => {
+    jsonUsers.push(constructUserInfo(i));
+  });
+
+  return {
+    count,
+    jsonUsers
+  };
+}
+
+/**
+ * List end users, i.e., which has no user type defined, or has user type of 'both'.
+ * @param {object} req
+ * params = {
+ *   limit?: number,
+ *   lastCreatedAt?: Date,
+ *   mobilePhoneNumber?: string,
+ *   province?: string,
+ *   city?: string,
+ *   status?: string, 'disabled'
+ * }
+ * @returns {Promise.<Array>} an Array of json representation User(s)
+ */
 async function authListUsers(req) {
   const {currentUser, params} = req;
 
@@ -398,6 +470,7 @@ async function authUpdateUser(req) {
 
 const authApi = {
   authGetRolesAndPermissions,
+  authListEndUsers,
   authListUsers,
   authCreateUser,
   authDeleteUser,
