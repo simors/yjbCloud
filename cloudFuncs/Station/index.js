@@ -3,6 +3,7 @@
  */
 var AV = require('leanengine');
 var Promise = require('bluebird')
+var OperationLog = require('../OperationLog')
 
 //服务点
 function constructStationInfo(station, includeAdmin) {
@@ -64,7 +65,7 @@ function constructProfitSharing(profitSharing, includeUser) {
  * @param {Object}  response
  */
 function createStation(request, response) {
-  var currentUser = request.params.currentUser
+  var currentUser = request.currentUser
   var name = request.params.name
   var addr = request.params.addr                      //详细地址
   var province = request.params.province              //省份
@@ -103,6 +104,7 @@ function createStation(request, response) {
       var query = new AV.Query('Station')
       query.include('admin')
       query.get(leanStation.id).then((stationInfo)=> {
+        OperationLog.recordOperation(currentUser, '创建服务点'+stationInfo.attributes.name)
         response.success(constructStationInfo(stationInfo, true))
       })
     }).catch((error) => {
@@ -172,6 +174,7 @@ function fetchStations(request, response) {
  */
 
 function updateStation(request, response) {
+  let currentUser = request.currentUser
   var stationId = request.params.stationId
   var status = request.params.status
   var name = request.params.name
@@ -212,6 +215,7 @@ function updateStation(request, response) {
       var query = new AV.Query('Station')
       query.include('admin')
       query.get(leanStation.id).then((stationInfo)=> {
+        OperationLog.recordOperation(currentUser, '更新服务点'+stationInfo.attributes.name)
         response.success(constructStationInfo(stationInfo, true))
       })
     }).catch((error) => {
@@ -394,6 +398,7 @@ function getInvestorByStationId(stationId) {
  */
 
 async function createPartner(request, response) {
+  let currentUser = request.currentUser
   try {
     let royalty = request.params.royalty
     let userId = request.params.userId
@@ -422,6 +427,7 @@ async function createPartner(request, response) {
     let queryNew = new AV.Query('ProfitSharing')
     queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
+    OperationLog.recordOperation(currentUser, '创建分成方'+finPartner.attributes.shareholder.attributes.idName)
     response.success(constructProfitSharing(finPartner, true))
   } catch (err) {
     response.error(err)
@@ -436,6 +442,7 @@ async function createPartner(request, response) {
  */
 
 async function updatePartner(request, response) {
+  let currentUser = request.currentUser
   try {
     let royalty = request.params.royalty
     let userId = request.params.userId
@@ -455,6 +462,7 @@ async function updatePartner(request, response) {
     let queryNew = new AV.Query('ProfitSharing')
     queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
+    OperationLog.recordOperation(currentUser, '更新分成方'+finPartner.attributes.shareholder.attributes.idName)
     response.success(constructProfitSharing(finPartner, true))
   } catch (err) {
     response.error(err)
@@ -469,6 +477,7 @@ async function updatePartner(request, response) {
  */
 
 function createInvestor(request, response) {
+  let currentUser = request.currentUser
   var stationId = request.params.stationId
   var userId = request.params.userId
   var investment = request.params.investment
@@ -520,9 +529,9 @@ function createInvestor(request, response) {
                     results.forEach((result)=> {
                       investors.push(constructProfitSharing(result))
                     })
+                    OperationLog.recordOperation(currentUser, '创建投资人')
                     response.success(investors)
                   }
-
                 })
               })
             }, (err)=> {
@@ -546,6 +555,7 @@ function createInvestor(request, response) {
  */
 
 function updateInvestor(request, response) {
+  let currentUser = request.currentUser
   var investorId = request.params.investorId
   var stationId = request.params.stationId
   var userId = request.params.userId
@@ -595,6 +605,7 @@ function updateInvestor(request, response) {
                   results.forEach((result)=> {
                     investors.push(constructProfitSharing(result))
                   })
+                  OperationLog.recordOperation(currentUser, '更新投资人')
                   response.success(investors)
                 } else {
                   response.success()
@@ -619,6 +630,7 @@ function updateInvestor(request, response) {
  */
 
 function openStation(request, response) {
+  let currentUser = request.currentUser
   var stationId = request.params.stationId
   var station = AV.Object.createWithoutData('Station', stationId)
   station.set('status', 1)
@@ -626,6 +638,7 @@ function openStation(request, response) {
     var query = new AV.Query('Station')
     query.include(['admin'])
     query.get(item.id).then((result)=> {
+      OperationLog.recordOperation(currentUser, '启用服务点'+result.attributes.name)
       response.success(constructStationInfo(result, true))
     }, (err)=> {
       response.error(err)
@@ -642,6 +655,7 @@ function openStation(request, response) {
  */
 
 function openPartner(request, response) {
+  let currentUser = request.currentUser
   var partnerId = request.params.partnerId
   var partner = AV.Object.createWithoutData('ProfitSharing', partnerId)
   partner.set('status', 1)
@@ -649,6 +663,7 @@ function openPartner(request, response) {
     var query = new AV.Query('ProfitSharing')
     query.include(['station', 'shareholder'])
     query.get(item.id).then((result)=> {
+      OperationLog.recordOperation(currentUser, '启用分成方'+result.attributes.shareholder.attributes.idName)
       response.success(constructProfitSharing(result))
     }, (err)=> {
       response.error(err)
@@ -665,6 +680,7 @@ function openPartner(request, response) {
  */
 
 function closePartner(request, response) {
+  let currentUser = request.currentUser
   var partnerId = request.params.partnerId
   var partner = AV.Object.createWithoutData('ProfitSharing', partnerId)
   partner.set('status', 0)
@@ -672,6 +688,7 @@ function closePartner(request, response) {
     var query = new AV.Query('ProfitSharing')
     query.include(['station', 'shareholder'])
     query.get(item.id).then((result)=> {
+      OperationLog.recordOperation(currentUser, '禁用分成方'+result.attributes.shareholder.attributes.idName)
       response.success(constructProfitSharing(result))
     }, (err)=> {
       response.error(err)
@@ -688,9 +705,8 @@ function closePartner(request, response) {
  */
 
 function openInvestor(request, response) {
+  let currentUser = request.currentUser
   var investorId = request.params.investorId
-  // var stationId = request.params.stationId
-  // var royalty = request.params.royalty
   var investor = AV.Object.createWithoutData('ProfitSharing', investorId)
   var queryShare = new AV.Query('ProfitSharing')
   queryShare.get(investorId).then((record)=> {
@@ -729,6 +745,7 @@ function openInvestor(request, response) {
                   results.forEach((result)=> {
                     investors.push(constructProfitSharing(result))
                   })
+                  OperationLog.recordOperation(currentUser, '启用投资人')
                   response.success(investors)
                 } else {
                   response.success()
@@ -753,6 +770,7 @@ function openInvestor(request, response) {
  */
 
 function closeInvestor(request, response) {
+  let currentUser = request.currentUser
   var investorId = request.params.investorId
   // var stationId = request.params.stationId
   // var royalty = request.params.royalty
@@ -795,6 +813,7 @@ function closeInvestor(request, response) {
                   results.forEach((result)=> {
                     investors.push(constructProfitSharing(result))
                   })
+                  OperationLog.recordOperation(currentUser, '停用投资人')
                   response.success(investors)
                 } else {
                   response.success()
@@ -814,20 +833,26 @@ function closeInvestor(request, response) {
 }
 
 function closeStation(request, response) {
-  var stationId = request.params.stationId
-  var station = AV.Object.createWithoutData('Station', stationId)
-  station.set('status', 0)
-  station.save().then((item)=> {
-    var query = new AV.Query('Station')
-    query.include(['admin'])
-    query.get(item.id).then((result)=> {
-      response.success(constructStationInfo(result, true))
+  let currentUser = request.currentUser
+  if(!currentUser){
+    response.error('not login')
+  }else{
+    var stationId = request.params.stationId
+    var station = AV.Object.createWithoutData('Station', stationId)
+    station.set('status', 0)
+    station.save().then((item)=> {
+      var query = new AV.Query('Station')
+      query.include(['admin'])
+      query.get(item.id).then((result)=> {
+        OperationLog.recordOperation(currentUser, '关闭服务点'+result.attributes.name)
+        response.success(constructStationInfo(result, true))
+      }, (err)=> {
+        response.error(err)
+      })
     }, (err)=> {
       response.error(err)
     })
-  }, (err)=> {
-    response.error(err)
-  })
+  }
 }
 /**
  * 通过设备编号获取服务网点信息
