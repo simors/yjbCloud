@@ -11,11 +11,8 @@ var accountsFunc= require('./cloudFuncs/Accounts')
 var mpUserFuncs = require('./mpFuncs/User')
 var promotionFunc = require('./cloudFuncs/Promotion')
 var excelFunc = require('./cloudFuncs/Util/excel')
-<<<<<<< HEAD
 var profitFunc = require('./cloudFuncs/Profit')
-=======
 var utilFunc = require('./cloudFuncs/Util')
->>>>>>> a32c03dc21c4b59975322d617a3952ad96b4cf6c
 /**
  * 云函数
  */
