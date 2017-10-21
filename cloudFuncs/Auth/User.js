@@ -14,25 +14,25 @@ async function authGetRolesAndPermissions(req) {
 
   // to get:
   // 1. roles for current user, 2. all roles, 3. all permissions
-  const jsonCurRoleCodes = [];
+  // const jsonCurRoleCodes = [];
   const jsonRoles = [];
   const jsonPermissions = [];
 
-  // roles for current user
-  let query = new AV.Query('User_Role_Map');
-  query.equalTo('user', currentUser);
-  query.include(['role']);
-
-  const leanUserRolePairs = await query.find();
-
-  leanUserRolePairs.forEach((i) => {
-    const role = constructRoleInfo(i.get('role'));
-    const roleCode = role.code;
-    jsonCurRoleCodes.push(roleCode);
-  });
+  // // roles for current user
+  // let query = new AV.Query('User_Role_Map');
+  // query.equalTo('user', currentUser);
+  // query.include(['role']);
+  //
+  // const leanUserRolePairs = await query.find();
+  //
+  // leanUserRolePairs.forEach((i) => {
+  //   const role = constructRoleInfo(i.get('role'));
+  //   const roleCode = role.code;
+  //   jsonCurRoleCodes.push(roleCode);
+  // });
 
   // all roles
-  query = new AV.Query('_Role');
+  let query = new AV.Query('_Role');
   query.ascending('code');
 
   const leanRoles = await query.find();
@@ -74,7 +74,7 @@ async function authGetRolesAndPermissions(req) {
   });
 
   return {
-    jsonCurRoleCodes,
+    // jsonCurRoleCodes,
     jsonRoles,
     jsonPermissions,
   };
@@ -330,7 +330,7 @@ async function authCreateUser(req) {
   };
 
   ({
-    state: jsonUser.state,
+    status: jsonUser.status,
     email: jsonUser.email,
     mobilePhoneNumber: jsonUser.mobilePhoneNumber,
     authData: jsonUser.authData,
@@ -348,9 +348,10 @@ async function authCreateUser(req) {
     type: jsonUser.type,
     note: jsonUser.note,
     subscribe: jsonUser.subscribe,
+    roles: jsonUser.roles,
   } = params);
 
-  const {roles} = params;
+  // const {roles} = params;
 
   if (!jsonUser.username) { // TODO: wechat user
     if (jsonUser.mobilePhoneNumber) {
@@ -364,7 +365,7 @@ async function authCreateUser(req) {
 
   // define db table
   const User = AV.Object.extend('_User');
-  const UserRoleMap = AV.Object.extend('User_Role_Map');
+  // const UserRoleMap = AV.Object.extend('User_Role_Map');
 
   // check 'mobilePhoneNumber' and 'username' existent
   if (jsonUser.mobilePhoneNumber) {
@@ -389,23 +390,23 @@ async function authCreateUser(req) {
   const user = new User(jsonUser);
   const leanUser = await user.save();
 
-  // create _User and _Role pointer and insert into User_Role_Map
-  const leanUserRolePairs = [];
-
-  // const ptrUser = AV.Object.createWithoutData('_User', leanUser.id);
-
-  roles.forEach((i) => {
-    const ptrRole = AV.Object.createWithoutData('_Role', i);
-
-    const leanUserRolePair = new UserRoleMap({
-      user: leanUser,
-      role: ptrRole
-    });
-
-    leanUserRolePairs.push(leanUserRolePair);
-  });
-
-  await AV.Object.saveAll(leanUserRolePairs);
+  // // create _User and _Role pointer and insert into User_Role_Map
+  // const leanUserRolePairs = [];
+  //
+  // // const ptrUser = AV.Object.createWithoutData('_User', leanUser.id);
+  //
+  // roles.forEach((i) => {
+  //   const ptrRole = AV.Object.createWithoutData('_Role', i);
+  //
+  //   const leanUserRolePair = new UserRoleMap({
+  //     user: leanUser,
+  //     role: ptrRole
+  //   });
+  //
+  //   leanUserRolePairs.push(leanUserRolePair);
+  // });
+  //
+  // await AV.Object.saveAll(leanUserRolePairs);
 
   return {
 
@@ -424,19 +425,19 @@ async function authDeleteUser(req) {
 
   const ptrUser = AV.Object.createWithoutData('_User', id);
 
-  const query = new AV.Query('User_Role_Map');
-  query.equalTo('user', ptrUser);
+  // const query = new AV.Query('User_Role_Map');
+  // query.equalTo('user', ptrUser);
+  //
+  // const leanUserRolePairs = await query.find();
+  //
+  // const ptrUserRolePairs = [];
+  // leanUserRolePairs.forEach((i) => {
+  //   const ptrUserRolePair = AV.Object.createWithoutData('User_Role_Map', i.id);
+  //
+  //   ptrUserRolePairs.push(ptrUserRolePair);
+  // });
 
-  const leanUserRolePairs = await query.find();
-
-  const ptrUserRolePairs = [];
-  leanUserRolePairs.forEach((i) => {
-    const ptrUserRolePair = AV.Object.createWithoutData('User_Role_Map', i.id);
-
-    ptrUserRolePairs.push(ptrUserRolePair);
-  });
-
-  await AV.Object.destroyAll([...ptrUserRolePairs, ptrUser]);
+  await AV.Object.destroyAll([ptrUser]);
 
   return {
 
@@ -473,57 +474,58 @@ async function authUpdateUser(req) {
     type: jsonUser.type,
     note: jsonUser.note,
     subscribe: jsonUser.subscribe,
+    roles: jsonUser.roles,
   } = params);
 
-  const {id, roles} = params;
+  const {id} = params;
 
   // update User_Role_Map
 
   const ptrUser = AV.Object.createWithoutData('_User', id);
 
-  const query = new AV.Query('User_Role_Map');
-  query.equalTo('user', ptrUser);
+  // const query = new AV.Query('User_Role_Map');
+  // query.equalTo('user', ptrUser);
   // query.include(['role']);
 
-  const leanUserRolePairs = await query.find();
-
-  const oldRoleIds = new Set();
-  leanUserRolePairs.forEach((i) => {
-    oldRoleIds.add(i.get('role').id);
-  });
-
-  const newRoleIds = new Set(roles);
-
-  const roleIdsToAdd = new Set([...newRoleIds].filter(i => !oldRoleIds.has(i)));
-  const roleIdsToRemove = new Set([...oldRoleIds].filter(i => !newRoleIds.has(i)));
-
-  const leanUserRolePairsToAdd = [];
-  const leanUserRolePairsToRemove = [];
-
-  const UserRoleMap = AV.Object.extend('User_Role_Map');
-
-  roleIdsToAdd.forEach((i) => {
-    const ptrRole = AV.Object.createWithoutData('_Role', i);
-
-    const leanUserRolePair = new UserRoleMap({
-      user: ptrUser,
-      role: ptrRole
-    });
-
-    leanUserRolePairsToAdd.push(leanUserRolePair);
-  });
-
-
-  if (roleIdsToRemove.size > 0) {
-    leanUserRolePairs.forEach((i) => {
-      if (roleIdsToRemove.has(i.get('role').id)) {
-        leanUserRolePairsToRemove.push(i);
-      }
-    });
-  }
-
-  await AV.Object.saveAll(leanUserRolePairsToAdd);
-  await AV.Object.destroyAll(leanUserRolePairsToRemove);
+  // const leanUserRolePairs = await query.find();
+  //
+  // const oldRoleIds = new Set();
+  // leanUserRolePairs.forEach((i) => {
+  //   oldRoleIds.add(i.get('role').id);
+  // });
+  //
+  // const newRoleIds = new Set(roles);
+  //
+  // const roleIdsToAdd = new Set([...newRoleIds].filter(i => !oldRoleIds.has(i)));
+  // const roleIdsToRemove = new Set([...oldRoleIds].filter(i => !newRoleIds.has(i)));
+  //
+  // const leanUserRolePairsToAdd = [];
+  // const leanUserRolePairsToRemove = [];
+  //
+  // const UserRoleMap = AV.Object.extend('User_Role_Map');
+  //
+  // roleIdsToAdd.forEach((i) => {
+  //   const ptrRole = AV.Object.createWithoutData('_Role', i);
+  //
+  //   const leanUserRolePair = new UserRoleMap({
+  //     user: ptrUser,
+  //     role: ptrRole
+  //   });
+  //
+  //   leanUserRolePairsToAdd.push(leanUserRolePair);
+  // });
+  //
+  //
+  // if (roleIdsToRemove.size > 0) {
+  //   leanUserRolePairs.forEach((i) => {
+  //     if (roleIdsToRemove.has(i.get('role').id)) {
+  //       leanUserRolePairsToRemove.push(i);
+  //     }
+  //   });
+  // }
+  //
+  // await AV.Object.saveAll(leanUserRolePairsToAdd);
+  // await AV.Object.destroyAll(leanUserRolePairsToRemove);
 
   // update _User
 
