@@ -50,7 +50,7 @@ async function fetchOperationLogs(request) {
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
   let query = new AV.Query('OperationLog')
-  let {lastCreatedAt, userId} = params
+  let {lastCreatedAt, userId, limit} = params
   if(userId){
     let user = AV.Object.createWithoutData('_User', userId)
     query.equalTo('user',user)
@@ -58,7 +58,9 @@ async function fetchOperationLogs(request) {
   if(lastCreatedAt){
     query.lessThan('createdAt',new Date(lastCreatedAt))
   }
+  query.limit(limit?limit:100)
   query.include(['user'])
+
   query.descending('createdAt')
   try{
     let operationLogs= await query.find()
