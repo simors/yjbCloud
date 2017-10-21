@@ -39,32 +39,6 @@ function constructStationAccountnInfo(account, includeStation) {
   return accountInfo
 }
 
-//分成方以及投资人日结数据构造方法
-function constructSharingAccountnInfo(account, includeStation, includeUser) {
-  if (!account) {
-    return undefined
-  }
-  let constructStationInfo = StationFuncs.constructStationInfo
-  let constructUserInfo = require('../Auth').constructUserInfo
-  let accountInfo = {}
-
-  let station = account.attributes.station
-  let user = account.attributes.user
-  accountInfo.id = account.id
-  accountInfo.accountDay = account.attributes.accountDay
-  accountInfo.profit = account.attributes.profit
-  accountInfo.stationId = station ? station.id : undefined
-  accountInfo.userId = user ? user.id : undefined
-  if (includeStation && station) {
-    accountInfo.station = constructStationInfo(station)
-  }
-  if (includeUser && user) {
-    accountInfo.user = constructUserInfo(user)
-  }
-  accountInfo.createdAt = account.createdAt
-  return accountInfo
-}
-
 /**
  * InvestorAccount和PartnerAccount都公用这一个转换方法
  *
@@ -520,7 +494,7 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
         // console.log('account.attributes.========>', account.attributes)
         if (account) {
           profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(), 2)
-          accountInfo = constructSharingAccountnInfo(account, true, true)
+          accountInfo = constructProfitAccount(account, true, true)
         }
       })
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
@@ -622,7 +596,7 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
         // console.log('account.attributes.========>', account.attributes)
         if (account) {
           profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(), 2)
-          accountInfo = constructSharingAccountnInfo(account, true, true)
+          accountInfo = constructProfitAccount(account, true, true)
         }
       })
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
@@ -738,7 +712,7 @@ async function getPartnerAccountsDetail(request, response) {
     let accounts = await query.find()
     let accountList = []
     accounts.forEach((account)=> {
-      accountList.push(constructSharingAccountnInfo(account, true, true))
+      accountList.push(constructProfitAccount(account, true, true))
     })
     console.log('accountList.length======>', accountList.length)
     response.success(accountList)
@@ -797,7 +771,7 @@ async function getInvestorAccountsDetail(request, response) {
     let accounts = await query.find()
     let accountList = []
     accounts.forEach((account)=> {
-      accountList.push(constructSharingAccountnInfo(account, true, true))
+      accountList.push(constructProfitAccount(account, true, true))
     })
     console.log('accountList.length======>', accountList.length)
     response.success(accountList)
