@@ -8,12 +8,13 @@ var mpAuthFuncs = require('../mpFuncs/Auth')
 var GLOBAL_CONFIG = require('../config')
 var querystring = require('querystring')
 var authFunc = require('../cloudFuncs/Auth')
-
+import utilFunc from '../cloudFuncs/Util'
 
 router.get('/', async function (req, res, next) {
   var code = req.query.code
   var state = req.query.state
   var redirectUrl = ''
+  var clientIp = utilFunc.getClientIp(req)
 
   try {
     let result = await mpAuthFuncs.getAccessToken(code)
@@ -26,6 +27,10 @@ router.get('/', async function (req, res, next) {
       "expires_at": Date.parse(expires_in),
     }
     let platform = 'weixin'
+    let userAddrInfo = undefined
+    if(clientIp) {
+      userAddrInfo = await utilFunc.getIpInfo(clientIp)
+    }
     let isSignIn = await authFunc.isUserSignIn(openid)
     if(!isSignIn) {
       let user = new AV.User()
@@ -34,11 +39,12 @@ router.get('/', async function (req, res, next) {
       user.set('avatar', userWechatInfo.headimgurl)
       user.set('sex', userWechatInfo.sex)
       user.set('language', userWechatInfo.language)
-      user.set('country', userWechatInfo.country)
-      user.set('province', userWechatInfo.province)
-      user.set('city', userWechatInfo.city)
+      if(userAddrInfo) {
+        user.set('country', {label: userAddrInfo.country, value: userAddrInfo.country_id})
+        user.set('province', {label: userAddrInfo.region, value: userAddrInfo.region_id})
+        user.set('city', {label: userAddrInfo.city, value: userAddrInfo.city_id})
+      }
       user.set('subscribe', userWechatInfo.subscribe)
-
       await AV.User.associateWithAuthData(user, platform, authData)
     }
     redirectUrl =  GLOBAL_CONFIG.MP_CLIENT_DOMAIN + state + '?' + querystring.stringify(authData)

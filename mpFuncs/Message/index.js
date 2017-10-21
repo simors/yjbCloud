@@ -19,9 +19,9 @@ function sendRechargeTmpMsg(openid, amount, balance, score, payTime, type) {
   var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_RECHARGE
   var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine/wallet'
   var title = ""
-  if(type === PingppFunc.RECHARGE) {
+  if(type === PingppFunc.DEAL_TYPE_RECHARGE) {
     title = "尊敬的衣家宝用户，您已充值成功\n"
-  } else if(type === PingppFunc.DEPOSIT) {
+  } else if(type === PingppFunc.DEAL_TYPE_DEPOSIT) {
     title = "尊敬的衣家宝用户，您的押金已经支付成功\n"
   }
 

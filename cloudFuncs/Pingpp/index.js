@@ -9,14 +9,15 @@ const uuidv4 = require('uuid/v4')
 var dateFormat = require('dateformat')
 var mathjs = require('mathjs')
 var mpMsgFuncs = require('../../mpFuncs/Message')
+import promotionFunc from '../Promotion'
 
-// 支付类型定义
-const DEPOSIT = 1                // 押金
-const RECHARGE = 2               // 充值
-const SERVICE = 3                // 服务消费
-const REFUND = 4                 // 押金退款
-const WITHDRAW = 5               // 提现
-const SYS_PRESENT = 6            // 系统赠送
+// 交易类型定义
+const DEAL_TYPE_DEPOSIT = 1                // 押金
+const DEAL_TYPE_RECHARGE = 2               // 充值
+const DEAL_TYPE_SERVICE = 3                // 服务消费
+const DEAL_TYPE_REFUND = 4                 // 押金退款
+const DEAL_TYPE_WITHDRAW = 5               // 提现
+const DEAL_TYPE_SYS_PRESENT = 6            // 系统赠送
 
 
 /**
@@ -34,13 +35,12 @@ function updateUserDealRecords(conn, deal) {
   var channel = deal.channel || ''
   var transaction_no = deal.transaction_no || ''
   var feeAmount = deal.feeAmount || 0
-  var recordSql = 'INSERT INTO `DealRecords` (`from`, `to`, `cost`, `deal_type`, `charge_id`, `order_no`, `channel`, `transaction_no`, `fee`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  return mysqlUtil.query(conn, recordSql, [deal.from, deal.to, deal.cost, deal.deal_type, charge_id, order_no, channel, transaction_no, feeAmount]).then(() => {
-    if(deal.present && deal.present > 0) {
-      var present_order_no = uuidv4().replace(/-/g, '').substr(0, 16) //充值赠送新生产一个订单号
-      return mysqlUtil.query(conn, recordSql, [deal.to, deal.from, deal.present, SYS_PRESENT, charge_id, present_order_no, channel, transaction_no, feeAmount])
+  var recordSql = 'INSERT INTO `DealRecords` (`from`, `to`, `cost`, `deal_type`, `charge_id`, `order_no`, `channel`, `transaction_no`, `fee`, `promotion_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  return mysqlUtil.query(conn, recordSql, [deal.from, deal.to, deal.cost, deal.deal_type, charge_id, order_no, channel, transaction_no, feeAmount, '--']).then(() => {
+    if(deal.deal_type === DEAL_TYPE_RECHARGE && deal.metadata.promotionId && deal.metadata.award > 0) {
+      let present_order_no = uuidv4().replace(/-/g, '').substr(0, 16) //充值赠送新生产一个订单号
+      return mysqlUtil.query(conn, recordSql, [deal.to, deal.from, deal.metadata.award, DEAL_TYPE_SYS_PRESENT, charge_id, present_order_no, channel, transaction_no, feeAmount, deal.metadata.promotionId])
     }
-    return undefined
   })
 }
 
@@ -133,13 +133,13 @@ function updateWalletInfo(conn, deal) {
   var userId = undefined
 
   switch (deal.deal_type) {
-    case DEPOSIT:
-    case RECHARGE:
-    case SERVICE:
+    case DEAL_TYPE_DEPOSIT:
+    case DEAL_TYPE_RECHARGE:
+    case DEAL_TYPE_SERVICE:
       userId = deal.from
       break
-    case REFUND:
-    case WITHDRAW:
+    case DEAL_TYPE_REFUND:
+    case DEAL_TYPE_WITHDRAW:
       userId = deal.to
       break
     default:
@@ -160,29 +160,29 @@ function updateWalletInfo(conn, deal) {
       var currentDebt = mathjs.number(queryRes.results[0].debt)
 
       switch (deal.deal_type) {
-        case DEPOSIT:
+        case DEAL_TYPE_DEPOSIT:
           sql = "UPDATE `Wallet` SET `deposit` = ? WHERE `userId` = ?"
           return mysqlUtil.query(conn, sql, [deal.cost, userId])
           break
-        case RECHARGE:
+        case DEAL_TYPE_RECHARGE:
           if(currentDebt === 0) {
             sql = "UPDATE `Wallet` SET `balance` = `balance` + ? WHERE `userId` = ?"
             // return mysqlUtil.query(conn, sql, [deal.cost, userId])
-            return mysqlUtil.query(conn, sql, [mathjs.eval(deal.cost + deal.present), userId])
-          } else if((deal.cost + deal.present) > currentDebt) {
+            return mysqlUtil.query(conn, sql, [mathjs.eval(deal.cost + deal.metadata.award), userId])
+          } else if((deal.cost + deal.metadata.award) > currentDebt) {
             sql = "UPDATE `Wallet` SET `balance` = `balance` + ?, `debt` = ? WHERE `userId` = ?"
             // return mysqlUtil.query(conn, sql, [deal.cost - currentDebt, 0, userId])
-            return mysqlUtil.query(conn, sql, [mathjs.eval(deal.cost + deal.present - currentDebt), 0, userId])
+            return mysqlUtil.query(conn, sql, [mathjs.eval(deal.cost + deal.metadata.award - currentDebt), 0, userId])
           } else {
             sql = "UPDATE `Wallet` SET `balance` = ?, `debt` = `debt` - ? WHERE `userId` = ?"
-            return mysqlUtil.query(conn, sql, [0, mathjs.eval(currentDebt - deal.cost - deal.present), userId])
+            return mysqlUtil.query(conn, sql, [0, mathjs.eval(currentDebt - deal.cost - deal.metadata.award), userId])
           }
           break
-        case WITHDRAW:
+        case DEAL_TYPE_WITHDRAW:
           sql = "UPDATE `Wallet` SET `balance` = `balance` - ? WHERE `userId` = ?"
           return mysqlUtil.query(conn, sql, [deal.cost, userId])
           break
-        case SERVICE:
+        case DEAL_TYPE_SERVICE:
           if(currentBalance > deal.cost) {
             sql = "UPDATE `Wallet` SET `balance` = `balance` - ? WHERE `userId` = ?"
             return mysqlUtil.query(conn, sql, [deal.cost, userId])
@@ -191,7 +191,7 @@ function updateWalletInfo(conn, deal) {
             return mysqlUtil.query(conn, sql, [deal.cost, userId])
           }
           break
-        case REFUND:
+        case DEAL_TYPE_REFUND:
           sql = "UPDATE `Wallet` SET `deposit` = `deposit` - ? WHERE `userId` = ?"
           return mysqlUtil.query(conn, sql, [deal.cost, userId])
           break
@@ -201,17 +201,17 @@ function updateWalletInfo(conn, deal) {
       }
     } else {
       switch (deal.deal_type) {
-        case DEPOSIT:
+        case DEAL_TYPE_DEPOSIT:
           deposit = deal.cost
           break
-        case RECHARGE:
-          balance = mathjs.eval(deal.cost + deal.present)
+        case DEAL_TYPE_RECHARGE:
+          balance = mathjs.eval(deal.cost + deal.metadata.award)
           break
-        case SERVICE:
+        case DEAL_TYPE_SERVICE:
           debt = deal.cost
           break
-        case WITHDRAW:
-        case REFUND:
+        case DEAL_TYPE_WITHDRAW:
+        case DEAL_TYPE_REFUND:
         default:
           return Promise.resolve()
           break
@@ -234,15 +234,12 @@ function createPayment(request, response) {
   var openid = request.params.openid
   var subject = request.params.subject
 
-
   pingpp.setPrivateKeyPath(__dirname + "/rsa_private_key.pem");
-
   pingpp.charges.create({
     order_no: order_no,// 推荐使用 8-20 位，要求数字或字母，不允许其他字符
     app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
     channel: channel,// 支付使用的第三方支付渠道取值，请参考：https://www.pingxx.com/api#api-c-new
-    // amount: amount,//订单总金额, 人民币单位：分（如订单总金额为 1 元，此处请填 100）
-    amount: mathjs.chain(amount).multiply(0.1).done(), //TODO 提现测试 部署生产环境需修改
+    amount: amount,//订单总金额, 人民币单位：分（如订单总金额为 1 元，此处请填 100）
     client_ip: "127.0.0.1",// 发起支付请求客户端的 IP 地址，格式为 IPV4，如: 127.0.0.1
     currency: "cny",
     subject: subject,
@@ -264,33 +261,21 @@ function createPayment(request, response) {
   })
 }
 
-function paymentEvent(request, response) {
+async function paymentEvent(request) {
   var charge = request.params.data.object
-  // var amount = charge.amount * 0.01         //单位为 元
-  var amount = mathjs.number(charge.amount) * 0.01 * 10  //TODO 支付测试金额缩小100倍，部署正式环境需废除
+  var amount = mathjs.chain(charge.amount).multiply(0.01).done()       //单位为 元
+  if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_DEV_APP_ID) {
+    amount = mathjs.chain(amount).multiply(100).done()
+  } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_STAGE_APP_ID) {
+    amount = mathjs.chain(amount).multiply(100).done()
+  } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_PRO_APP_ID) {
+  }
   var dealType = Number(charge.metadata.dealType)
   var toUser = charge.metadata.toUser
   var fromUser = charge.metadata.fromUser
   var payTime = charge.created  //unix时间戳
-  var mysqlConn = undefined
-  var present = 0   //系统赠送金额
 
   console.log("收到paymentEvent消息 charge:", charge)
-  if(dealType === RECHARGE) {
-    if (amount >= 10.0 && amount < 20.0) {
-      present = 10.0
-    } else if (amount >= 20.0 && amount < 30.0) {
-      present = 30.0
-    } else if (amount >= 30.0 && amount < 50.0) {
-      present = 50.0
-    } else if (amount >= 50.0 && amount < 100) {
-      present = 70.0
-    } else if (amount >= 100 && amount < 200) {
-      present = 160
-    } else if (amount >= 200) {
-      present = 300
-    }
-  }
   var deal = {
     from: fromUser,
     to: toUser,
@@ -301,34 +286,88 @@ function paymentEvent(request, response) {
     channel: charge.channel,
     transaction_no: charge.transaction_no,
     openid: charge.extra.open_id,
-    present: present,
+    payTime: payTime,
+    metadata: metadata,
   }
-  mysqlUtil.getConnection().then((conn) => {
-    mysqlConn = conn
-    return mysqlUtil.beginTransaction(conn)
-  }).then(() => {
-    return updateUserDealRecords(mysqlConn, deal)
-  }).then(() => {
-    return updateWalletInfo(mysqlConn, deal)
-  }).then(() => {
-    return mysqlUtil.commit(mysqlConn)
-  }).then(() => {
-    response.success()
-    return getWalletInfo(deal.from).then((walletInfo) => {
-      return mpMsgFuncs.sendRechargeTmpMsg(deal.openid, deal.cost, walletInfo.balance, walletInfo.score, new Date(payTime * 1000), deal.deal_type)
-    })
-  }).catch((error) => {
-    console.log("paymentEvent", error)
-    if (mysqlConn) {
-      console.log('transaction rollback')
-      mysqlUtil.rollback(mysqlConn)
+  try {
+    switch (dealType) {
+      case DEAL_TYPE_DEPOSIT:
+        await handleDepositDeal(deal)
+        break
+      case DEAL_TYPE_RECHARGE:
+        await handleRechargeDeal(deal)
+        break
+      default:
+        break
     }
-    response.error(error)
-  }).finally(() => {
-    if (mysqlConn) {
-      mysqlUtil.release(mysqlConn)
+  } catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+/**
+ * 处理用户支付押金交易
+ * @param deal
+ */
+async function handleDepositDeal(deal) {
+  if(!deal) {
+    return undefined
+  }
+  let mysqlConn = undefined
+  try {
+    mysqlConn = await mysqlUtil.getConnection()
+    await mysqlUtil.beginTransaction(mysqlConn)
+    await updateUserDealRecords(mysqlConn, deal)
+    await updateWalletInfo(mysqlConn, deal)
+    await mysqlUtil.commit(mysqlConn)
+
+  } catch (error) {
+    if(mysqlConn) {
+      await mysqlUtil.rollback(mysqlConn)
     }
-  })
+    throw error
+  } finally {
+    if(mysqlConn) {
+      await mysqlUtil.release(mysqlConn)
+    }
+  }
+}
+/**
+ * 处理微信端用户充值交易
+ * @param deal
+ */
+async function handleRechargeDeal(deal) {
+  if(!deal) {
+    return undefined
+  }
+  let mysqlConn = undefined
+  try {
+    mysqlConn = await mysqlUtil.getConnection()
+    await mysqlUtil.beginTransaction(mysqlConn)
+    await updateUserDealRecords(mysqlConn, deal)
+    await updateWalletInfo(mysqlConn, deal)
+    await mysqlUtil.commit(mysqlConn)
+
+  } catch (error) {
+    console.error(error)
+    if(mysqlConn) {
+      await mysqlUtil.rollback(mysqlConn)
+    }
+    throw error
+  } finally {
+    if(mysqlConn) {
+      await mysqlUtil.release(mysqlConn)
+    }
+  }
+  try {
+    let userWalletInfo = await getWalletInfo(deal.from)
+    await mpMsgFuncs.sendRechargeTmpMsg(deal.openid, deal.cost, userWalletInfo.balance, userWalletInfo.score, new Date(deal.payTime * 1000), deal.deal_type)
+    if(deal.metadata.promotionId) {
+      await promotionFunc.updateRechargePromStat(deal.metadata.promotionId, deal.cost, deal.metadata.award)
+    }
+  } catch (error) {
+    console.error(error)
+  }
 }
 
 function createTransfer(request, response) {
@@ -338,12 +377,18 @@ function createTransfer(request, response) {
   var dealType = metadata.dealType
   var channel = request.params.channel
   var openid = request.params.openid
-  var username = request.params.username
+
+  if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_DEV_APP_ID) {
+    amount = mathjs.chain(amount).multiply(0.01).done()
+  } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_STAGE_APP_ID) {
+    amount = mathjs.chain(amount).multiply(0.01).done()
+  } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_PRO_APP_ID) {
+  }
 
   var description = ''
-  if(dealType === REFUND) {
+  if(dealType === DEAL_TYPE_REFUND) {
     description = "押金退款"
-  } else if(dealType === WITHDRAW) {
+  } else if(dealType === DEAL_TYPE_WITHDRAW) {
     description = "账户提现"
   }
 
@@ -352,8 +397,7 @@ function createTransfer(request, response) {
       order_no: order_no,
       app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
       channel: "wx_pub",
-      // amount: amount,
-      amount: mathjs.chain(amount).multiply(0.01).done(),  //TODO 提现测试 部署生产环境需修改
+      amount: amount,
       currency: "cny",
       type: "b2c",
       recipient: openid, //微信openId
@@ -379,15 +423,20 @@ function createTransfer(request, response) {
   }
 }
 
-function transferEvent(request, response) {
+async function transferEvent(request) {
   var transfer = request.params.data.object
   var toUser = transfer.metadata.toUser
   var fromUser = transfer.metadata.fromUser
-  var amount = mathjs.number(transfer.amount) * 0.01
-  amount = mathjs.chain(amount).multiply(100).done() //TODO 提现测试 部署生产环境需修改
+  var amount = mathjs.chain(transfer.amount).multiply(0.01).done()
   var dealType = transfer.metadata.dealType
 
-  var mysqlConn = undefined
+  if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_DEV_APP_ID) {
+    amount = mathjs.chain(amount).multiply(100).done()
+  } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_STAGE_APP_ID) {
+    amount = mathjs.chain(amount).multiply(100).done()
+  } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_PRO_APP_ID) {
+  }
+
   console.log("收到transferEvent消息 transfer:", transfer)
 
   var deal = {
@@ -400,30 +449,50 @@ function transferEvent(request, response) {
     channel: transfer.channel,
     transaction_no: transfer.transaction_no,
     openid: transfer.recipient,
+    metadata: transfer.metadata
   }
 
-  mysqlUtil.getConnection().then((conn) => {
-    mysqlConn = conn
-    return mysqlUtil.beginTransaction(conn)
-  }).then(() => {
-    return updateUserDealRecords(mysqlConn, deal)
-  }).then(() => {
-    return updateWalletInfo(mysqlConn, deal)
-  }).then(() => {
-    return mysqlUtil.commit(mysqlConn)
-    response.success()
-  }).catch((error) => {
-    console.log(error)
-    if (mysqlConn) {
-      console.log('transaction rollback')
-      mysqlUtil.rollback(mysqlConn)
+  try {
+    switch (dealType) {
+      case DEAL_TYPE_REFUND:
+      {
+        await handleRefundDeal(deal)
+        break
+      }
+      case DEAL_TYPE_WITHDRAW:
+      {
+        break
+      }
+      default:
+        break
     }
-    response.error(error)
-  }).finally(() => {
-    if (mysqlConn) {
-      mysqlUtil.release(mysqlConn)
+  } catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+async function handleRefundDeal(deal) {
+  if(!deal) {
+    return undefined
+  }
+  let mysqlConn = undefined
+  try {
+    mysqlConn = await mysqlUtil.getConnection()
+    await mysqlUtil.beginTransaction(mysqlConn)
+    await updateUserDealRecords(mysqlConn, deal)
+    await updateWalletInfo(mysqlConn, deal)
+    await mysqlUtil.commit(mysqlConn)
+  } catch (error) {
+    if(mysqlConn) {
+      await mysqlUtil.rollback(mysqlConn)
     }
-  })
+    throw error
+  } finally {
+    if(mysqlConn) {
+      await mysqlUtil.release(mysqlConn)
+    }
+  }
 }
 
 
@@ -448,33 +517,33 @@ async function fetchRecharges(request, response) {
       userId = await authFunc.getUserId(mobilePhoneNumber)
       sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`>? AND `deal_time`<? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
       if(isRefresh) {
-        queryParams = [RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), userId, limit]
+        queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), userId, limit]
       } else {
-        queryParams = [RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(lastDealTime), 'isoDateTime'), userId, limit]
+        queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(lastDealTime), 'isoDateTime'), userId, limit]
       }
     } else if (!mobilePhoneNumber && start && end) {
       sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`>? AND `deal_time`<? ORDER BY `deal_time` DESC LIMIT ?"
       if(isRefresh) {
-        queryParams = [RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), limit]
+        queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), limit]
       } else {
-        queryParams = [RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(lastDealTime), 'isoDateTime'), limit]
+        queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(lastDealTime), 'isoDateTime'), limit]
       }
     } else if (mobilePhoneNumber && !start && !end) {
       userId = await authFunc.getUserId(mobilePhoneNumber)
       if(isRefresh) {
         sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
-        queryParams = [RECHARGE, userId, limit]
+        queryParams = [DEAL_TYPE_RECHARGE, userId, limit]
       } else {
         sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`<? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
-        queryParams = [RECHARGE, dateFormat(new Date(lastDealTime), 'isoDateTime'), userId, limit]
+        queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(lastDealTime), 'isoDateTime'), userId, limit]
       }
     } else if (!mobilePhoneNumber && !start && !end) {
       if(isRefresh) {
         sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? ORDER BY `deal_time` DESC LIMIT ?"
-        queryParams = [RECHARGE, limit]
+        queryParams = [DEAL_TYPE_RECHARGE, limit]
       } else {
         sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`<?  ORDER BY `deal_time` DESC LIMIT ?"
-        queryParams = [RECHARGE, dateFormat(new Date(lastDealTime), 'isoDateTime'), limit]
+        queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(lastDealTime), 'isoDateTime'), limit]
       }
     } else {
       response.error(new Error("参数错误"))
@@ -506,11 +575,11 @@ async function fetchRecharges(request, response) {
 }
 
 var PingppFunc = {
-  DEPOSIT: DEPOSIT,
-  RECHARGE: RECHARGE,
-  SERVICE: SERVICE,
-  REFUND: REFUND,
-  WITHDRAW: WITHDRAW,
+  DEAL_TYPE_DEPOSIT: DEAL_TYPE_DEPOSIT,
+  DEAL_TYPE_RECHARGE: DEAL_TYPE_RECHARGE,
+  DEAL_TYPE_SERVICE: DEAL_TYPE_SERVICE,
+  DEAL_TYPE_REFUND: DEAL_TYPE_REFUND,
+  DEAL_TYPE_WITHDRAW: DEAL_TYPE_WITHDRAW,
   createPayment: createPayment,
   paymentEvent: paymentEvent,
   createTransfer: createTransfer,
