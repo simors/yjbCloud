@@ -113,46 +113,11 @@ async function authValidPermissions(userId, permissionCodes) {
 async function authGetRolesByUser(userId) {
   const ptrUser = AV.Object.createWithoutData('_User', userId);
 
-  const query = new AV.Query('User_Role_Map');
-  query.equalTo('user', ptrUser);
-  query.include(['role']);
+  const leanUser = await ptrUser.fetch();
 
-  const leanUserRolePairs = await query.find();
+  const jsonUser = constructUserInfo(leanUser);
 
-  const roleCodes = [];
-  leanUserRolePairs.forEach((i) => {
-    const role = constructRoleInfo(i.get('role'));
-
-    roleCodes.push(role.code);
-  });
-
-  return roleCodes;
-}
-
-/**
- * Get role ids for specified user.
- * Mainly for internal use.
- * @param userId
- * @returns {Promise.<Array>}
- */
-async function authGetRoleIdsByUser(userId) {
-  const ptrUser = AV.Object.createWithoutData('_User', userId);
-
-  const query = new AV.Query('User_Role_Map');
-  query.equalTo('user', ptrUser);
-  query.include(['role']);
-
-  const leanUserRolePairs = await query.find();
-
-  const roleIds = [];
-  leanUserRolePairs.forEach((i) => {
-    const leanRole = i.get('role');
-    const role = constructRoleInfo(leanRole);
-
-    roleIds.push(role.id);
-  });
-
-  return roleIds;
+  return jsonUser.roles;
 }
 
 /**
@@ -184,14 +149,51 @@ async function authGetPermissionsByUser(userId) {
     }
   ));
 
-  const permissionCodes = [];
+  const permissions = [];
   for (const i of leanPermissionsById.values()) {
     const permission = constructPermissionInfo(i);
 
-    permissionCodes.push(permission.code);
+    permissions.push(permission.code);
   }
 
-  return permissionCodes;
+  return permissions;
+}
+
+/**
+ * Get role ids for specified user.
+ * Mainly for internal use.
+ * @param userId
+ * @returns {Promise.<Array>}
+ */
+async function authGetRoleIdsByUser(userId) {
+  const ptrUser = AV.Object.createWithoutData('_User', userId);
+
+  const leanUser = await ptrUser.fetch();
+
+  const jsonUser = constructUserInfo(leanUser);
+
+  const roles = jsonUser.roles;
+
+  // all roles indexed by role code
+  const rolesByCode = new Map();
+  const query = new AV.Query('_Role');
+
+  const leanRoles = await query.find();
+  leanRoles.forEach((i) => {
+    const jsonRole = constructRoleInfo(i);
+
+    rolesByCode.set(jsonRole.code, jsonRole.id);
+  });
+
+  // convert role codes to role ids
+  const roleIds = [];
+  roles.forEach((i) => {
+    const roleId = rolesByCode(i);
+
+    roleIds.push(roleId);
+  });
+
+  return roleIds;
 }
 
 /**

@@ -13,23 +13,9 @@ async function authGetRolesAndPermissions(req) {
   // TODO: limit
 
   // to get:
-  // 1. roles for current user, 2. all roles, 3. all permissions
-  // const jsonCurRoleCodes = [];
+  // 1. all roles, 2. all permissions
   const jsonRoles = [];
   const jsonPermissions = [];
-
-  // // roles for current user
-  // let query = new AV.Query('User_Role_Map');
-  // query.equalTo('user', currentUser);
-  // query.include(['role']);
-  //
-  // const leanUserRolePairs = await query.find();
-  //
-  // leanUserRolePairs.forEach((i) => {
-  //   const role = constructRoleInfo(i.get('role'));
-  //   const roleCode = role.code;
-  //   jsonCurRoleCodes.push(roleCode);
-  // });
 
   // all roles
   let query = new AV.Query('_Role');
@@ -41,7 +27,6 @@ async function authGetRolesAndPermissions(req) {
   await Promise.all(leanRoles.map(
     async (i) => {
       // get permissions for role
-      // const ptrRole = AV.Object.createWithoutData('_Role', i.id);
       const query = new AV.Query('Role_Permission_Map');
       query.equalTo('role', i);
       query.include(['permission']);
@@ -52,8 +37,7 @@ async function authGetRolesAndPermissions(req) {
       const permissionCodes = new Set();
       leanRolePermissionPairs.forEach((i) => {
         const permission = constructPermissionInfo(i.get('permission'));
-        const permissionCode = permission.code;
-        permissionCodes.add(permissionCode);
+        permissionCodes.add(permission.code);
       });
 
       jsonRoles.push({
@@ -74,7 +58,6 @@ async function authGetRolesAndPermissions(req) {
   });
 
   return {
-    // jsonCurRoleCodes,
     jsonRoles,
     jsonPermissions,
   };
@@ -215,109 +198,6 @@ async function authListAdminUsers(req) {
   };
 }
 
-/**
- * List end users, i.e., which has no user type defined, or has user type of 'both'.
- * @param {object} req
- * params = {
- *   limit?: number,
- *   lastCreatedAt?: Date,
- *   mobilePhoneNumber?: string,
- *   province?: string,
- *   city?: string,
- *   status?: string, 'disabled'
- * }
- * @returns {Promise.<Array>} an Array of json representation User(s)
- */
-async function authListUsers(req) {
-  const {currentUser, params} = req;
-
-  if (!currentUser) {
-    // no token provided
-    throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
-  }
-
-  // params = {
-  //   limit?,
-  //   lastCreatedAt?,
-  //   type,                  // 'end' / 'admin',
-  //   roleId?,               // valid for type 'admin'
-  //   idName?,
-  //   mobilePhoneNumber?,
-  // }
-
-  const {limit=10, type, roleId, idName, mobilePhoneNumber} = params;
-  let {lastCreatedAt} = params;
-
-  const jsonUsers = [];
-
-  const query = new AV.Query('_User');
-  query.limit(limit);
-  query.descending('createdAt');
-  query.equalTo('type', type);
-  if (idName)
-    query.equalTo('idName', idName);
-  if (mobilePhoneNumber)
-    query.equalTo('mobilePhoneNumber', mobilePhoneNumber);
-
-  // TODO: for admin user with role filter param
-  const total = await query.count();
-
-  let more = true;
-  while (more && jsonUsers.length < limit) {
-    if (lastCreatedAt)
-      query.lessThan('createdAt', lastCreatedAt);
-
-    const leanUsers = await query.find();
-
-    if (leanUsers.length < limit)
-      more = false;
-
-    const roleIdsByUser = new Map();
-    if (type === 'admin') {
-      // get roles for admin user
-      await Promise.all(leanUsers.map(
-        async (leanUser) => {
-          // const ptrUser = AV.Object.createWithoutData('_User', leanUser.id);
-
-          const query = new AV.Query('User_Role_Map');
-          query.equalTo('user', leanUser);
-          // query.include(['role']);
-
-          const leanUserRolePairs = await query.find();
-
-          const roleIds = new Set();
-          leanUserRolePairs.forEach((i) => {
-            // roles.push(i.get('role').toJSON());
-            roleIds.add(i.get('role').id);
-          });
-
-          roleIdsByUser.set(leanUser.id, roleIds);
-        }
-      ));
-    }
-
-    // put outside to keep data items in order
-    for (const i of leanUsers) {
-      lastCreatedAt = i.createdAt;
-
-      if (roleId && !roleIdsByUser.get(i.id).has(roleId)) // admin w/o the specified role
-        continue;
-
-      jsonUsers.push({
-        ...constructUserInfo(i),
-        roles: roleIdsByUser.get(i.id),
-      });
-
-      if (jsonUsers.length >= limit)
-        break;
-    }
-  }
-
-  return {
-    jsonUsers
-  };
-}
-
 async function authCreateUser(req) {
   const {currentUser, params} = req;
 
@@ -351,8 +231,6 @@ async function authCreateUser(req) {
     roles: jsonUser.roles,
   } = params);
 
-  // const {roles} = params;
-
   if (!jsonUser.username) { // TODO: wechat user
     if (jsonUser.mobilePhoneNumber) {
       jsonUser.username = jsonUser.mobilePhoneNumber;
@@ -365,7 +243,6 @@ async function authCreateUser(req) {
 
   // define db table
   const User = AV.Object.extend('_User');
-  // const UserRoleMap = AV.Object.extend('User_Role_Map');
 
   // check 'mobilePhoneNumber' and 'username' existent
   if (jsonUser.mobilePhoneNumber) {
@@ -388,29 +265,9 @@ async function authCreateUser(req) {
 
   // insert into _User
   const user = new User(jsonUser);
-  const leanUser = await user.save();
+  const leanUser = await user.save(null, {fetchWhenSave: true});
 
-  // // create _User and _Role pointer and insert into User_Role_Map
-  // const leanUserRolePairs = [];
-  //
-  // // const ptrUser = AV.Object.createWithoutData('_User', leanUser.id);
-  //
-  // roles.forEach((i) => {
-  //   const ptrRole = AV.Object.createWithoutData('_Role', i);
-  //
-  //   const leanUserRolePair = new UserRoleMap({
-  //     user: leanUser,
-  //     role: ptrRole
-  //   });
-  //
-  //   leanUserRolePairs.push(leanUserRolePair);
-  // });
-  //
-  // await AV.Object.saveAll(leanUserRolePairs);
-
-  return {
-
-  };
+  return constructUserInfo(leanUser);
 }
 
 async function authDeleteUser(req) {
@@ -424,18 +281,6 @@ async function authDeleteUser(req) {
   const {id} = params;
 
   const ptrUser = AV.Object.createWithoutData('_User', id);
-
-  // const query = new AV.Query('User_Role_Map');
-  // query.equalTo('user', ptrUser);
-  //
-  // const leanUserRolePairs = await query.find();
-  //
-  // const ptrUserRolePairs = [];
-  // leanUserRolePairs.forEach((i) => {
-  //   const ptrUserRolePair = AV.Object.createWithoutData('User_Role_Map', i.id);
-  //
-  //   ptrUserRolePairs.push(ptrUserRolePair);
-  // });
 
   await AV.Object.destroyAll([ptrUser]);
 
@@ -479,53 +324,7 @@ async function authUpdateUser(req) {
 
   const {id} = params;
 
-  // update User_Role_Map
-
   const ptrUser = AV.Object.createWithoutData('_User', id);
-
-  // const query = new AV.Query('User_Role_Map');
-  // query.equalTo('user', ptrUser);
-  // query.include(['role']);
-
-  // const leanUserRolePairs = await query.find();
-  //
-  // const oldRoleIds = new Set();
-  // leanUserRolePairs.forEach((i) => {
-  //   oldRoleIds.add(i.get('role').id);
-  // });
-  //
-  // const newRoleIds = new Set(roles);
-  //
-  // const roleIdsToAdd = new Set([...newRoleIds].filter(i => !oldRoleIds.has(i)));
-  // const roleIdsToRemove = new Set([...oldRoleIds].filter(i => !newRoleIds.has(i)));
-  //
-  // const leanUserRolePairsToAdd = [];
-  // const leanUserRolePairsToRemove = [];
-  //
-  // const UserRoleMap = AV.Object.extend('User_Role_Map');
-  //
-  // roleIdsToAdd.forEach((i) => {
-  //   const ptrRole = AV.Object.createWithoutData('_Role', i);
-  //
-  //   const leanUserRolePair = new UserRoleMap({
-  //     user: ptrUser,
-  //     role: ptrRole
-  //   });
-  //
-  //   leanUserRolePairsToAdd.push(leanUserRolePair);
-  // });
-  //
-  //
-  // if (roleIdsToRemove.size > 0) {
-  //   leanUserRolePairs.forEach((i) => {
-  //     if (roleIdsToRemove.has(i.get('role').id)) {
-  //       leanUserRolePairsToRemove.push(i);
-  //     }
-  //   });
-  // }
-  //
-  // await AV.Object.saveAll(leanUserRolePairsToAdd);
-  // await AV.Object.destroyAll(leanUserRolePairsToRemove);
 
   // update _User
 
@@ -533,18 +332,15 @@ async function authUpdateUser(req) {
     ptrUser.set(key, value);
   }
 
-  await ptrUser.save();
+  await ptrUser.save(null, {fetchWhenSave: true});
 
-  return {
-
-  };
+  return constructUserInfo(ptrUser);
 }
 
 const authApi = {
   authGetRolesAndPermissions,
   authListEndUsers,
   authListAdminUsers,
-  authListUsers,
   authCreateUser,
   authDeleteUser,
   authUpdateUser,
