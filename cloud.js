@@ -28,7 +28,7 @@ AV.Cloud.define('authSetUserMobilePhone', authFunc.setUserMobilePhone)
 
 AV.Cloud.define('authGetRolesAndPermissions', userFunc.authGetRolesAndPermissions);
 AV.Cloud.define('authListEndUsers', userFunc.authListEndUsers);
-AV.Cloud.define('authListUsers', userFunc.authListUsers);
+AV.Cloud.define('authListAdminUsers', userFunc.authListAdminUsers);
 AV.Cloud.define('authCreateUser', userFunc.authCreateUser);
 AV.Cloud.define('authDeleteUser', userFunc.authDeleteUser);
 AV.Cloud.define('authUpdateUser', userFunc.authUpdateUser);
@@ -60,6 +60,7 @@ AV.Cloud.define('stationUpdatePartner', stationFunc.updatePartner)
 AV.Cloud.define('stationOpenPartner', stationFunc.openPartner)
 AV.Cloud.define('stationClosePartner', stationFunc.closePartner)
 AV.Cloud.define('userFuncTest', stationFunc.userFuncTest)
+AV.Cloud.define('stationFetchProfitSharebyUser', stationFunc.reqFetchProfitSharebyUser)
 
 //营销活动
 AV.Cloud.define('activityIncrActivityPageView', activityFunc.incrActivityPageView)
