@@ -689,7 +689,22 @@ async function getPartnerAccountsDetail(request, response) {
   let startDate = request.params.startDate
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
-  let query = new AV.Query('PartnerAccount')
+  let query = undefined
+  if (startDate&&!endDate) {
+    query = new AV.Query('PartnerAccount')
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
+  }else if (!endDate&&startDate) {
+    query = new AV.Query('PartnerAccount')
+    query.lessThan('accountDay', new Date(endDate))
+  }else if (startDate && endDate){
+    let startQuery = new AV.Query('PartnerAccount')
+    let endQuery = new AV.Query('PartnerAccount')
+    startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
+    endQuery.lessThan('payTime', new Date(endDate))
+    query = AV.Query.and(startQuery,endQuery)
+  }else{
+    query = new AV.Query('PartnerAccount')
+  }
   if (userId) {
     let user = AV.Object.createWithoutData('_User', userId)
     query.equalTo('user', user)
@@ -733,7 +748,22 @@ async function getInvestorAccountsDetail(request, response) {
   let userId = request.params.userId
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
-  let query = new AV.Query('InvestorAccount')
+  let query = undefined
+  if (startDate&&!endDate) {
+    query = new AV.Query('InvestorAccount')
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
+  }else if (!endDate&&startDate) {
+    query = new AV.Query('InvestorAccount')
+    query.lessThan('accountDay', new Date(endDate))
+  }else if (startDate && endDate){
+    let startQuery = new AV.Query('InvestorAccount')
+    let endQuery = new AV.Query('InvestorAccount')
+    startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
+    endQuery.lessThan('payTime', new Date(endDate))
+    query = AV.Query.and(startQuery,endQuery)
+  }else{
+    query = new AV.Query('InvestorAccount')
+  }
   if (userId) {
     let user = AV.Object.createWithoutData('_User', userId)
     query.equalTo('user', user)
@@ -868,8 +898,6 @@ var accountFunc = {
   getDayAccountsSum: getDayAccountsSum,
   reqStatLast30DaysInvestorProfit,
   reqStatInvestorProfit,
-
-  // testMathjs: testMathjs
 
 
 }
