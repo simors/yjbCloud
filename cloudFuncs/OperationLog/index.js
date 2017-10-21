@@ -10,8 +10,8 @@ function constructorOperationLog(operation, includeUser) {
   operationLog.id = operation.id
   operationLog.operation = operation.attributes.operation
   let user = operation.attributes.user
-  operationLog.userId = user?user.id:undefined
-  if(user&&includeUser) {
+  operationLog.userId = user ? user.id : undefined
+  if (user && includeUser) {
     operationLog.user = constructUserInfo(user)
   }
   operationLog.createdAt = operation.createdAt
@@ -47,30 +47,30 @@ async function recordOperation(user, operation) {
  */
 async function fetchOperationLogs(request) {
   let {params, currentUser} = request
-  if(!currentUser){
+  if (!currentUser) {
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
   let query = new AV.Query('OperationLog')
   let {lastCreatedAt, userId, limit} = params
-  if(userId){
+  if (userId) {
     let user = AV.Object.createWithoutData('_User', userId)
-    query.equalTo('user',user)
+    query.equalTo('user', user)
   }
-  if(lastCreatedAt){
-    query.lessThan('createdAt',new Date(lastCreatedAt))
+  if (lastCreatedAt) {
+    query.lessThan('createdAt', new Date(lastCreatedAt))
   }
-  query.limit(limit?limit:100)
+  query.limit(limit ? limit : 100)
   query.include(['user'])
 
   query.descending('createdAt')
-  try{
-    let operationLogs= await query.find()
+  try {
+    let operationLogs = await query.find()
     let operationLogList = []
-    operationLogs.forEach((item)=>{
+    operationLogs.forEach((item)=> {
       operationLogList.push(constructorOperationLog(item, true))
     })
     return operationLogList
-  }catch(err){
+  } catch (err) {
     throw new AV.Cloud.Error('查询操作日志失败。', {code: errno.EPERM});
   }
 }
