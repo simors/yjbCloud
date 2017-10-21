@@ -927,7 +927,7 @@ async function reqStatPartnerProfit(request) {
     throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
   }
 
-  return statInvestorProfit(currentUser, startDate, endDate)
+  return statPartnerProfit(currentUser, startDate, endDate)
 }
 
 /**
@@ -945,7 +945,7 @@ async function reqStatLast30DaysPartnerProfit(request) {
     throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
   }
 
-  return statInvestorProfit(currentUser, startDate, endDate)
+  return statPartnerProfit(currentUser, startDate, endDate)
 }
 
 var accountFunc = {
