@@ -90,6 +90,7 @@ async function createPromotion(request) {
   let categoryId = params.categoryId
   let region = [].concat(params.region)
   let awards = params.awards
+  let initStat = {}
 
   if(!categoryId || !title || !start || !end || !awards ) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
@@ -102,6 +103,27 @@ async function createPromotion(request) {
 
   let promotion = new Promotion()
   let category = AV.Object.createWithoutData('PromotionCategory', categoryId)
+  let leanCategory = await category.fetch()
+  switch (leanCategory.attributes.title) {
+    case '充值奖励':
+    {
+      initStat = {
+        participant: 0,       //参与量
+        rechargeAmount: 0,    //充值总额
+        awardAmount: 0,       //赠送总额
+      }
+      break
+    }
+    case '积分活动':
+    {
+      initStat = {
+        participant: 0,       //参与量
+      }
+      break
+    }
+    default:
+
+  }
 
   promotion.set('title', title)
   promotion.set('start', new Date(start))
@@ -112,6 +134,7 @@ async function createPromotion(request) {
   promotion.set('disabled', false)
   promotion.set('awards', awards)
   promotion.set('user', currentUser)
+  promotion.set('stat', initStat)
 
   let result = await promotion.save()
   let leanPromotion = await result.fetch()
@@ -331,17 +354,34 @@ async function getValidPromotionList(request) {
   return promotionList
 }
 
-async function promotionFuncTest(request) {
-  console.log("request:", request)
-  const {currentUser, params, meta} = request
-  console.log("meta:", meta)
+/**
+ * 更新充值奖励活动统计数据
+ * @param promotionId       活动id
+ * @param recharge          充值金额
+ * @param award             奖励金额
+ */
+async function updateRechargePromStat(promotionId, recharge, award) {
+  if(!promotionId || !recharge || !award) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let promotion = AV.Object.createWithoutData('Promotion', promotionId)
+  if(!promotion) {
+    throw new AV.Cloud.Error('没找到该活动对象', {code: errno.ENODATA})
+  }
+  let leanPromotion = await promotion.fetch()
+  let stat = leanPromotion.attributes.stat
+  stat.participant = stat.participant + 1
+  stat.rechargeAmount = stat.rechargeAmount + recharge
+  stat.awardAmount = stat.awardAmount + award
+  leanPromotion.set('stat', stat)
+  let result = await leanPromotion.save()
+  return result
+}
 
-  // let categoryId = params.categoryId
-  // let start = params.categoryId
-  // let end = params.end
-  // let region = params.region
-  // let result = await isPromotionExist(categoryId, start, end, region)
-  // return result
+async function promotionFuncTest(request) {
+  const {currentUser, params, meta} = request
+  const {promotionId, recharge, award} = params
+  await updateRechargePromStat(promotionId, recharge, award)
   return true
 }
 
@@ -353,6 +393,7 @@ var promotionFunc = {
   fetchPromotionCategoryList: fetchPromotionCategoryList,
   editPromotion: editPromotion,
   getValidPromotionList: getValidPromotionList,
+  updateRechargePromStat: updateRechargePromStat,
 }
 
 module.exports = promotionFunc
