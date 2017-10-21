@@ -876,8 +876,8 @@ async function reqStatInvestorProfit(request) {
 async function reqStatLast30DaysInvestorProfit(request) {
   let currentUser = request.currentUser
 
-  let startDate = new Date(moment().subtract(30, 'days').format('YYYY-MM-DD'))
-  let endDate = new Date(moment().format('YYYY-MM-DD'))
+  let startDate = moment().subtract(30, 'days').format('YYYY-MM-DD')
+  let endDate = moment().format('YYYY-MM-DD')
 
   if (!currentUser) {
     throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
