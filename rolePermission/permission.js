@@ -6,8 +6,22 @@ export const PERMISSION_CODE = {
   /* 干衣柜综合管理 */
   DEVICE_QUERY_INFO:                          1000,         // 干衣柜综合管理/干衣柜信息管理/查看
   /* 服务点综合管理 */
-  STATION_QUERY_INFO:                         2000,         // 服务点综合管理/服务点信息管理/查看
-  STATION_MAN_INVESTOR:                       2100,         // 服务点综合管理/投资人信息管理/
+  STATION_QUERY_WHOLE:                        2000,         // 服务点综合管理/服务点信息管理/全局查看
+  STATION_QUERY_PART:                         2001,         // 服务点综合管理/服务点信息管理/局部查看
+  STATION_ADD_WHOLE:                          2010,         // 服务点综合管理/服务点信息管理/全局新增
+  STATION_ADD_PART:                           2011,         // 服务点综合管理/服务点信息管理/局部新增
+  STATION_EDIT_WHOLE:                         2020,         // 服务点综合管理/服务点信息管理/全局编辑
+  STATION_EDIT_PART:                          2021,         // 服务点综合管理/服务点信息管理/局部编辑
+  STATION_CLOSE_WHOLE:                        2030,         // 服务点综合管理/服务点信息管理/全局停用
+  STATION_CLOSE_PART:                         2031,         // 服务点综合管理/服务点信息管理/局部停用
+  STATION_INVESTOR_QUERY_WHOLE:               2100,         // 服务点综合管理/投资人信息管理/全局查看
+  STATION_INVESTOR_QUERY_PART:                2101,         // 服务点综合管理/投资人信息管理/局部查看
+  STATION_INVESTOR_ADD_WHOLE:                 2110,         // 服务点综合管理/投资人信息管理/全局新增
+  STATION_INVESTOR_ADD_PART:                  2111,         // 服务点综合管理/投资人信息管理/局部新增
+  STATION_INVESTOR_EDIT_WHOLE:                2120,         // 服务点综合管理/投资人信息管理/全局编辑
+  STATION_INVESTOR_EDIT_PART:                 2121,         // 服务点综合管理/投资人信息管理/局部编辑
+  STATION_INVESTOR_CLOSE_WHOLE:               2130,         // 服务点综合管理/投资人信息管理/全局停用
+  STATION_INVESTOR_CLOSE_PART:                2131,         // 服务点综合管理/投资人信息管理/局部停用
 
   /* 充值与订单管理 */
   RECHARGE_ORDER_QUERY:                       3000,         // 充值与订单管理/订单信息管理/查看
