@@ -125,11 +125,81 @@ async function authListEndUsers(req) {
       cql += ' and status=?';
       values.push('disabled');
     } else {
-      cql += ' and (status!=?)';
+      cql += ' and status!=?';
       values.push('disabled');
     }
   }
-  cql += ' limit ?,?'; values.push(skip);
+  cql += ' limit ?,?';
+  values.push(skip);
+  values.push(limit);
+  cql += ' order by -createdAt';
+
+  const {count, results} = await AV.Query.doCloudQuery(cql, values);
+
+  results.forEach((i) => {
+    jsonUsers.push(constructUserInfo(i));
+  });
+
+  return {
+    count,
+    jsonUsers
+  };
+}
+
+/**
+ * List admin users, i.e., which has has user type of 'admin' or 'both'.
+ * @param {object} req
+ * params = {
+ *   limit?: number,
+ *   idName?: string,
+ *   mobilePhoneNumber?: string,
+ *   roles?: Array<number>, role codes
+ *   status?: string, 'disabled'
+ * }
+ * @returns {Promise.<Array>} an Array of json representation User(s)
+ */
+async function authListAdminUsers(req) {
+  const {currentUser, params} = req;
+
+  if (!currentUser) {
+    // no token provided
+    throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
+  }
+
+  const {skip=0, limit=10, idName, mobilePhoneNumber, roles, status} = params;
+
+  const jsonUsers = [];
+
+  const values = [];
+  let cql = 'select count(*),* from _User';
+  cql += ' where (type=? or type=?)';
+  values.push('admin');
+  values.push('both');
+  if (idName) {
+    cql += ' and idName=?';
+    values.push(idName);
+  }
+  if (mobilePhoneNumber) {
+    cql += ' and mobilePhoneNumber=?';
+    values.push(mobilePhoneNumber);
+  }
+  if (roles) {
+    // match user who has any role in provided array, change 'in' to 'all' to match
+    // user who has all roles in provided array
+    cql += ' and roles in ?';
+    values.push(roles);
+  }
+  if (status) {
+    if (status === 'disabled') {
+      cql += ' and status=?';
+      values.push('disabled');
+    } else {
+      cql += ' and status!=?';
+      values.push('disabled');
+    }
+  }
+  cql += ' limit ?,?';
+  values.push(skip);
   values.push(limit);
   cql += ' order by -createdAt';
 
@@ -471,6 +541,7 @@ async function authUpdateUser(req) {
 const authApi = {
   authGetRolesAndPermissions,
   authListEndUsers,
+  authListAdminUsers,
   authListUsers,
   authCreateUser,
   authDeleteUser,
