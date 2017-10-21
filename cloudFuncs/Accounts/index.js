@@ -1,7 +1,6 @@
 /**
  * Created by lilu on 2017/9/28.
  */
-var AV = require('leanengine');
 var mysqlUtil = require('../Util/mysqlUtil')
 var OrderFunc = require('../Order')
 var DeviceFuncs = require('../Device')
@@ -10,6 +9,9 @@ const uuidv4 = require('uuid/v4')
 var mathjs = require('mathjs')
 var dateFormat = require('dateformat')
 var StationFuncs = require('../Station')
+import AV from 'leanengine'
+import * as errno from '../errno'
+import moment from 'moment'
 
 //服务点日结数据构造方法
 function constructStationAccountnInfo(account, includeStation) {
@@ -63,6 +65,48 @@ function constructSharingAccountnInfo(account, includeStation, includeUser) {
   return accountInfo
 }
 
+function constructInvestorAccount(lcInvestorAccount, includeStation, includeUser, includeStationAccount, includeProfitSharing) {
+  if (!lcInvestorAccount) {
+    return undefined
+  }
+
+  let constructStationInfo = StationFuncs.constructStationInfo
+  let constructProfitSharing = StationFuncs.constructProfitSharing
+  let constructUserInfo = require('../Auth').constructUserInfo
+  let investorAccount = {}
+
+  let accountAttr = lcInvestorAccount.attributes
+  if (!accountAttr) {
+    return undefined
+  }
+  investorAccount.id = lcInvestorAccount.id
+  investorAccount.userId = accountAttr.user ? accountAttr.user.id : undefined
+  investorAccount.stationId = accountAttr.station ? accountAttr.station.id : undefined
+  investorAccount.stationAccountId = accountAttr.stationAccount ? accountAttr.stationAccount.id : undefined
+  investorAccount.profitSharingId = accountAttr.profitSharing ? accountAttr.profitSharing.id : undefined
+  investorAccount.profit = accountAttr.profit
+  investorAccount.accountDay = accountAttr.accountDay
+  investorAccount.createdAt = lcInvestorAccount.createdAt
+  investorAccount.updatedAt = lcInvestorAccount.updatedAt
+
+  if (includeStation) {
+    investorAccount.station = constructStationInfo(accountAttr.station, false)
+  }
+
+  if (includeStationAccount) {
+    investorAccount.stationAccount = constructStationAccountnInfo(accountAttr.stationAccount, false)
+  }
+
+  if (includeProfitSharing) {
+    investorAccount.profitSharing = constructProfitSharing(accountAttr.profitSharing, false)
+  }
+
+  if (includeUser) {
+    investorAccount.user = constructUserInfo(accountAttr.user)
+  }
+
+  return investorAccount
+}
 
 //查询昨天日期
 function getYesterday() {
@@ -765,6 +809,52 @@ async function getDayAccountsSum(request, response) {
     response.error(error)
   }
 }
+
+async function statInvestorProfit(user, startDate, endDate) {
+  let beginQuery = new AV.Query('InvestorAccount')
+  beginQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
+
+  let endQuery = new AV.Query('InvestorAccount')
+  endQuery.lessThanOrEqualTo('accountDay', new Date(endDate))
+
+  let query = AV.Query.and(beginQuery, endQuery)
+  query.ascending('accountDay')
+  query.equalTo('user', user)
+  query.include('station')
+
+  let result = await query.find()
+  let investorProfits = []
+  result.forEach((profit) => {
+    investorProfits.push(constructInvestorAccount(profit, true, false, false, false))
+  })
+  return investorProfits
+}
+
+async function reqStatInvestorProfit(request) {
+  let currentUser = request.currentUser
+  let startDate = request.params.startDate
+  let endDate = request.params.endDate
+
+  if (!currentUser) {
+    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
+  }
+
+  return statInvestorProfit(currentUser, startDate, endDate)
+}
+
+async function reqStatLast30DaysInvestorProfit(request) {
+  let currentUser = request.currentUser
+
+  let startDate = new Date(moment().subtract(30, 'days').format('YYYY-MM-DD'))
+  let endDate = new Date(moment().format('YYYY-MM-DD'))
+
+  if (!currentUser) {
+    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
+  }
+
+  return statInvestorProfit(currentUser, startDate, endDate)
+}
+
 var accountFunc = {
   getYesterday: getYesterday,
   createStationDayAccount: createStationDayAccount,
@@ -775,7 +865,9 @@ var accountFunc = {
   getStationAccountsDetail: getStationAccountsDetail,
   getPartnerAccountsDetail: getPartnerAccountsDetail,
   getInvestorAccountsDetail: getInvestorAccountsDetail,
-  getDayAccountsSum: getDayAccountsSum
+  getDayAccountsSum: getDayAccountsSum,
+  reqStatLast30DaysInvestorProfit,
+  reqStatInvestorProfit,
 
   // testMathjs: testMathjs
 

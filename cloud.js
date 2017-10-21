@@ -25,6 +25,7 @@ AV.Cloud.define('wechatIsSubscribe', mpUserFuncs.isSubscribe)
 AV.Cloud.define('authSetUserMobilePhone', authFunc.setUserMobilePhone)
 
 AV.Cloud.define('authGetRolesAndPermissions', userFunc.authGetRolesAndPermissions);
+AV.Cloud.define('authListEndUsers', userFunc.authListEndUsers);
 AV.Cloud.define('authListUsers', userFunc.authListUsers);
 AV.Cloud.define('authCreateUser', userFunc.authCreateUser);
 AV.Cloud.define('authDeleteUser', userFunc.authDeleteUser);
@@ -99,6 +100,8 @@ AV.Cloud.define('accountGetStationAccountsDetail', accountsFunc.getStationAccoun
 AV.Cloud.define('accountGetPartnerAccountsDetail', accountsFunc.getPartnerAccountsDetail)
 AV.Cloud.define('accountGetInvestorAccountsDetail', accountsFunc.getInvestorAccountsDetail)
 AV.Cloud.define('accountGetDayAccountsSum', accountsFunc.getDayAccountsSum)
+AV.Cloud.define('accountStatLast30DaysInvestorProfit', accountsFunc.reqStatLast30DaysInvestorProfit)
+AV.Cloud.define('accountStatInvestorProfit', accountsFunc.reqStatInvestorProfit)
 
 // AV.Cloud.define('testMathjs', accountsFunc.testMathjs)
 AV.Cloud.define('stationAccountToExcel', excelFunc.stationAccountToExcel)

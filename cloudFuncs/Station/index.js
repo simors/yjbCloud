@@ -955,6 +955,7 @@ function stationFuncTest(request, response) {
 
 var stationFunc = {
   constructStationInfo: constructStationInfo,
+  constructProfitSharing: constructProfitSharing,
   createStation: createStation,
   fetchStations: fetchStations,
   updateStation: updateStation,
