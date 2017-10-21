@@ -47,6 +47,19 @@ function getIpInfo(ip) {
   })
 }
 
+/**
+ * 获取客户端ip地址
+ * @param req
+ * @returns {*|string}
+ */
+function getClientIp(req) {
+  return req.headers['x-real-ip'] ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
+    req.connection.socket.remoteAddress
+}
+
+
 async function utilFuncTest(request) {
   const {currentUser, params, meta} = request
   let remoteAddress = meta.remoteAddress
@@ -59,6 +72,7 @@ var utilFunc = {
   utilFuncTest: utilFuncTest,
   getRandomArbitrary: getRandomArbitrary,
   getIpInfo: getIpInfo,
+  getClientIp: getClientIp,
 }
 
 module.exports = utilFunc
