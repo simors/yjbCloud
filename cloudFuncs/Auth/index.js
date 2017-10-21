@@ -100,7 +100,7 @@ async function authValidRoles(userId, roleCodes) {
  */
 async function authValidPermissions(userId, permissionCodes) {
   const validPermissionCodes = await authGetPermissionsByUser(userId);
-
+  console.log('validPermissionCodes======>',validPermissionCodes)
   const intersect = new Set([...validPermissionCodes].filter(i => new Set(permissionCodes).has(i)));
   return intersect.size > 0;
 }
@@ -126,7 +126,7 @@ async function authGetRolesByUser(userId) {
  * @returns {Promise.<Array>} permission codes
  */
 async function authGetPermissionsByUser(userId) {
-  const roleIds = authGetRoleIdsByUser(userId);
+  const roleIds = await authGetRoleIdsByUser(userId);
 
   const leanPermissionsById = new Map();
 
@@ -181,14 +181,15 @@ async function authGetRoleIdsByUser(userId) {
   const leanRoles = await query.find();
   leanRoles.forEach((i) => {
     const jsonRole = constructRoleInfo(i);
-
     rolesByCode.set(jsonRole.code, jsonRole.id);
+
   });
 
   // convert role codes to role ids
   const roleIds = [];
+
   roles.forEach((i) => {
-    const roleId = rolesByCode(i);
+    const roleId = rolesByCode.get(i);
 
     roleIds.push(roleId);
   });
@@ -203,7 +204,7 @@ async function authGetRoleIdsByUser(userId) {
  * @returns {Promise.<Array>} permission ids
  */
 async function authGetPermissionIdsByUser(userId) {
-  const roleIds = authGetRoleIdsByUser(userId);
+  const roleIds = await authGetRoleIdsByUser(userId);
 
   const leanPermissionsById = new Map();
 
