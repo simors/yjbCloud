@@ -13,6 +13,8 @@ var promotionFunc = require('./cloudFuncs/Promotion')
 var excelFunc = require('./cloudFuncs/Util/excel')
 var profitFunc = require('./cloudFuncs/Profit')
 var utilFunc = require('./cloudFuncs/Util')
+var operationFunc = require('./cloudFuncs/OperationLog')
+
 /**
  * 云函数
  */
@@ -113,6 +115,9 @@ AV.Cloud.define('utilFuncTest', utilFunc.utilFuncTest)
 AV.Cloud.define('profitQueryProfit', profitFunc.reqAdminProfit)
 AV.Cloud.define('profitTestIncProfit', profitFunc.reqTestIncProfit)
 AV.Cloud.define('profitTestDecProfit', profitFunc.reqTestDecProfit)
+
+//操作日志
+AV.Cloud.define('operationFetchOperationLogs', operationFunc.fetchOperationLogs)
 
 
 module.exports = AV.Cloud;
