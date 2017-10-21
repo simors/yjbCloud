@@ -14,6 +14,7 @@ function constructorOperationLog(operation, includeUser) {
   if(user&&includeUser) {
     operationLog.user = constructUserInfo(user)
   }
+  operationLog.createdAt = operation.createdAt
   return operationLog
 }
 
