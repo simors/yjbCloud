@@ -301,7 +301,7 @@ async function authUpdateUser(req) {
   };
 
   ({
-    state: jsonUser.state,
+    status: jsonUser.status,
     email: jsonUser.email,
     // mobilePhoneNumber: jsonUser.mobilePhoneNumber,
     authData: jsonUser.authData,
