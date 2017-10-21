@@ -64,7 +64,7 @@ async function fetchOperationLogs(request) {
     let operationLogs= await query.find()
     let operationLogList = []
     operationLogs.forEach((item)=>{
-      operationLogList.push(constructorOperationLog(item))
+      operationLogList.push(constructorOperationLog(item, true))
     })
     return operationLogList
   }catch(err){
