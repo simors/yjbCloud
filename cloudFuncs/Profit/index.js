@@ -30,7 +30,7 @@ async function queryAdminProfit(userId) {
     throw e
   } finally {
     if (conn) {
-      mysqlUtil.release(conn)
+      await mysqlUtil.release(conn)
     }
   }
 }
@@ -102,12 +102,12 @@ async function incAdminProfit(userId, type, profit) {
     return updateRes.results
   } catch (e) {
     if (conn) {
-      mysqlUtil.rollback(conn)
+      await mysqlUtil.rollback(conn)
     }
     throw e
   } finally {
     if (conn) {
-      mysqlUtil.release(conn)
+      await mysqlUtil.release(conn)
     }
   }
 }
@@ -132,7 +132,7 @@ async function decAdminProfit(userId, profit) {
     throw e
   } finally {
     if (conn) {
-      mysqlUtil.release(conn)
+      await mysqlUtil.release(conn)
     }
   }
 }

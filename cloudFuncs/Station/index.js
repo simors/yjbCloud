@@ -1,9 +1,15 @@
 /**
  * Created by wanpeng on 2017/9/15.
  */
-var AV = require('leanengine');
 var Promise = require('bluebird')
 var OperationLog = require('../OperationLog')
+import AV from 'leanengine'
+import * as errno from '../errno'
+
+const profitShareType = {
+  PROFIT_SHARE_INVESTOR: 'investor',
+  PROFIT_SHARE_PARTNER: 'partner',
+}
 
 //服务点
 function constructStationInfo(station, includeAdmin) {
@@ -12,49 +18,62 @@ function constructStationInfo(station, includeAdmin) {
   }
   let constructUserInfo = require('../Auth').constructUserInfo
   let stationInfo = {}
+  let stationAttr = station.attributes
+  if (!stationAttr) {
+    return undefined
+  }
 
-  let admin = station.attributes.admin
+  let admin = stationAttr.admin
   stationInfo.id = station.id
-  stationInfo.name = station.attributes.name
-  stationInfo.addr = station.attributes.addr
-  stationInfo.province = station.attributes.province
-  stationInfo.city = station.attributes.city
-  stationInfo.area = station.attributes.area
-  stationInfo.unitPrice = station.attributes.unitPrice
-  stationInfo.deposit = station.attributes.deposit
-  stationInfo.powerUnitPrice = station.attributes.powerUnitPrice
-  stationInfo.platformProp = station.attributes.platformProp
-  stationInfo.stationProp = station.attributes.stationProp
+  stationInfo.name = stationAttr.name
+  stationInfo.addr = stationAttr.addr
+  stationInfo.province = stationAttr.province
+  stationInfo.city = stationAttr.city
+  stationInfo.area = stationAttr.area
+  stationInfo.unitPrice = stationAttr.unitPrice
+  stationInfo.deposit = stationAttr.deposit
+  stationInfo.powerUnitPrice = stationAttr.powerUnitPrice
+  stationInfo.platformProp = stationAttr.platformProp
+  stationInfo.stationProp = stationAttr.stationProp
   stationInfo.adminId = admin ? admin.id : undefined
   if (includeAdmin && admin) {
     stationInfo.admin = constructUserInfo(admin)
   }
-  stationInfo.status = station.attributes.status
-  stationInfo.deviceNo = station.attributes.deviceNo
+  stationInfo.status = stationAttr.status
+  stationInfo.deviceNo = stationAttr.deviceNo
   stationInfo.createdAt = station.createdAt
+  stationInfo.updatedAt = station.updatedAt
 
   return stationInfo
 }
 
-function constructProfitSharing(profitSharing, includeUser) {
+function constructProfitSharing(profitSharing, includeUser, includeStation) {
+  if (!profitSharing) {
+    return undefined
+  }
   let constructUserInfo = require('../Auth').constructUserInfo
   var profitSharingInfo = {}
-  var shareholder = profitSharing.attributes.shareholder
-  var station = profitSharing.attributes.station
+  let profitSharingAttr = profitSharing.attributes
+  if (!profitSharingAttr) {
+    return undefined
+  }
+  var shareholder = profitSharingAttr.shareholder
+  var station = profitSharingAttr.station
   profitSharingInfo.id = profitSharing.id
-  profitSharingInfo.type = profitSharing.attributes.type
-  profitSharingInfo.royalty = profitSharing.attributes.royalty
-  profitSharingInfo.investment = profitSharing.attributes.investment
+  profitSharingInfo.type = profitSharingAttr.type
+  profitSharingInfo.royalty = profitSharingAttr.royalty
+  profitSharingInfo.investment = profitSharingAttr.investment
 
   profitSharingInfo.shareholderId = shareholder ? shareholder.id : undefined
-  profitSharingInfo.shareholderName = shareholder ? shareholder.attributes.idName : undefined
-  profitSharingInfo.shareholderPhone = shareholder ? shareholder.attributes.mobilePhoneNumber : undefined
   profitSharingInfo.stationId = station ? station.id : undefined
-  profitSharingInfo.stationName = station ? station.attributes.name : undefined
-  profitSharingInfo.status = profitSharing.attributes.status
+  profitSharingInfo.status = profitSharingAttr.status
   profitSharingInfo.createdAt = profitSharing.createdAt
+  profitSharingInfo.updatedAt = profitSharing.updatedAt
   if (includeUser && shareholder) {
     profitSharingInfo.shareholder = constructUserInfo(shareholder)
+  }
+  if (includeStation && station) {
+    profitSharingInfo.station = constructStationInfo(station, false)
   }
   return profitSharingInfo
 }
@@ -237,13 +256,13 @@ function fetchPartnerByStationId(request, response) {
   var station = AV.Object.createWithoutData('Station', stationId)
   var query = new AV.Query('ProfitSharing')
   query.equalTo('station', station)
-  query.equalTo('type', 'partner')
+  query.equalTo('type', profitShareType.PROFIT_SHARE_PARTNER)
   query.include(['station', 'shareholder'])
   query.descending('createdDate')
   query.find().then((sharings)=> {
     var sharingList = []
     sharings.forEach((sharing)=> {
-      sharingList.push(constructProfitSharing(sharing, true))
+      sharingList.push(constructProfitSharing(sharing, true, false))
     })
     response.success(sharingList)
   }, (err)=> {
@@ -264,7 +283,7 @@ function getPartnerByStationId(stationId) {
   var station = AV.Object.createWithoutData('Station', stationId)
   var query = new AV.Query('ProfitSharing')
   query.equalTo('station', station)
-  query.equalTo('type', 'partner')
+  query.equalTo('type', profitShareType.PROFIT_SHARE_PARTNER)
   query.equalTo('status', 1)
   query.include(['station', 'shareholder'])
   query.descending('createdDate')
@@ -274,7 +293,7 @@ function getPartnerByStationId(stationId) {
     if (sharings && sharings.length > 0) {
       sharings.forEach((sharing)=> {
         // console.log('sharing====>', sharing)
-        let sharingInfo = constructProfitSharing(sharing, true)
+        let sharingInfo = constructProfitSharing(sharing, true, false)
         sharingList.push(sharingInfo)
       })
     }
@@ -306,7 +325,7 @@ function fetchInvestorByStationId(request, response) {
     station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
   }
-  query.equalTo('type', 'investor')
+  query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
   if (status != undefined) {
     query.equalTo('status', status)
   }
@@ -330,7 +349,7 @@ function fetchInvestorByStationId(request, response) {
       query.find().then((sharings)=> {
         var sharingList = []
         sharings.forEach((sharing)=> {
-          let sharingInfo = constructProfitSharing(sharing, true)
+          let sharingInfo = constructProfitSharing(sharing, true, false)
           sharingList.push(sharingInfo)
         })
         response.success(sharingList)
@@ -345,7 +364,7 @@ function fetchInvestorByStationId(request, response) {
         sharings.forEach((sharing)=> {
           // console.log('sharing===>', sharing.id)
 
-          let sharingInfo = constructProfitSharing(sharing, true)
+          let sharingInfo = constructProfitSharing(sharing, true, false)
           sharingList.push(sharingInfo)
         })
       }
@@ -372,16 +391,16 @@ function getInvestorByStationId(stationId) {
   query.limit(limit)
   station = AV.Object.createWithoutData('Station', stationId)
   query.equalTo('station', station)
-  query.equalTo('type', 'investor')
+  query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
   query.equalTo('status', 1)
   query.include(['station', 'shareholder'])
-  query.descending('createdDate')
+  query.descending('createdAt')
   return query.find().then((sharings)=> {
     var sharingList = []
     if (sharings && sharings.length > 0) {
       sharings.forEach((sharing)=> {
         // console.log('sharing===>', sharing.id)
-        sharingList.push(constructProfitSharing(sharing, true))
+        sharingList.push(constructProfitSharing(sharing, true, false))
       })
     }
     return sharingList
@@ -389,6 +408,43 @@ function getInvestorByStationId(stationId) {
     throw err
   })
 
+}
+
+/**
+ * 根据用户及投资的类型查询其所有投资信息
+ * @param user      完整_User对象
+ * @param type      取值为profitShareType
+ * @returns {Array}
+ */
+async function getProfitSharingByUser(user, type) {
+  let query = new AV.Query('ProfitSharing')
+  query.equalTo('shareholder', user)
+  query.equalTo('status', 1)
+  query.equalTo('type', type)
+  query.include('station')
+  query.descending('createdAt')
+
+  let profitSharings = []
+  let result = await query.find()
+  result.forEach((sharing) => {
+    profitSharings.push(constructProfitSharing(sharing, false, true))
+  })
+  return profitSharings
+}
+
+/**
+ * 根据投资类型查询投资信息的网络接口
+ * @param request
+ * @returns {Array}
+ */
+async function reqFetchProfitSharebyUser(request) {
+  let currentUser = request.currentUser
+  let type = request.params.type
+  if (!currentUser) {
+    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
+  }
+
+  return getProfitSharingByUser(currentUser, type)
 }
 
 /**
@@ -408,7 +464,7 @@ async function createPartner(request, response) {
     let query = new AV.Query('ProfitSharing')
     query.equalTo('station', station)
     query.equalTo('shareholder', user)
-    query.equalTo('type', 'partner')
+    query.equalTo('type', profitShareType.PROFIT_SHARE_PARTNER)
     let prePartner = await query.first()
     let status = request.params.status
     console.log('prePartne===>', prePartner)
@@ -422,13 +478,13 @@ async function createPartner(request, response) {
     partner.set('station', station)
     partner.set('royalty', royalty)
     partner.set('status', status)
-    partner.set('type', 'partner')
+    partner.set('type', profitShareType.PROFIT_SHARE_PARTNER)
     let newPartner = await partner.save()
     let queryNew = new AV.Query('ProfitSharing')
     queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
     OperationLog.recordOperation(currentUser, '创建分成方'+finPartner.attributes.shareholder.attributes.idName)
-    response.success(constructProfitSharing(finPartner, true))
+    response.success(constructProfitSharing(finPartner, true, false))
   } catch (err) {
     response.error(err)
   }
@@ -457,13 +513,13 @@ async function updatePartner(request, response) {
     partner.set('station', station)
     partner.set('royalty', royalty)
     partner.set('status', status)
-    partner.set('type', 'partner')
+    partner.set('type', profitShareType.PROFIT_SHARE_PARTNER)
     let newPartner = await partner.save()
     let queryNew = new AV.Query('ProfitSharing')
     queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
     OperationLog.recordOperation(currentUser, '更新分成方'+finPartner.attributes.shareholder.attributes.idName)
-    response.success(constructProfitSharing(finPartner, true))
+    response.success(constructProfitSharing(finPartner, true, false))
   } catch (err) {
     response.error(err)
   }
@@ -490,7 +546,7 @@ function createInvestor(request, response) {
   queryPre.equalTo('shareholder', user)
   queryPre.equalTo('station', station)
   queryPre.equalTo('status', 1)
-  queryPre.equalTo('type', 'investor')
+  queryPre.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
   queryPre.first().then((item)=> {
     if (item) {
       response.error(new Error("该服务点已有该投资人!"))
@@ -500,7 +556,7 @@ function createInvestor(request, response) {
       investor.set('station', station)
       // investor.set('royalty', royalty)
       investor.set('investment', investment)
-      investor.set('type', 'investor')
+      investor.set('type', profitShareType.PROFIT_SHARE_INVESTOR)
       investor.set('status', 1)
       investor.save().then((item)=> {
         var queryStation = new AV.Query('Station')
@@ -513,7 +569,7 @@ function createInvestor(request, response) {
             query.include(['shareholder', 'station', 'station.admin'])
             query.equalTo('station', station)
             query.equalTo('status', 1)
-            query.equalTo('type', 'investor')
+            query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
             query.find().then((sharings)=> {
               var shareList = []
               sharings.forEach((share)=> {
@@ -572,7 +628,7 @@ function updateInvestor(request, response) {
     investor.set('station', station)
     // investor.set('royalty', royalty)
     investor.set('investment', investment)
-    investor.set('type', 'investor')
+    investor.set('type', profitShareType.PROFIT_SHARE_INVESTOR)
     if (status != undefined) {
       investor.set('status', status)
     }
@@ -589,7 +645,7 @@ function updateInvestor(request, response) {
           query.include(['shareholder', 'station', 'station.admin'])
           query.equalTo('station', station)
           query.equalTo('status', 1)
-          query.equalTo('type', 'investor')
+          query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
           query.find().then((sharings)=> {
             var shareList = []
             sharings.forEach((share)=> {
@@ -729,7 +785,7 @@ function openInvestor(request, response) {
           query.include(['shareholder', 'station', 'station.admin'])
           query.equalTo('station', station)
           query.equalTo('status', 1)
-          query.equalTo('type', 'investor')
+          query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
           query.find().then((sharings)=> {
             var shareList = []
             sharings.forEach((share)=> {
@@ -797,7 +853,7 @@ function closeInvestor(request, response) {
           query.include(['shareholder', 'station', 'station.admin'])
           query.equalTo('station', station)
           query.equalTo('status', 1)
-          query.equalTo('type', 'investor')
+          query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
           query.find().then((sharings)=> {
             var shareList = []
             sharings.forEach((share)=> {
@@ -984,7 +1040,8 @@ var stationFunc = {
   getPartnerByStationId: getPartnerByStationId,
   getInvestorByStationId: getInvestorByStationId,
   changeDeviceNum: changeDeviceNum,
-  stationFuncTest: stationFuncTest
+  stationFuncTest: stationFuncTest,
+  reqFetchProfitSharebyUser,
 }
 
 module.exports = stationFunc

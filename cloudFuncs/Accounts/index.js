@@ -108,7 +108,7 @@ function constructProfitAccount(lcProfitAccount, includeStation, includeUser, in
   }
 
   if (includeProfitSharing) {
-    profitAccount.profitSharing = constructProfitSharing(accountAttr.profitSharing, false)
+    profitAccount.profitSharing = constructProfitSharing(accountAttr.profitSharing, false, false)
   }
 
   if (includeUser) {
