@@ -182,7 +182,7 @@ function  orderPayment(request, response) {
           to: 'platform',
           from: userId,
           cost: amount,
-          deal_type: PingppFunc.SERVICE,
+          deal_type: PingppFunc.DEAL_TYPE_SERVICE,
         }
         return PingppFunc.updateWalletInfo(mysqlConn, deal)
       }).then(() => {
@@ -243,7 +243,7 @@ async function finishOrder(deviceNo, finishTime) {
     to: 'platform',
     from: user.id,
     cost: amount,
-    deal_type: PingppFunc.SERVICE,
+    deal_type: PingppFunc.DEAL_TYPE_SERVICE,
   }
 
   let result = await PingppFunc.updateWalletInfo(mysqlConn, deal)
