@@ -102,6 +102,8 @@ AV.Cloud.define('accountGetInvestorAccountsDetail', accountsFunc.getInvestorAcco
 AV.Cloud.define('accountGetDayAccountsSum', accountsFunc.getDayAccountsSum)
 AV.Cloud.define('accountStatLast30DaysInvestorProfit', accountsFunc.reqStatLast30DaysInvestorProfit)
 AV.Cloud.define('accountStatInvestorProfit', accountsFunc.reqStatInvestorProfit)
+AV.Cloud.define('accountStatPartnerProfit', accountsFunc.reqStatPartnerProfit)
+AV.Cloud.define('accountStatLast30DaysPartnerProfit', accountsFunc.reqStatLast30DaysPartnerProfit)
 
 // AV.Cloud.define('testMathjs', accountsFunc.testMathjs)
 AV.Cloud.define('stationAccountToExcel', excelFunc.stationAccountToExcel)

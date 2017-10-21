@@ -65,47 +65,57 @@ function constructSharingAccountnInfo(account, includeStation, includeUser) {
   return accountInfo
 }
 
-function constructInvestorAccount(lcInvestorAccount, includeStation, includeUser, includeStationAccount, includeProfitSharing) {
-  if (!lcInvestorAccount) {
+/**
+ * InvestorAccount和PartnerAccount都公用这一个转换方法
+ *
+ * @param lcProfitAccount
+ * @param includeStation
+ * @param includeUser
+ * @param includeStationAccount
+ * @param includeProfitSharing
+ * @returns {*}
+ */
+function constructProfitAccount(lcProfitAccount, includeStation, includeUser, includeStationAccount, includeProfitSharing) {
+  if (!lcProfitAccount) {
     return undefined
   }
 
   let constructStationInfo = StationFuncs.constructStationInfo
   let constructProfitSharing = StationFuncs.constructProfitSharing
   let constructUserInfo = require('../Auth').constructUserInfo
-  let investorAccount = {}
+  let profitAccount = {}
 
-  let accountAttr = lcInvestorAccount.attributes
+  let accountAttr = lcProfitAccount.attributes
   if (!accountAttr) {
     return undefined
   }
-  investorAccount.id = lcInvestorAccount.id
-  investorAccount.userId = accountAttr.user ? accountAttr.user.id : undefined
-  investorAccount.stationId = accountAttr.station ? accountAttr.station.id : undefined
-  investorAccount.stationAccountId = accountAttr.stationAccount ? accountAttr.stationAccount.id : undefined
-  investorAccount.profitSharingId = accountAttr.profitSharing ? accountAttr.profitSharing.id : undefined
-  investorAccount.profit = accountAttr.profit
-  investorAccount.accountDay = accountAttr.accountDay
-  investorAccount.createdAt = lcInvestorAccount.createdAt
-  investorAccount.updatedAt = lcInvestorAccount.updatedAt
+  profitAccount.id = lcProfitAccount.id
+  profitAccount.userId = accountAttr.user ? accountAttr.user.id : undefined
+  profitAccount.stationId = accountAttr.station ? accountAttr.station.id : undefined
+  profitAccount.stationAccountId = accountAttr.stationAccount ? accountAttr.stationAccount.id : undefined
+  profitAccount.profitSharingId = accountAttr.profitSharing ? accountAttr.profitSharing.id : undefined
+  profitAccount.profit = accountAttr.profit
+  profitAccount.accountDay = accountAttr.accountDay
+  profitAccount.createdAt = lcProfitAccount.createdAt
+  profitAccount.updatedAt = lcProfitAccount.updatedAt
 
   if (includeStation) {
-    investorAccount.station = constructStationInfo(accountAttr.station, false)
+    profitAccount.station = constructStationInfo(accountAttr.station, false)
   }
 
   if (includeStationAccount) {
-    investorAccount.stationAccount = constructStationAccountnInfo(accountAttr.stationAccount, false)
+    profitAccount.stationAccount = constructStationAccountnInfo(accountAttr.stationAccount, false)
   }
 
   if (includeProfitSharing) {
-    investorAccount.profitSharing = constructProfitSharing(accountAttr.profitSharing, false)
+    profitAccount.profitSharing = constructProfitSharing(accountAttr.profitSharing, false)
   }
 
   if (includeUser) {
-    investorAccount.user = constructUserInfo(accountAttr.user)
+    profitAccount.user = constructUserInfo(accountAttr.user)
   }
 
-  return investorAccount
+  return profitAccount
 }
 
 //
@@ -841,6 +851,13 @@ async function getDayAccountsSum(request, response) {
   }
 }
 
+/**
+ * 获取服务点投资人某段时间内在所有服务点的投资收益列表
+ * @param user        完整的_User用户对象
+ * @param startDate   起始时间
+ * @param endDate     截止时间
+ * @returns {Array}   返回统计列表
+ */
 async function statInvestorProfit(user, startDate, endDate) {
   let beginQuery = new AV.Query('InvestorAccount')
   beginQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
@@ -856,11 +873,16 @@ async function statInvestorProfit(user, startDate, endDate) {
   let result = await query.find()
   let investorProfits = []
   result.forEach((profit) => {
-    investorProfits.push(constructInvestorAccount(profit, true, false, false, false))
+    investorProfits.push(constructProfitAccount(profit, true, false, false, false))
   })
   return investorProfits
 }
 
+/**
+ * 获取服务点投资人投资收益的网络接口
+ * @param request
+ * @returns {Array}
+ */
 async function reqStatInvestorProfit(request) {
   let currentUser = request.currentUser
   let startDate = request.params.startDate
@@ -873,7 +895,74 @@ async function reqStatInvestorProfit(request) {
   return statInvestorProfit(currentUser, startDate, endDate)
 }
 
+/**
+ * 获取服务点投资人在过去30天所有服务点的投资收益
+ * @param request
+ * @returns {Array}
+ */
 async function reqStatLast30DaysInvestorProfit(request) {
+  let currentUser = request.currentUser
+
+  let startDate = moment().subtract(30, 'days').format('YYYY-MM-DD')
+  let endDate = moment().format('YYYY-MM-DD')
+
+  if (!currentUser) {
+    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
+  }
+
+  return statInvestorProfit(currentUser, startDate, endDate)
+}
+
+/**
+ * 获取服务单位在某段时间内，在所有服务点的分红收益列表
+ * @param user          完整的_User用户对象
+ * @param startDate     起始时间
+ * @param endDate       截止时间
+ * @returns {Array}     返回统计列表
+ */
+async function statPartnerProfit(user, startDate, endDate) {
+  let beginQuery = new AV.Query('PartnerAccount')
+  beginQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
+
+  let endQuery = new AV.Query('PartnerAccount')
+  endQuery.lessThanOrEqualTo('accountDay', new Date(endDate))
+
+  let query = AV.Query.and(beginQuery, endQuery)
+  query.ascending('accountDay')
+  query.equalTo('user', user)
+  query.include('station')
+
+  let result = await query.find()
+  let partnerProfits = []
+  result.forEach((profit) => {
+    partnerProfits.push(constructProfitAccount(profit, true, false, false, false))
+  })
+  return partnerProfits
+}
+
+/**
+ * 获取服务单位分红收益的网络接口
+ * @param request
+ * @returns {Array}
+ */
+async function reqStatPartnerProfit(request) {
+  let currentUser = request.currentUser
+  let startDate = request.params.startDate
+  let endDate = request.params.endDate
+
+  if (!currentUser) {
+    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
+  }
+
+  return statInvestorProfit(currentUser, startDate, endDate)
+}
+
+/**
+ * 获取服务单位在过去30天所有服务点的分红收益
+ * @param request
+ * @returns {Array}
+ */
+async function reqStatLast30DaysPartnerProfit(request) {
   let currentUser = request.currentUser
 
   let startDate = moment().subtract(30, 'days').format('YYYY-MM-DD')
@@ -888,7 +977,6 @@ async function reqStatLast30DaysInvestorProfit(request) {
 
 var accountFunc = {
   getYesterday: getYesterday,
-  // selectDealData: selectDealData,
   createStationDayAccount: createStationDayAccount,
   getLastMonth: getLastMonth,
   getStationAccounts: getStationAccounts,
@@ -900,10 +988,8 @@ var accountFunc = {
   getDayAccountsSum: getDayAccountsSum,
   reqStatLast30DaysInvestorProfit,
   reqStatInvestorProfit,
-
-  // testMathjs: testMathjs
-
-
+  reqStatPartnerProfit,
+  reqStatLast30DaysPartnerProfit,
 }
 
 module.exports = accountFunc
