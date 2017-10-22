@@ -14,8 +14,8 @@ import * as errno from '../errno'
 import moment from 'moment'
 
 const ACCOUNT_TYPE = {
-  INVESTOR: 1,
-  PARTNER: 2
+  INVESTOR_ACCOUNT: 1,
+  PARTNER_ACCOUNT: 2,
 }
 
 const ERR_LOG_TYPE = {
@@ -50,7 +50,7 @@ function constructStationAccountnInfo(account, includeStation) {
 }
 
 /**
- * InvestorAccount和PartnerAccount都公用这一个转换方法
+ * AccountProfit转换方法
  *
  * @param lcProfitAccount
  * @param includeStation
@@ -59,7 +59,7 @@ function constructStationAccountnInfo(account, includeStation) {
  * @param includeProfitSharing
  * @returns {*}
  */
-function constructProfitAccount(lcProfitAccount, includeStation, includeUser, includeStationAccount, includeProfitSharing) {
+function constructAccountProfit(lcProfitAccount, includeStation, includeUser, includeStationAccount, includeProfitSharing) {
   if (!lcProfitAccount) {
     return undefined
   }
@@ -80,6 +80,7 @@ function constructProfitAccount(lcProfitAccount, includeStation, includeUser, in
   profitAccount.profitSharingId = accountAttr.profitSharing ? accountAttr.profitSharing.id : undefined
   profitAccount.profit = accountAttr.profit
   profitAccount.accountDay = accountAttr.accountDay
+  profitAccount.accountType = accountAttr.accountType
   profitAccount.createdAt = lcProfitAccount.createdAt
   profitAccount.updatedAt = lcProfitAccount.updatedAt
 
@@ -208,7 +209,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         partnerAccount.set('profitSharing', profitSharing)
         partnerAccount.set('station', station)
         partnerAccount.set('user', user)
-        partnerAccount.set('accountType', ACCOUNT_TYPE.PARTNER)
+        partnerAccount.set('accountType', ACCOUNT_TYPE.PARTNER_ACCOUNT)
         await partnerAccount.save()
         partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(profit).done(), 2)
       }
@@ -230,7 +231,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         investorAccount.set('profitSharing', profitSharing)
         investorAccount.set('station', station)
         investorAccount.set('user', user)
-        investorAccount.set('accountType', ACCOUNT_TYPE.INVESTOR)
+        investorAccount.set('accountType', ACCOUNT_TYPE.INVESTOR_ACCOUNT)
         await investorAccount.save()
       }
     } else {
@@ -483,7 +484,7 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
   } else {
     query = new AV.Query('AccountProfit')
   }
-  query.equalTo('accountType', ACCOUNT_TYPE.PARTNER)
+  query.equalTo('accountType', ACCOUNT_TYPE.PARTNER_ACCOUNT)
   if (partnerId) {
     let partner = AV.Object.createWithoutData('_User', partnerId)
     query.equalTo('user', partner)
@@ -510,7 +511,7 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
         // console.log('account.attributes.========>', account.attributes)
         if (account) {
           profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(), 2)
-          accountInfo = constructProfitAccount(account, true, true)
+          accountInfo = constructAccountProfit(account, true, true)
         }
       })
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
@@ -591,7 +592,7 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
   } else {
     query = new AV.Query('AccountProfit')
   }
-  query.equalTo('accountType', ACCOUNT_TYPE.INVESTOR)
+  query.equalTo('accountType', ACCOUNT_TYPE.INVESTOR_ACCOUNT)
   if (investorId) {
     let investor = AV.Object.createWithoutData('_User', investorId)
     query.equalTo('user', investor)
@@ -617,7 +618,7 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
         // console.log('account.attributes.========>', account.attributes)
         if (account) {
           profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(), 2)
-          accountInfo = constructProfitAccount(account, true, true)
+          accountInfo = constructAccountProfit(account, true, true)
         }
       })
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
@@ -726,14 +727,14 @@ async function getPartnerAccountsDetail(request, response) {
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
-  query.equalTo('accountType', ACCOUNT_TYPE.PARTNER)
+  query.equalTo('accountType', ACCOUNT_TYPE.PARTNER_ACCOUNT)
   query.descending('createdAt')
   query.include(['station', 'user'])
   try {
     let accounts = await query.find()
     let accountList = []
     accounts.forEach((account)=> {
-      accountList.push(constructProfitAccount(account, true, true))
+      accountList.push(constructAccountProfit(account, true, true))
     })
     console.log('accountList.length======>', accountList.length)
     response.success(accountList)
@@ -786,14 +787,14 @@ async function getInvestorAccountsDetail(request, response) {
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
-  query.equalTo('accountType', ACCOUNT_TYPE.INVESTOR)
+  query.equalTo('accountType', ACCOUNT_TYPE.INVESTOR_ACCOUNT)
   query.descending('createdAt')
   query.include(['station', 'user'])
   try {
     let accounts = await query.find()
     let accountList = []
     accounts.forEach((account)=> {
-      accountList.push(constructProfitAccount(account, true, true))
+      accountList.push(constructAccountProfit(account, true, true))
     })
     console.log('accountList.length======>', accountList.length)
     response.success(accountList)
@@ -801,16 +802,6 @@ async function getInvestorAccountsDetail(request, response) {
     response.error(error)
   }
 }
-
-//测试mathjs（
-// function testMathjs(request, response) {
-//   let high = new Date('2017/05/01 00:00:00')
-//   // console.log('high====>',high)
-//   let low = new Date()
-//   let sum = mathjs.chain(low - high).add(123123123).done()
-//   let lll = mathjs.chain(1000).multiply(1 / 60).done()
-//   response.success({high: high, low: low, sum: sum, lll: lll})
-// }
 
 /*
  * 获取总和日结信息
@@ -847,13 +838,14 @@ async function getDayAccountsSum(request, response) {
 }
 
 /**
- * 获取服务点投资人某段时间内在所有服务点的投资收益列表
+ * 根据收益结算类型获取某段时间内在所有服务点的投资收益列表
  * @param user        完整的_User用户对象
+ * @param type        统计的类型，取值为ACCOUNT_TYPE类型数据
  * @param startDate   起始时间
  * @param endDate     截止时间
  * @returns {Array}   返回统计列表
  */
-async function statInvestorProfit(user, startDate, endDate) {
+async function statAccountProfit(user, type, startDate, endDate) {
   let beginQuery = new AV.Query('AccountProfit')
   beginQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
 
@@ -863,23 +855,24 @@ async function statInvestorProfit(user, startDate, endDate) {
   let query = AV.Query.and(beginQuery, endQuery)
   query.ascending('accountDay')
   query.equalTo('user', user)
-  query.equalTo('accountType', 1)
+  query.equalTo('accountType', type)
   query.include('station')
   let result = await query.find()
-  let investorProfits = []
+  let profits = []
   result.forEach((profit) => {
-    investorProfits.push(constructProfitAccount(profit, true, false, false, false))
+    profits.push(constructAccountProfit(profit, true, false, false, false))
   })
-  return investorProfits
+  return profits
 }
 
 /**
- * 获取服务点投资人投资收益的网络接口
+ * 获取投资收益的网络接口
  * @param request
  * @returns {Array}
  */
-async function reqStatInvestorProfit(request) {
+async function reqStatAccountProfit(request) {
   let currentUser = request.currentUser
+  let type = request.params.accountType
   let startDate = request.params.startDate
   let endDate = request.params.endDate
 
@@ -887,7 +880,7 @@ async function reqStatInvestorProfit(request) {
     throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
   }
 
-  return statInvestorProfit(currentUser, startDate, endDate)
+  return statAccountProfit(currentUser, type, startDate, endDate)
 }
 
 /**
@@ -895,8 +888,9 @@ async function reqStatInvestorProfit(request) {
  * @param request
  * @returns {Array}
  */
-async function reqStatLast30DaysInvestorProfit(request) {
+async function reqStatLast30DaysAccountProfit(request) {
   let currentUser = request.currentUser
+  let type = request.params.accountType
 
   let startDate = moment().subtract(30, 'days').format('YYYY-MM-DD')
   let endDate = moment().format('YYYY-MM-DD')
@@ -905,70 +899,7 @@ async function reqStatLast30DaysInvestorProfit(request) {
     throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
   }
 
-  return statInvestorProfit(currentUser, startDate, endDate)
-}
-
-/**
- * 获取服务单位在某段时间内，在所有服务点的分红收益列表
- * @param user          完整的_User用户对象
- * @param startDate     起始时间
- * @param endDate       截止时间
- * @returns {Array}     返回统计列表
- */
-async function statPartnerProfit(user, startDate, endDate) {
-  let beginQuery = new AV.Query('AccountProfit')
-  beginQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
-
-  let endQuery = new AV.Query('AccountProfit')
-  endQuery.lessThanOrEqualTo('accountDay', new Date(endDate))
-
-  let query = AV.Query.and(beginQuery, endQuery)
-  query.ascending('accountDay')
-  query.equalTo('user', user)
-  query.equalTo('accountType', 2)
-  query.include('station')
-
-  let result = await query.find()
-  let partnerProfits = []
-  result.forEach((profit) => {
-    partnerProfits.push(constructProfitAccount(profit, true, false, false, false))
-  })
-  return partnerProfits
-}
-
-/**
- * 获取服务单位分红收益的网络接口
- * @param request
- * @returns {Array}
- */
-async function reqStatPartnerProfit(request) {
-  let currentUser = request.currentUser
-  let startDate = request.params.startDate
-  let endDate = request.params.endDate
-
-  if (!currentUser) {
-    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
-  }
-
-  return statPartnerProfit(currentUser, startDate, endDate)
-}
-
-/**
- * 获取服务单位在过去30天所有服务点的分红收益
- * @param request
- * @returns {Array}
- */
-async function reqStatLast30DaysPartnerProfit(request) {
-  let currentUser = request.currentUser
-
-  let startDate = moment().subtract(30, 'days').format('YYYY-MM-DD')
-  let endDate = moment().format('YYYY-MM-DD')
-
-  if (!currentUser) {
-    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
-  }
-
-  return statPartnerProfit(currentUser, startDate, endDate)
+  return statAccountProfit(currentUser, type, startDate, endDate)
 }
 
 async function recordAccountError(dayInfo, errorInfo) {
@@ -986,6 +917,7 @@ async function accountTestFunc(req) {
   await recordAccountError(dayInfo,'ceshiyixia')
   return
 }
+
 var accountFunc = {
   getYesterday: getYesterday,
   createStationDayAccount: createStationDayAccount,
@@ -997,11 +929,9 @@ var accountFunc = {
   getPartnerAccountsDetail: getPartnerAccountsDetail,
   getInvestorAccountsDetail: getInvestorAccountsDetail,
   getDayAccountsSum: getDayAccountsSum,
-  reqStatLast30DaysInvestorProfit,
-  reqStatInvestorProfit,
-  reqStatPartnerProfit,
-  reqStatLast30DaysPartnerProfit,
-  accountTestFunc: accountTestFunc
+  accountTestFunc: accountTestFunc,
+  reqStatAccountProfit,
+  reqStatLast30DaysAccountProfit,
 }
 
 module.exports = accountFunc
