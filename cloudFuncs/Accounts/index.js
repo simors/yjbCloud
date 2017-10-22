@@ -821,13 +821,14 @@ async function getDayAccountsSum(request, response) {
 }
 
 /**
- * 获取服务点投资人某段时间内在所有服务点的投资收益列表
+ * 根据收益结算类型获取某段时间内在所有服务点的投资收益列表
  * @param user        完整的_User用户对象
+ * @param type        统计的类型，取值为ACCOUNT_TYPE类型数据
  * @param startDate   起始时间
  * @param endDate     截止时间
  * @returns {Array}   返回统计列表
  */
-async function statInvestorProfit(user, startDate, endDate) {
+async function statAccountProfit(user, type, startDate, endDate) {
   let beginQuery = new AV.Query('AccountProfit')
   beginQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
 
@@ -837,23 +838,24 @@ async function statInvestorProfit(user, startDate, endDate) {
   let query = AV.Query.and(beginQuery, endQuery)
   query.ascending('accountDay')
   query.equalTo('user', user)
-  query.equalTo('accountType', ACCOUNT_TYPE.INVESTOR_ACCOUNT)
+  query.equalTo('accountType', type)
   query.include('station')
   let result = await query.find()
-  let investorProfits = []
+  let profits = []
   result.forEach((profit) => {
-    investorProfits.push(constructAccountProfit(profit, true, false, false, false))
+    profits.push(constructAccountProfit(profit, true, false, false, false))
   })
-  return investorProfits
+  return profits
 }
 
 /**
- * 获取服务点投资人投资收益的网络接口
+ * 获取投资收益的网络接口
  * @param request
  * @returns {Array}
  */
-async function reqStatInvestorProfit(request) {
+async function reqStatAccountProfit(request) {
   let currentUser = request.currentUser
+  let type = request.params.accountType
   let startDate = request.params.startDate
   let endDate = request.params.endDate
 
@@ -861,7 +863,7 @@ async function reqStatInvestorProfit(request) {
     throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
   }
 
-  return statInvestorProfit(currentUser, startDate, endDate)
+  return statAccountProfit(currentUser, type, startDate, endDate)
 }
 
 /**
@@ -869,8 +871,9 @@ async function reqStatInvestorProfit(request) {
  * @param request
  * @returns {Array}
  */
-async function reqStatLast30DaysInvestorProfit(request) {
+async function reqStatLast30DaysAccountProfit(request) {
   let currentUser = request.currentUser
+  let type = request.params.accountType
 
   let startDate = moment().subtract(30, 'days').format('YYYY-MM-DD')
   let endDate = moment().format('YYYY-MM-DD')
@@ -879,70 +882,7 @@ async function reqStatLast30DaysInvestorProfit(request) {
     throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
   }
 
-  return statInvestorProfit(currentUser, startDate, endDate)
-}
-
-/**
- * 获取服务单位在某段时间内，在所有服务点的分红收益列表
- * @param user          完整的_User用户对象
- * @param startDate     起始时间
- * @param endDate       截止时间
- * @returns {Array}     返回统计列表
- */
-async function statPartnerProfit(user, startDate, endDate) {
-  let beginQuery = new AV.Query('AccountProfit')
-  beginQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
-
-  let endQuery = new AV.Query('AccountProfit')
-  endQuery.lessThanOrEqualTo('accountDay', new Date(endDate))
-
-  let query = AV.Query.and(beginQuery, endQuery)
-  query.ascending('accountDay')
-  query.equalTo('user', user)
-  query.equalTo('accountType', ACCOUNT_TYPE.PARTNER_ACCOUNT)
-  query.include('station')
-
-  let result = await query.find()
-  let partnerProfits = []
-  result.forEach((profit) => {
-    partnerProfits.push(constructAccountProfit(profit, true, false, false, false))
-  })
-  return partnerProfits
-}
-
-/**
- * 获取服务单位分红收益的网络接口
- * @param request
- * @returns {Array}
- */
-async function reqStatPartnerProfit(request) {
-  let currentUser = request.currentUser
-  let startDate = request.params.startDate
-  let endDate = request.params.endDate
-
-  if (!currentUser) {
-    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
-  }
-
-  return statPartnerProfit(currentUser, startDate, endDate)
-}
-
-/**
- * 获取服务单位在过去30天所有服务点的分红收益
- * @param request
- * @returns {Array}
- */
-async function reqStatLast30DaysPartnerProfit(request) {
-  let currentUser = request.currentUser
-
-  let startDate = moment().subtract(30, 'days').format('YYYY-MM-DD')
-  let endDate = moment().format('YYYY-MM-DD')
-
-  if (!currentUser) {
-    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
-  }
-
-  return statPartnerProfit(currentUser, startDate, endDate)
+  return statAccountProfit(currentUser, type, startDate, endDate)
 }
 
 var accountFunc = {
@@ -956,10 +896,8 @@ var accountFunc = {
   getPartnerAccountsDetail: getPartnerAccountsDetail,
   getInvestorAccountsDetail: getInvestorAccountsDetail,
   getDayAccountsSum: getDayAccountsSum,
-  reqStatLast30DaysInvestorProfit,
-  reqStatInvestorProfit,
-  reqStatPartnerProfit,
-  reqStatLast30DaysPartnerProfit,
+  reqStatAccountProfit,
+  reqStatLast30DaysAccountProfit,
 }
 
 module.exports = accountFunc
