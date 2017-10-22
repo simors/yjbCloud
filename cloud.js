@@ -93,10 +93,7 @@ AV.Cloud.define('orderFetchOrders', orderFunc.fetchOrders)
 AV.Cloud.define('getJsConfig', mpJsSdkFuncs.getJsConfig)
 
 //结算
-// AV.Cloud.define('selectDealData', accountsFunc.selectDealData)
-// AV.Cloud.define('getYesterday', accountsFunc.getYesterday)
 AV.Cloud.define('accountCreateStationDayAccount', accountsFunc.createStationDayAccount)
-// AV.Cloud.define('getLastMonth', accountsFunc.getLastMonth)
 AV.Cloud.define('accountGetStationAccounts', accountsFunc.getStationAccounts)
 AV.Cloud.define('accountGetPartnerAccounts', accountsFunc.getPartnerAccounts)
 AV.Cloud.define('accountGetInvestorAccounts', accountsFunc.getInvestorAccounts)
@@ -104,12 +101,10 @@ AV.Cloud.define('accountGetStationAccountsDetail', accountsFunc.getStationAccoun
 AV.Cloud.define('accountGetPartnerAccountsDetail', accountsFunc.getPartnerAccountsDetail)
 AV.Cloud.define('accountGetInvestorAccountsDetail', accountsFunc.getInvestorAccountsDetail)
 AV.Cloud.define('accountGetDayAccountsSum', accountsFunc.getDayAccountsSum)
-AV.Cloud.define('accountStatLast30DaysInvestorProfit', accountsFunc.reqStatLast30DaysInvestorProfit)
-AV.Cloud.define('accountStatInvestorProfit', accountsFunc.reqStatInvestorProfit)
-AV.Cloud.define('accountStatPartnerProfit', accountsFunc.reqStatPartnerProfit)
-AV.Cloud.define('accountStatLast30DaysPartnerProfit', accountsFunc.reqStatLast30DaysPartnerProfit)
+AV.Cloud.define('accountTestFunc', accountsFunc.accountTestFunc)
+AV.Cloud.define('accountStatLast30DaysAccountProfit', accountsFunc.reqStatLast30DaysAccountProfit)
+AV.Cloud.define('accountStatAccountProfit', accountsFunc.reqStatAccountProfit)
 
-// AV.Cloud.define('testMathjs', accountsFunc.testMathjs)
 AV.Cloud.define('stationAccountToExcel', excelFunc.stationAccountToExcel)
 
 //Util
