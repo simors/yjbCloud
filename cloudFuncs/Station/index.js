@@ -5,6 +5,8 @@ var Promise = require('bluebird')
 var OperationLog = require('../OperationLog')
 import AV from 'leanengine'
 import * as errno from '../errno'
+import * as authFuncs from '../Auth'
+import {ROLE_CODE,PERMISSION_CODE} from '../../rolePermission'
 
 const profitShareType = {
   PROFIT_SHARE_INVESTOR: 'investor',
@@ -893,20 +895,26 @@ function closeStation(request, response) {
   if(!currentUser){
     response.error('not login')
   }else{
-    var stationId = request.params.stationId
-    var station = AV.Object.createWithoutData('Station', stationId)
-    station.set('status', 0)
-    station.save().then((item)=> {
-      var query = new AV.Query('Station')
-      query.include(['admin'])
-      query.get(item.id).then((result)=> {
-        OperationLog.recordOperation(currentUser, '关闭服务点'+result.attributes.name)
-        response.success(constructStationInfo(result, true))
-      }, (err)=> {
-        response.error(err)
-      })
-    }, (err)=> {
-      response.error(err)
+    authFuncs.authValidPermissions(currentUser.id,[PERMISSION_CODE.STATION_EDIT_WHOLE,PERMISSION_CODE.STATION_EDIT_PART]).then((isValid)=>{
+      if(!isValid){
+        response.error('no permission')
+      }else{
+        var stationId = request.params.stationId
+        var station = AV.Object.createWithoutData('Station', stationId)
+        station.set('status', 0)
+        station.save().then((item)=> {
+          var query = new AV.Query('Station')
+          query.include(['admin'])
+          query.get(item.id).then((result)=> {
+            OperationLog.recordOperation(currentUser, '关闭服务点'+result.attributes.name)
+            response.success(constructStationInfo(result, true))
+          }, (err)=> {
+            response.error(err)
+          })
+        }, (err)=> {
+          response.error(err)
+        })
+      }
     })
   }
 }

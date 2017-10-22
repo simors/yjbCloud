@@ -135,12 +135,10 @@ async function selectAmountSumBydeviceId(device, dayInfo) {
 
 //查询单个服务点当天收益并生成日结数据插入Account表中
 async function createStationAccount(station, dayInfo) {
-  // console.log('station======>', station)
   let amountSum = 0
   let cost = 0
   let powerSum = 0
   let profit = 0
-  // let station = station
   try {
     let deviceList = await DeviceFuncs.getDevices(station.id)
     for (let i = 0; i < deviceList.length; i++) {
@@ -163,7 +161,6 @@ async function createStationAccount(station, dayInfo) {
     let query = new AV.Query('StationAccount')
 
     let newStationAccount = await createPartnerAccount(accountInfo.id, dayInfo)
-    // console.log('newStation=====>',newStation)
     return newStationAccount
   } catch (error) {
     throw error
@@ -172,17 +169,15 @@ async function createStationAccount(station, dayInfo) {
 
 //根据服务点日结数据生成分成方和投资人日结数据
 async function createPartnerAccount(accountId, dayInfo) {
+  let partnerProfit = 0
+  let investorProfit = 0
   try {
     let queryAccount = new AV.Query('StationAccount')
     queryAccount.include(['station'])
-    let partnerProfit = 0
-    let investorProfit = 0
     // let dayInfo = getYesterday()
     let stationAccount = await queryAccount.get(accountId)
     let stationAccountInfo = constructStationAccountnInfo(stationAccount, true)
-    // console.log('hahahahahahahah here is true',stationAccountInfo.profit,stationAccountInfo.station.platformProp)
     let platfomProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(stationAccountInfo.station.platformProp).done(), 2)
-    // console.log('stationAccountInfo=====>',stationAccountInfo.stationId)
     let station = AV.Object.createWithoutData('Station', stationAccountInfo.stationId)
     let stationAccountObject = AV.Object.createWithoutData('StationAccount', accountId)
     let partnerList = await StationFuncs.getPartnerByStationId(stationAccountInfo.stationId)
@@ -192,7 +187,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         let partner = partnerList[i]
         let user = AV.Object.createWithoutData('_User', partner.shareholderId)
         let profitSharing = AV.Object.createWithoutData('ProfitSharing', partner.id)
-        let PartnerAccount = AV.Object.extend('PartnerAccount')
+        let PartnerAccount = AV.Object.extend('AccountProfit')
         let partnerAccount = new PartnerAccount()
         partnerAccount.set('stationAccount', stationAccountObject)
         let profit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(partner.royalty).done(), 2)
@@ -201,6 +196,8 @@ async function createPartnerAccount(accountId, dayInfo) {
         partnerAccount.set('profitSharing', profitSharing)
         partnerAccount.set('station', station)
         partnerAccount.set('user', user)
+        partnerAccount.set('accountType', 2)
+
 
         await partnerAccount.save()
         partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(profit).done(), 2)
@@ -214,7 +211,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         let investor = investorList[i]
         let user = AV.Object.createWithoutData('_User', investor.shareholderId)
         let profitSharing = AV.Object.createWithoutData('ProfitSharing', investor.id)
-        let InvestorAccount = AV.Object.extend('InvestorAccount')
+        let InvestorAccount = AV.Object.extend('AccountProfit')
         let investorAccount = new InvestorAccount()
         investorAccount.set('stationAccount', stationAccountObject)
         let profit = mathjs.round(mathjs.chain(investorProfit).multiply(investor.royalty).done(), 2)
@@ -223,6 +220,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         investorAccount.set('profitSharing', profitSharing)
         investorAccount.set('station', station)
         investorAccount.set('user', user)
+        investorAccount.set('accountType', 1)
         await investorAccount.save()
       }
     } else {
@@ -233,7 +231,9 @@ async function createPartnerAccount(accountId, dayInfo) {
     stationAccountObject.set('partnerProfit', partnerProfit)
     stationAccountObject.set('platformProfit', platfomProfit)
     let stationInfo = await stationAccountObject.save(null,{fetchWhenSave: true})
-    return stationInfo
+    let queryNewStation = new AV.Query('StationAccount')
+    let newStationInfo = queryNewStation.get(stationInfo.id)
+    return newStationInfo
   } catch (err) {
     throw err
   }
@@ -249,15 +249,13 @@ async function createStationDayAccount() {
   let partnerProfit = 0
   let investorProfit = 0
   let lastTime = undefined
-
-
+  let dayInfo = getYesterday()
   try {
     while(1){
       let stationList = await StationFuncs.getStations(lastTime)
       if(stationList.length<1){
         break
       }
-      let dayInfo = getYesterday()
       for (let i = 0; i < stationList.length; i++) {
         let stationAccount = await createStationAccount(stationList[i], dayInfo)
         let attr = stationAccount.attributes
@@ -455,10 +453,10 @@ async function getPartnerAccounts(request, response) {
  * @param {}
  */
 async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) {
-  let query = new AV.Query('PartnerAccount')
+  let query = new AV.Query('AccountProfit')
   let lastCreatedAt = undefined
   let profit = 0
-
+  query.equalTo('accountType', 2)
   if (partnerId) {
     let partner = AV.Object.createWithoutData('_User', partnerId)
     query.equalTo('user', partner)
@@ -557,10 +555,10 @@ async function getInvestorAccounts(request, response) {
  * @param {}
  */
 async function getAccountsByInvestorId(investorId, stationId, startDate, endDate) {
-  let query = new AV.Query('InvestorAccount')
+  let query = new AV.Query('AccountProfit')
   let lastCreatedAt = undefined
   let profit = 0
-
+  query.equalTo('accountType', 1)
   if (investorId) {
     let investor = AV.Object.createWithoutData('_User', investorId)
     query.equalTo('user', investor)
@@ -675,19 +673,19 @@ async function getPartnerAccountsDetail(request, response) {
   let lastCreatedAt = request.params.lastCreatedAt
   let query = undefined
   if (startDate&&!endDate) {
-    query = new AV.Query('PartnerAccount')
+    query = new AV.Query('AccountProfit')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
   }else if (!endDate&&startDate) {
-    query = new AV.Query('PartnerAccount')
+    query = new AV.Query('AccountProfit')
     query.lessThan('accountDay', new Date(endDate))
   }else if (startDate && endDate){
-    let startQuery = new AV.Query('PartnerAccount')
-    let endQuery = new AV.Query('PartnerAccount')
+    let startQuery = new AV.Query('AccountProfit')
+    let endQuery = new AV.Query('AccountProfit')
     startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
     endQuery.lessThan('payTime', new Date(endDate))
     query = AV.Query.and(startQuery,endQuery)
   }else{
-    query = new AV.Query('PartnerAccount')
+    query = new AV.Query('AccountProfit')
   }
   if (userId) {
     let user = AV.Object.createWithoutData('_User', userId)
@@ -706,6 +704,7 @@ async function getPartnerAccountsDetail(request, response) {
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
+  query.equalTo('accountType',2)
   query.descending('createdAt')
   query.include(['station', 'user'])
   try {
@@ -734,19 +733,19 @@ async function getInvestorAccountsDetail(request, response) {
   let lastCreatedAt = request.params.lastCreatedAt
   let query = undefined
   if (startDate&&!endDate) {
-    query = new AV.Query('InvestorAccount')
+    query = new AV.Query('AccountProfit')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
   }else if (!endDate&&startDate) {
-    query = new AV.Query('InvestorAccount')
+    query = new AV.Query('AccountProfit')
     query.lessThan('accountDay', new Date(endDate))
   }else if (startDate && endDate){
-    let startQuery = new AV.Query('InvestorAccount')
-    let endQuery = new AV.Query('InvestorAccount')
+    let startQuery = new AV.Query('AccountProfit')
+    let endQuery = new AV.Query('AccountProfit')
     startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
     endQuery.lessThan('payTime', new Date(endDate))
     query = AV.Query.and(startQuery,endQuery)
   }else{
-    query = new AV.Query('InvestorAccount')
+    query = new AV.Query('AccountProfit')
   }
   if (userId) {
     let user = AV.Object.createWithoutData('_User', userId)
@@ -765,6 +764,7 @@ async function getInvestorAccountsDetail(request, response) {
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
+  query.equalTo('accountType',1)
   query.descending('createdAt')
   query.include(['station', 'user'])
   try {
@@ -832,17 +832,17 @@ async function getDayAccountsSum(request, response) {
  * @returns {Array}   返回统计列表
  */
 async function statInvestorProfit(user, startDate, endDate) {
-  let beginQuery = new AV.Query('InvestorAccount')
+  let beginQuery = new AV.Query('AccountProfit')
   beginQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
 
-  let endQuery = new AV.Query('InvestorAccount')
+  let endQuery = new AV.Query('AccountProfit')
   endQuery.lessThanOrEqualTo('accountDay', new Date(endDate))
 
   let query = AV.Query.and(beginQuery, endQuery)
   query.ascending('accountDay')
   query.equalTo('user', user)
+  query.equalTo('accountType',1)
   query.include('station')
-
   let result = await query.find()
   let investorProfits = []
   result.forEach((profit) => {
@@ -894,15 +894,16 @@ async function reqStatLast30DaysInvestorProfit(request) {
  * @returns {Array}     返回统计列表
  */
 async function statPartnerProfit(user, startDate, endDate) {
-  let beginQuery = new AV.Query('PartnerAccount')
+  let beginQuery = new AV.Query('AccountProfit')
   beginQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
 
-  let endQuery = new AV.Query('PartnerAccount')
+  let endQuery = new AV.Query('AccountProfit')
   endQuery.lessThanOrEqualTo('accountDay', new Date(endDate))
 
   let query = AV.Query.and(beginQuery, endQuery)
   query.ascending('accountDay')
   query.equalTo('user', user)
+  query.equalTo('accountType', 2)
   query.include('station')
 
   let result = await query.find()
@@ -927,7 +928,7 @@ async function reqStatPartnerProfit(request) {
     throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
   }
 
-  return statInvestorProfit(currentUser, startDate, endDate)
+  return statPartnerProfit(currentUser, startDate, endDate)
 }
 
 /**
@@ -945,7 +946,7 @@ async function reqStatLast30DaysPartnerProfit(request) {
     throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
   }
 
-  return statInvestorProfit(currentUser, startDate, endDate)
+  return statPartnerProfit(currentUser, startDate, endDate)
 }
 
 var accountFunc = {
