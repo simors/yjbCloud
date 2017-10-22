@@ -2,6 +2,19 @@ import AV from 'leanengine';
 import * as errno from '../errno';
 import {constructUserInfo, constructRoleInfo, constructPermissionInfo} from './index';
 
+// --- enum
+
+export const AUTH_USER_TYPE = {
+  END:      1,
+  ADMIN:    2,
+  BOTH:     3,
+};
+
+export const AUTH_USER_STATUS = {
+  NORMAL:   1,
+  DISABLED: 2,
+};
+
 async function authGetRolesAndPermissions(req) {
   const {currentUser, params} = req;
 
@@ -89,8 +102,9 @@ async function authListEndUsers(req) {
 
   const values = [];
   let cql = 'select count(*),* from _User';
-  cql += ' where (type is not exists or type=?)';
-  values.push('both');
+  cql += ' where (type is not exists or type=? or type=?)';
+  values.push(AUTH_USER_TYPE.END);
+  values.push(AUTH_USER_TYPE.BOTH);
   if (mobilePhoneNumber) {
     cql += ' and mobilePhoneNumber=?';
     values.push(mobilePhoneNumber);
@@ -104,12 +118,12 @@ async function authListEndUsers(req) {
     values.push(city);
   }
   if (status) {
-    if (status === 'disabled') {
+    if (status === AUTH_USER_STATUS.DISABLED) {
       cql += ' and status=?';
-      values.push('disabled');
+      values.push(AUTH_USER_STATUS.DISABLED);
     } else {
-      cql += ' and status!=?';
-      values.push('disabled');
+      cql += ' and (status is not exists or status=?)';
+      values.push(AUTH_USER_STATUS.NORMAL);
     }
   }
   cql += ' limit ?,?';
@@ -156,8 +170,8 @@ async function authListAdminUsers(req) {
   const values = [];
   let cql = 'select count(*),* from _User';
   cql += ' where (type=? or type=?)';
-  values.push('admin');
-  values.push('both');
+  values.push(AUTH_USER_TYPE.ADMIN);
+  values.push(AUTH_USER_TYPE.BOTH);
   if (nickname) {
     cql += ' and nickname=?';
     values.push(nickname);
@@ -173,12 +187,12 @@ async function authListAdminUsers(req) {
     values.push(roles);
   }
   if (status) {
-    if (status === 'disabled') {
+    if (status === AUTH_USER_STATUS.DISABLED) {
       cql += ' and status=?';
-      values.push('disabled');
+      values.push(AUTH_USER_STATUS.DISABLED);
     } else {
-      cql += ' and status!=?';
-      values.push('disabled');
+      cql += ' and (status is not exists or status=?)';
+      values.push(AUTH_USER_STATUS.NORMAL);
     }
   }
   cql += ' limit ?,?';
