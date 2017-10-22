@@ -124,10 +124,10 @@ async function createPromotion(request) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
-  // let isPromExist = await isPromotionExist(categoryId, start, end, region)
-  // if(isPromExist) {
-  //   throw new AV.Cloud.Error('重复的活动', {code: errno.ERROR_PROM_REPEAT})
-  // }
+  let isPromExist = await isPromotionExist(categoryId, start, end, region)
+  if(isPromExist) {
+    throw new AV.Cloud.Error('重复的活动', {code: errno.ERROR_PROM_REPEAT})
+  }
 
   let promotion = new Promotion()
   let category = AV.Object.createWithoutData('PromotionCategory', categoryId)
@@ -316,29 +316,45 @@ async function fetchPromotions(request) {
  */
 async function isPromotionExist(categoryId, start, end, region) {
   if(!categoryId || !start || !end || !region) {
-    return undefined
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
-  let startQuery = new AV.Query('Promotion')
-  let endQuery = new AV.Query('Promotion')
+  let timeQueryA = new AV.Query('Promotion')
+  let timeQueryB = new AV.Query('Promotion')
+  let timeQueryC = new AV.Query('Promotion')
   let regionQuery = new AV.Query('Promotion')
-  let categoryQuery = new AV.Query('Promotion')
-  let timeQuery = undefined
+
+  let otherQuery = new AV.Query('Promotion')
+
+  timeQueryA.greaterThan('end', new Date(start))
+  timeQueryA.lessThanOrEqualTo('start', new Date(start))
+  timeQueryB.greaterThanOrEqualTo('start', new Date(start))
+  timeQueryB.lessThan('end', new Date(end))
+  timeQueryC.lessThan('start', new Date(end))
+  timeQueryC.greaterThan('end', new Date(end))
+  let timeQuery = AV.Query.or(timeQueryA, timeQueryB, timeQueryC)
+
+  if(region.length === 1) {
+    regionQuery.containsAll('region', region)
+  } else if(region.length === 2) {
+    let regionQueryA = new AV.Query('Promotion')
+    let regionQueryB = new AV.Query('Promotion')
+    let regionQueryC = new AV.Query('Promotion')
+    regionQueryA.containsAll('region', [region[0]])
+    regionQueryC.sizeEqualTo('region', 1)
+    let regionQueryD = AV.Query.and(regionQueryA, regionQueryC)
+    regionQueryB.containsAll('region', region)
+    regionQuery = AV.Query.or(regionQueryD, regionQueryB)
+  } else {
+    throw new AV.Cloud.Error('活动区域参数错误', {code: errno.EINVAL})
+  }
 
   let category = AV.Object.createWithoutData('PromotionCategory', categoryId)
-  categoryQuery.equalTo('category', category)
-  if(region.length === 1) {
-    regionQuery.containedIn('region', region)
-  } else if (region.length ===2) {
+  otherQuery.equalTo('category', category)
 
-  } else {
-    return undefined
-  }
-
-  let query = AV.Query.and(categoryQuery, regionQuery)
+  let query = AV.Query.and(timeQuery, regionQuery, otherQuery)
   let results = await query.find()
-  console.log("results:", results)
-  return results.length > 0? true : false
+  return results.length > 0? true: false
 }
 /**
  * 微信端用户查询有效活动列表
@@ -481,10 +497,10 @@ async function fetchRechargePromRecord(request) {
 }
 
 async function promotionFuncTest(request) {
-  const {currentUser, params, meta} = request
-  const {promotionId, recharge, award} = params
-  await updateRechargePromStat(promotionId, recharge, award)
-  return true
+  const {currentUser, params} = request
+  const {categoryId, start, end, region} = params
+  let result = await isPromotionExist(categoryId, start, end, region)
+  return result
 }
 
 var promotionFunc = {
