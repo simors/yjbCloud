@@ -45,6 +45,7 @@ function constructRechargePromotionInfo(recharge, includePromotion, includeUser)
   rechargepromInfo.userId = rechargepromAttr.user.id
   rechargepromInfo.recharge = rechargepromAttr.recharge
   rechargepromInfo.award = rechargepromAttr.award
+  rechargepromInfo.createdAt = rechargepromAttr.createdAt
   if(includePromotion) {
     rechargepromInfo.promotion = constructPromotionInfo(rechargepromAttr.promotion, false, false)
   }
