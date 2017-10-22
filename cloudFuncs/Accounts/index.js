@@ -13,6 +13,16 @@ import AV from 'leanengine'
 import * as errno from '../errno'
 import moment from 'moment'
 
+const ACCOUNT_TYPE = {
+  INVESTOR: 1,
+  PARTNER: 2
+}
+
+const ERR_LOG_TYPE = {
+  FINISH: 1,
+  UNTREAT: 2
+}
+
 //服务点日结数据构造方法
 function constructStationAccountnInfo(account, includeStation) {
   if (!account) {
@@ -110,25 +120,26 @@ async function selectAmountSumBydeviceId(device, dayInfo) {
     // console.log('device=====>',device)
     // console.log('standbyPowerSum=====>',standbyPowerSum)
     let useTime = 0
-    let orderList = await OrderFunc.getOrders(device.id,dayInfo.yesterday,dayInfo.today)
+    let orderList = await OrderFunc.getOrders(device.id, dayInfo.yesterday, dayInfo.today)
     // let dayInfo = getYesterday()
-    if(orderList&&orderList.length>0){
+    if (orderList && orderList.length > 0) {
       orderList.forEach((order)=> {
-          if (order.amount) {
-            let endTime = new Date(order.endTime)
-            let startTime = new Date(order.createTime)
-            let lastTime = mathjs.round(mathjs.chain(endTime - startTime).multiply(1/3600000).done(), 3)
-            useTime = mathjs.chain(useTime).add(lastTime).done()
-            amountSum = mathjs.chain(amountSum).add(order.amount).done()
-          }
+        if (order.amount) {
+          let endTime = new Date(order.endTime)
+          let startTime = new Date(order.createTime)
+          let lastTime = mathjs.round(mathjs.chain(endTime - startTime).multiply(1 / 3600000).done(), 3)
+          useTime = mathjs.chain(useTime).add(lastTime).done()
+          amountSum = mathjs.chain(amountSum).add(order.amount).done()
+        }
 
       })
     }
     usePowerSum = mathjs.chain(useTime).multiply(device.usePower).done()
-    let standbyPowerSum = mathjs.round(mathjs.chain(device.standbyPower).multiply(24-useTime).done(), 2)
+    let standbyPowerSum = mathjs.round(mathjs.chain(device.standbyPower).multiply(24 - useTime).done(), 2)
     powerSum = mathjs.chain(usePowerSum).add(standbyPowerSum).done()
     return {amountSum: amountSum, powerSum: powerSum}
   } catch (error) {
+    recordAccountError(dayInfo,'生成日结记录失败')
     throw error
   }
 }
@@ -163,6 +174,7 @@ async function createStationAccount(station, dayInfo) {
     let newStationAccount = await createPartnerAccount(accountInfo.id, dayInfo)
     return newStationAccount
   } catch (error) {
+    recordAccountError(dayInfo,'生成日结记录失败')
     throw error
   }
 }
@@ -196,9 +208,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         partnerAccount.set('profitSharing', profitSharing)
         partnerAccount.set('station', station)
         partnerAccount.set('user', user)
-        partnerAccount.set('accountType', 2)
-
-
+        partnerAccount.set('accountType', ACCOUNT_TYPE.PARTNER)
         await partnerAccount.save()
         partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(profit).done(), 2)
       }
@@ -220,7 +230,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         investorAccount.set('profitSharing', profitSharing)
         investorAccount.set('station', station)
         investorAccount.set('user', user)
-        investorAccount.set('accountType', 1)
+        investorAccount.set('accountType', ACCOUNT_TYPE.INVESTOR)
         await investorAccount.save()
       }
     } else {
@@ -230,11 +240,12 @@ async function createPartnerAccount(accountId, dayInfo) {
     stationAccountObject.set('investorProfit', investorProfit)
     stationAccountObject.set('partnerProfit', partnerProfit)
     stationAccountObject.set('platformProfit', platfomProfit)
-    let stationInfo = await stationAccountObject.save(null,{fetchWhenSave: true})
+    let stationInfo = await stationAccountObject.save(null, {fetchWhenSave: true})
     let queryNewStation = new AV.Query('StationAccount')
     let newStationInfo = queryNewStation.get(stationInfo.id)
     return newStationInfo
   } catch (err) {
+    recordAccountError(dayInfo,'生成日结记录失败')
     throw err
   }
 
@@ -251,9 +262,9 @@ async function createStationDayAccount() {
   let lastTime = undefined
   let dayInfo = getYesterday()
   try {
-    while(1){
+    while (1) {
       let stationList = await StationFuncs.getStations(lastTime)
-      if(stationList.length<1){
+      if (stationList.length < 1) {
         break
       }
       for (let i = 0; i < stationList.length; i++) {
@@ -266,7 +277,7 @@ async function createStationDayAccount() {
         partnerProfit = mathjs.chain(partnerProfit).add(attr.partnerProfit).done()
         investorProfit = mathjs.chain(investorProfit).add(attr.investorProfit).done()
       }
-      lastTime = stationList[stationList.length-1].createdAt
+      lastTime = stationList[stationList.length - 1].createdAt
     }
 
     let DayAccount = AV.Object.extend('DayAccountSum')
@@ -280,6 +291,7 @@ async function createStationDayAccount() {
     dayAccount.set('accountDay', new Date(dayInfo.yesterday))
     await dayAccount.save()
   } catch (error) {
+    recordAccountError(dayInfo,'生成日结记录失败')
     throw error
   }
 }
@@ -453,10 +465,25 @@ async function getPartnerAccounts(request, response) {
  * @param {}
  */
 async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) {
-  let query = new AV.Query('AccountProfit')
+  let query = undefined
   let lastCreatedAt = undefined
   let profit = 0
-  query.equalTo('accountType', 2)
+  if (startDate && !endDate) {
+    query = new AV.Query('AccountProfit')
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
+  } else if (!endDate && startDate) {
+    query = new AV.Query('AccountProfit')
+    query.lessThan('accountDay', new Date(endDate))
+  } else if (startDate && endDate) {
+    let startQuery = new AV.Query('AccountProfit')
+    let endQuery = new AV.Query('AccountProfit')
+    startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
+    endQuery.lessThan('payTime', new Date(endDate))
+    query = AV.Query.and(startQuery, endQuery)
+  } else {
+    query = new AV.Query('AccountProfit')
+  }
+  query.equalTo('accountType', ACCOUNT_TYPE.PARTNER)
   if (partnerId) {
     let partner = AV.Object.createWithoutData('_User', partnerId)
     query.equalTo('user', partner)
@@ -464,15 +491,6 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
   if (stationId) {
     let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
-  }
-  if (startDate) {
-    // console.log('startDate+=======>',new Date(new Date(startDate)-1000))
-    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  }
-  if (endDate) {
-    // console.log('startDate+=======>',new Date(endDate))
-
-    query.lessThan('accountDay', new Date(endDate))
   }
   query.include(['station', 'station.admin', 'user'])
   query.limit(1000)
@@ -555,10 +573,25 @@ async function getInvestorAccounts(request, response) {
  * @param {}
  */
 async function getAccountsByInvestorId(investorId, stationId, startDate, endDate) {
-  let query = new AV.Query('AccountProfit')
+  let query = undefined
   let lastCreatedAt = undefined
   let profit = 0
-  query.equalTo('accountType', 1)
+  if (startDate && !endDate) {
+    query = new AV.Query('AccountProfit')
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
+  } else if (!endDate && startDate) {
+    query = new AV.Query('AccountProfit')
+    query.lessThan('accountDay', new Date(endDate))
+  } else if (startDate && endDate) {
+    let startQuery = new AV.Query('AccountProfit')
+    let endQuery = new AV.Query('AccountProfit')
+    startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
+    endQuery.lessThan('payTime', new Date(endDate))
+    query = AV.Query.and(startQuery, endQuery)
+  } else {
+    query = new AV.Query('AccountProfit')
+  }
+  query.equalTo('accountType', ACCOUNT_TYPE.INVESTOR)
   if (investorId) {
     let investor = AV.Object.createWithoutData('_User', investorId)
     query.equalTo('user', investor)
@@ -567,15 +600,6 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
     let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
   }
-  if (startDate) {
-    // console.log('startDate+=======>',new Date(new Date(startDate)-1000))
-    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  }
-  if (endDate) {
-    // console.log('startDate+=======>',new Date(endDate))
-
-    query.lessThan('accountDay', new Date(endDate))
-  }
   query.include(['station', 'station.admin', 'user'])
   query.limit(1000)
   query.descending('createdAt')
@@ -583,7 +607,6 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
   try {
     while (1) {
       if (lastCreatedAt) {
-        // console.log('lastCreatedAt======>',new Date(lastCreatedAt))
         query.lessThan('createdAt', new Date(lastCreatedAt))
       }
       let accounts = await query.find()
@@ -605,7 +628,6 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
     } else {
       return accountInfo
     }
-    // console.log('accountInfo=======>',accountInfo)
   } catch (error) {
     console.log("getAccounts", error)
     throw error
@@ -623,19 +645,19 @@ async function getStationAccountsDetail(request, response) {
   let lastCreatedAt = request.params.lastCreatedAt
   let query = undefined
 
-  if (startDate&&!endDate) {
+  if (startDate && !endDate) {
     query = new AV.Query('StationAccount')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  }else if (!endDate&&startDate) {
+  } else if (!endDate && startDate) {
     query = new AV.Query('StationAccount')
     query.lessThan('accountDay', new Date(endDate))
-  }else if (startDate && endDate){
+  } else if (startDate && endDate) {
     let startQuery = new AV.Query('StationAccount')
     let endQuery = new AV.Query('StationAccount')
     startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
     endQuery.lessThan('payTime', new Date(endDate))
-    query = AV.Query.and(startQuery,endQuery)
-  }else{
+    query = AV.Query.and(startQuery, endQuery)
+  } else {
     query = new AV.Query('StationAccount')
   }
   if (stationId) {
@@ -672,19 +694,19 @@ async function getPartnerAccountsDetail(request, response) {
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
   let query = undefined
-  if (startDate&&!endDate) {
+  if (startDate && !endDate) {
     query = new AV.Query('AccountProfit')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  }else if (!endDate&&startDate) {
+  } else if (!endDate && startDate) {
     query = new AV.Query('AccountProfit')
     query.lessThan('accountDay', new Date(endDate))
-  }else if (startDate && endDate){
+  } else if (startDate && endDate) {
     let startQuery = new AV.Query('AccountProfit')
     let endQuery = new AV.Query('AccountProfit')
     startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
     endQuery.lessThan('payTime', new Date(endDate))
-    query = AV.Query.and(startQuery,endQuery)
-  }else{
+    query = AV.Query.and(startQuery, endQuery)
+  } else {
     query = new AV.Query('AccountProfit')
   }
   if (userId) {
@@ -704,7 +726,7 @@ async function getPartnerAccountsDetail(request, response) {
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
-  query.equalTo('accountType',2)
+  query.equalTo('accountType', ACCOUNT_TYPE.PARTNER)
   query.descending('createdAt')
   query.include(['station', 'user'])
   try {
@@ -732,19 +754,19 @@ async function getInvestorAccountsDetail(request, response) {
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
   let query = undefined
-  if (startDate&&!endDate) {
+  if (startDate && !endDate) {
     query = new AV.Query('AccountProfit')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  }else if (!endDate&&startDate) {
+  } else if (!endDate && startDate) {
     query = new AV.Query('AccountProfit')
     query.lessThan('accountDay', new Date(endDate))
-  }else if (startDate && endDate){
+  } else if (startDate && endDate) {
     let startQuery = new AV.Query('AccountProfit')
     let endQuery = new AV.Query('AccountProfit')
     startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
     endQuery.lessThan('payTime', new Date(endDate))
-    query = AV.Query.and(startQuery,endQuery)
-  }else{
+    query = AV.Query.and(startQuery, endQuery)
+  } else {
     query = new AV.Query('AccountProfit')
   }
   if (userId) {
@@ -764,7 +786,7 @@ async function getInvestorAccountsDetail(request, response) {
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
-  query.equalTo('accountType',1)
+  query.equalTo('accountType', ACCOUNT_TYPE.INVESTOR)
   query.descending('createdAt')
   query.include(['station', 'user'])
   try {
@@ -841,7 +863,7 @@ async function statInvestorProfit(user, startDate, endDate) {
   let query = AV.Query.and(beginQuery, endQuery)
   query.ascending('accountDay')
   query.equalTo('user', user)
-  query.equalTo('accountType',1)
+  query.equalTo('accountType', 1)
   query.include('station')
   let result = await query.find()
   let investorProfits = []
@@ -949,6 +971,21 @@ async function reqStatLast30DaysPartnerProfit(request) {
   return statPartnerProfit(currentUser, startDate, endDate)
 }
 
+async function recordAccountError(dayInfo, errorInfo) {
+  let ErrorInfo = AV.Object.extend('AccountErrLog')
+  let errorLogInfo = new ErrorInfo()
+  errorLogInfo.set('accountDay',new Date(dayInfo.yesterday))
+  errorLogInfo.set('errorType', ERR_LOG_TYPE.UNTREAT)
+  errorLogInfo.set('errorInfo', errorInfo)
+  await errorLogInfo.save()
+  return true
+}
+
+async function accountTestFunc(req) {
+  let dayInfo = getYesterday()
+  await recordAccountError(dayInfo,'ceshiyixia')
+  return
+}
 var accountFunc = {
   getYesterday: getYesterday,
   createStationDayAccount: createStationDayAccount,
@@ -964,6 +1001,7 @@ var accountFunc = {
   reqStatInvestorProfit,
   reqStatPartnerProfit,
   reqStatLast30DaysPartnerProfit,
+  accountTestFunc: accountTestFunc
 }
 
 module.exports = accountFunc
