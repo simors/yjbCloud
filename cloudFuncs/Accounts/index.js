@@ -135,12 +135,10 @@ async function selectAmountSumBydeviceId(device, dayInfo) {
 
 //查询单个服务点当天收益并生成日结数据插入Account表中
 async function createStationAccount(station, dayInfo) {
-  // console.log('station======>', station)
   let amountSum = 0
   let cost = 0
   let powerSum = 0
   let profit = 0
-  // let station = station
   try {
     let deviceList = await DeviceFuncs.getDevices(station.id)
     for (let i = 0; i < deviceList.length; i++) {
@@ -163,7 +161,6 @@ async function createStationAccount(station, dayInfo) {
     let query = new AV.Query('StationAccount')
 
     let newStationAccount = await createPartnerAccount(accountInfo.id, dayInfo)
-    // console.log('newStation=====>',newStation)
     return newStationAccount
   } catch (error) {
     throw error
@@ -172,17 +169,15 @@ async function createStationAccount(station, dayInfo) {
 
 //根据服务点日结数据生成分成方和投资人日结数据
 async function createPartnerAccount(accountId, dayInfo) {
+  let partnerProfit = 0
+  let investorProfit = 0
   try {
     let queryAccount = new AV.Query('StationAccount')
     queryAccount.include(['station'])
-    let partnerProfit = 0
-    let investorProfit = 0
     // let dayInfo = getYesterday()
     let stationAccount = await queryAccount.get(accountId)
     let stationAccountInfo = constructStationAccountnInfo(stationAccount, true)
-    // console.log('hahahahahahahah here is true',stationAccountInfo.profit,stationAccountInfo.station.platformProp)
     let platfomProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(stationAccountInfo.station.platformProp).done(), 2)
-    // console.log('stationAccountInfo=====>',stationAccountInfo.stationId)
     let station = AV.Object.createWithoutData('Station', stationAccountInfo.stationId)
     let stationAccountObject = AV.Object.createWithoutData('StationAccount', accountId)
     let partnerList = await StationFuncs.getPartnerByStationId(stationAccountInfo.stationId)
@@ -233,7 +228,9 @@ async function createPartnerAccount(accountId, dayInfo) {
     stationAccountObject.set('partnerProfit', partnerProfit)
     stationAccountObject.set('platformProfit', platfomProfit)
     let stationInfo = await stationAccountObject.save(null,{fetchWhenSave: true})
-    return stationInfo
+    let queryNewStation = new AV.Query('StationAccount')
+    let newStationInfo = queryNewStation.get(stationInfo.id)
+    return newStationInfo
   } catch (err) {
     throw err
   }
@@ -249,15 +246,13 @@ async function createStationDayAccount() {
   let partnerProfit = 0
   let investorProfit = 0
   let lastTime = undefined
-
-
+  let dayInfo = getYesterday()
   try {
     while(1){
       let stationList = await StationFuncs.getStations(lastTime)
       if(stationList.length<1){
         break
       }
-      let dayInfo = getYesterday()
       for (let i = 0; i < stationList.length; i++) {
         let stationAccount = await createStationAccount(stationList[i], dayInfo)
         let attr = stationAccount.attributes
