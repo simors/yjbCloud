@@ -36,7 +36,7 @@ function updateUserDealRecords(conn, deal) {
   var transaction_no = deal.transaction_no || ''
   var feeAmount = deal.feeAmount || 0
   var recordSql = 'INSERT INTO `DealRecords` (`from`, `to`, `cost`, `deal_type`, `charge_id`, `order_no`, `channel`, `transaction_no`, `fee`, `promotion_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  return mysqlUtil.query(conn, recordSql, [deal.from, deal.to, deal.cost, deal.deal_type, charge_id, order_no, channel, transaction_no, feeAmount, '--']).then(() => {
+  return mysqlUtil.query(conn, recordSql, [deal.from, deal.to, deal.cost, deal.deal_type, charge_id, order_no, channel, transaction_no, feeAmount, deal.metadata.promotionId || '']).then(() => {
     if(deal.deal_type === DEAL_TYPE_RECHARGE && deal.metadata.promotionId && deal.metadata.award > 0) {
       let present_order_no = uuidv4().replace(/-/g, '').substr(0, 16) //充值赠送新生产一个订单号
       return mysqlUtil.query(conn, recordSql, [deal.to, deal.from, deal.metadata.award, DEAL_TYPE_SYS_PRESENT, charge_id, present_order_no, channel, transaction_no, feeAmount, deal.metadata.promotionId])
@@ -364,6 +364,7 @@ async function handleRechargeDeal(deal) {
     await mpMsgFuncs.sendRechargeTmpMsg(deal.openid, deal.cost, userWalletInfo.balance, userWalletInfo.score, new Date(deal.payTime * 1000), deal.deal_type)
     if(deal.metadata.promotionId) {
       await promotionFunc.updateRechargePromStat(deal.metadata.promotionId, deal.cost, deal.metadata.award)
+      await promotionFunc.addRechargePromRecord(deal.metadata.promotionId, deal.from, deal.cost, deal.metadata.award)
     }
   } catch (error) {
     console.error(error)

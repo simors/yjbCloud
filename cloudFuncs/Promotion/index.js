@@ -10,6 +10,7 @@ import moment from 'moment'
 import utilFunc from '../Util'
 
 var Promotion = AV.Object.extend('Promotion')
+var RechargePromotion = AV.Object.extend('RechargePromotion')
 
 function constructCategoryInfo(category) {
   if(!category) {
@@ -26,6 +27,32 @@ function constructCategoryInfo(category) {
   categoryInfo.createdAt = category.createdAt
 
   return categoryInfo
+}
+
+function constructRechargePromotionInfo(recharge, includePromotion, includeUser) {
+  let constructUserInfo = require('../Auth').constructUserInfo
+
+  if(!recharge) {
+    return undefined
+  }
+  let rechargepromInfo = {}
+  let rechargepromAttr = recharge.attributes
+  if(!rechargepromAttr) {
+    return undefined
+  }
+  rechargepromInfo.id = recharge.id
+  rechargepromInfo.promotionId = rechargepromAttr.promotion.id
+  rechargepromInfo.userId = rechargepromAttr.user.id
+  rechargepromInfo.recharge = rechargepromAttr.recharge
+  rechargepromInfo.award = rechargepromAttr.award
+  if(includePromotion) {
+    rechargepromInfo.promotion = constructPromotionInfo(rechargepromAttr.promotion, false, false)
+  }
+  if(includeUser) {
+    rechargepromInfo.user = constructUserInfo(rechargepromAttr.user)
+  }
+
+  return rechargepromInfo
 }
 
 function constructPromotionInfo(promotion, includeCategory, includeUser) {
@@ -378,6 +405,80 @@ async function updateRechargePromStat(promotionId, recharge, award) {
   return result
 }
 
+/**
+ * 增加充值活动记录
+ * @param {String} promotionId     活动id
+ * @param {String} userId          用户id
+ * @param {Number} recharge        充值金额
+ * @param {Number} award           赠送金额
+ */
+async function addRechargePromRecord(promotionId, userId, recharge, award) {
+  if(!promotionId || !userId || !recharge || !award) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let rechargePromotion = new RechargePromotion()
+  let promotion = AV.Object.createWithoutData('Promotion', promotionId)
+  let user = AV.Object.createWithoutData('_User', userId)
+  rechargePromotion.set('promotion', promotion)
+  rechargePromotion.set('user', user)
+  rechargePromotion.set('recharge', recharge)
+  rechargePromotion.set('award', award)
+  return await rechargePromotion.save()
+}
+
+/**
+ * 分页查询充值奖励活动记录
+ * @param request
+ */
+async function fetchRechargePromRecord(request) {
+  const {currentUser, params} = request
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  const {promotionId, lastCreatedAt, limit, isRefresh, start, end, mobilePhoneNumber} = params
+
+  if(!promotionId) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+
+  let startQuery = new AV.Query('RechargePromotion')
+  let endQuery = new AV.Query('RechargePromotion')
+  let otherQuery = new AV.Query('RechargePromotion')
+  let rechargeRecordList = []
+
+  if(start) {
+    startQuery.greaterThanOrEqualTo('createdAt', new Date(start))
+  }
+  if(end) {
+    endQuery.lessThan('createdAt', new Date(end))
+  }
+  if(!isRefresh && lastCreatedAt) {
+    otherQuery.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+  if(mobilePhoneNumber) {
+    let userQuery = new AV.Query('_User')
+    userQuery.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+    let user = await userQuery.first()
+    if(!user) {
+      return rechargeRecordList
+    }
+    otherQuery.equalTo('user', user)
+  }
+  let promotion = AV.Object.createWithoutData('Promotion', promotionId)
+  otherQuery.equalTo('promotion', promotion)
+
+  let query = AV.Query.and(startQuery, endQuery, otherQuery)
+  query.include('user')
+  query.limit(limit || 10)
+  query.descending('createdAt')
+
+  let results = await query.find()
+  results.forEach((record) => {
+    rechargeRecordList.push(constructRechargePromotionInfo(record, false, true))
+  })
+  return rechargeRecordList
+}
+
 async function promotionFuncTest(request) {
   const {currentUser, params, meta} = request
   const {promotionId, recharge, award} = params
@@ -394,6 +495,8 @@ var promotionFunc = {
   editPromotion: editPromotion,
   getValidPromotionList: getValidPromotionList,
   updateRechargePromStat: updateRechargePromStat,
+  addRechargePromRecord: addRechargePromRecord,
+  fetchRechargePromRecord: fetchRechargePromRecord,
 }
 
 module.exports = promotionFunc

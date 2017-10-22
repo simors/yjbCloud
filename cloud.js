@@ -73,6 +73,7 @@ AV.Cloud.define('promFetchPromotions', promotionFunc.fetchPromotions)
 AV.Cloud.define('promFetchPromotionCategoryList', promotionFunc.fetchPromotionCategoryList)
 AV.Cloud.define('promEditPromotion', promotionFunc.editPromotion)
 AV.Cloud.define('promGetValidPromotionList', promotionFunc.getValidPromotionList)
+AV.Cloud.define('promFetchRechargePromRecord', promotionFunc.fetchRechargePromRecord)
 AV.Cloud.define('promotionFuncTest', promotionFunc.promotionFuncTest)
 
 //支付
