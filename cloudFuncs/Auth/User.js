@@ -149,7 +149,7 @@ async function authListAdminUsers(req) {
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
 
-  const {skip=0, limit=10, idName, mobilePhoneNumber, roles, status} = params;
+  const {skip=0, limit=10, nickname, mobilePhoneNumber, roles, status} = params;
 
   const jsonUsers = [];
 
@@ -158,9 +158,9 @@ async function authListAdminUsers(req) {
   cql += ' where (type=? or type=?)';
   values.push('admin');
   values.push('both');
-  if (idName) {
-    cql += ' and idName=?';
-    values.push(idName);
+  if (nickname) {
+    cql += ' and nickname=?';
+    values.push(nickname);
   }
   if (mobilePhoneNumber) {
     cql += ' and mobilePhoneNumber=?';
