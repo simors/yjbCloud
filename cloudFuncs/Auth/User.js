@@ -96,11 +96,11 @@ async function authListEndUsers(req) {
     values.push(mobilePhoneNumber);
   }
   if (province) {
-    cql += ' and province=?';
+    cql += ' and province.value=?';
     values.push(province);
   }
   if (city) {
-    cql += ' and city=?';
+    cql += ' and city.value=?';
     values.push(city);
   }
   if (status) {
