@@ -10,6 +10,7 @@ var dateFormat = require('dateformat')
 var mathjs = require('mathjs')
 var mpMsgFuncs = require('../../mpFuncs/Message')
 import promotionFunc from '../Promotion'
+import profitFunc from '../Profit'
 
 // 交易类型定义
 const DEAL_TYPE_DEPOSIT = 1                // 押金
@@ -462,6 +463,7 @@ async function transferEvent(request) {
       }
       case DEAL_TYPE_WITHDRAW:
       {
+        await handleWithdrawDeal(deal)
         break
       }
       default:
@@ -483,6 +485,29 @@ async function handleRefundDeal(deal) {
     await mysqlUtil.beginTransaction(mysqlConn)
     await updateUserDealRecords(mysqlConn, deal)
     await updateWalletInfo(mysqlConn, deal)
+    await mysqlUtil.commit(mysqlConn)
+  } catch (error) {
+    if(mysqlConn) {
+      await mysqlUtil.rollback(mysqlConn)
+    }
+    throw error
+  } finally {
+    if(mysqlConn) {
+      await mysqlUtil.release(mysqlConn)
+    }
+  }
+}
+
+async function handleWithdrawDeal(deal) {
+  if(!deal) {
+    return undefined
+  }
+  let mysqlConn = undefined
+  try {
+    mysqlConn = await mysqlUtil.getConnection()
+    await mysqlUtil.beginTransaction(mysqlConn)
+    await updateUserDealRecords(mysqlConn, deal)
+    await profitFunc.decAdminProfit(mysqlConn, deal.to, deal.cost)
     await mysqlUtil.commit(mysqlConn)
   } catch (error) {
     if(mysqlConn) {

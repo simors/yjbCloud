@@ -113,16 +113,16 @@ async function incAdminProfit(userId, type, profit) {
 }
 
 /**
- * 减少用户收益余额，通常在用户取现时调用此方法
+ * 减少用户收益余额，通常在用户取现时调用此方法。
+ * 外部调用此方法必须创建数据库事务，将数据连接直接作为参数传人此方法
+ * @param conn
  * @param userId
  * @param profit
  * @returns {Function|results|Array}
  */
-async function decAdminProfit(userId, profit) {
-  let conn = undefined
+async function decAdminProfit(conn, userId, profit) {
   try {
     let sql = 'UPDATE `AdminProfit` SET `balance`=`balance`-? WHERE `userId`=?'
-    conn = await mysqlUtil.getConnection()
     let updateRes = await mysqlUtil.query(conn, sql, [profit, userId])
     if (0 == updateRes.results.changedRows) {
       throw new AV.Cloud.Error('increment admin profit error', {code: errno.EIO})
@@ -130,10 +130,6 @@ async function decAdminProfit(userId, profit) {
     return updateRes.results
   } catch (e) {
     throw e
-  } finally {
-    if (conn) {
-      await mysqlUtil.release(conn)
-    }
   }
 }
 
