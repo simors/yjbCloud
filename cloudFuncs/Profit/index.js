@@ -81,6 +81,9 @@ async function createAdminProfit(conn, userId) {
  */
 async function incAdminProfit(userId, type, profit) {
   let conn = undefined
+  if (profit == 0) {
+    return undefined
+  }
   try {
     let sql = 'UPDATE `AdminProfit` SET `balance`=`balance`+?, '
     if (type === EARN_TYPE.INVEST_EARN) {
@@ -121,6 +124,9 @@ async function incAdminProfit(userId, type, profit) {
  * @returns {Function|results|Array}
  */
 async function decAdminProfit(conn, userId, profit) {
+  if (profit == 0) {
+    return undefined
+  }
   try {
     let sql = 'UPDATE `AdminProfit` SET `balance`=`balance`-? WHERE `userId`=?'
     let updateRes = await mysqlUtil.query(conn, sql, [profit, userId])
