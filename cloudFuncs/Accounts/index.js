@@ -119,11 +119,8 @@ async function selectAmountSumBydeviceId(device, dayInfo) {
   let powerSum = 0
   let amountSum = 0
   try {
-    // console.log('device=====>',device)
-    // console.log('standbyPowerSum=====>',standbyPowerSum)
     let useTime = 0
     let orderList = await OrderFunc.getOrders(device.id, dayInfo.yesterday, dayInfo.today)
-    // let dayInfo = getYesterday()
     if (orderList && orderList.length > 0) {
       orderList.forEach((order)=> {
         if (order.amount) {
@@ -141,7 +138,6 @@ async function selectAmountSumBydeviceId(device, dayInfo) {
     powerSum = mathjs.chain(usePowerSum).add(standbyPowerSum).done()
     return {amountSum: amountSum, powerSum: powerSum}
   } catch (error) {
-    recordAccountError(dayInfo,'生成日结记录失败')
     throw error
   }
 }
@@ -159,7 +155,6 @@ async function createStationAccount(station, dayInfo) {
       amountSum = mathjs.round(mathjs.chain(amountSum).add(result.amountSum).done(), 2)
       powerSum = mathjs.round(mathjs.chain(powerSum).add(result.powerSum).done(), 2)
     }
-    // console.log('amountSum===>', amountSum)
     let stationInfo = AV.Object.createWithoutData('Station', station.id)
     let Account = AV.Object.extend('StationAccount')
     let account = new Account()
@@ -174,7 +169,6 @@ async function createStationAccount(station, dayInfo) {
     let newStationAccount = await createPartnerAccount(accountInfo.id, dayInfo)
     return newStationAccount
   } catch (error) {
-    recordAccountError(dayInfo,'生成日结记录失败')
     throw error
   }
 }
@@ -186,7 +180,6 @@ async function createPartnerAccount(accountId, dayInfo) {
   try {
     let queryAccount = new AV.Query('StationAccount')
     queryAccount.include(['station'])
-    // let dayInfo = getYesterday()
     let stationAccount = await queryAccount.get(accountId)
     let stationAccountInfo = constructStationAccountnInfo(stationAccount, true)
     let platfomProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(stationAccountInfo.station.platformProp).done(), 2)
@@ -194,7 +187,6 @@ async function createPartnerAccount(accountId, dayInfo) {
     let stationAccountObject = AV.Object.createWithoutData('StationAccount', accountId)
     let partnerList = await StationFuncs.getPartnerByStationId(stationAccountInfo.stationId)
     if (partnerList && partnerList.length > 0) {
-      // console.log('partnerList====>',partnerList)
       for (let i = 0; i < partnerList.length; i++) {
         let partner = partnerList[i]
         let user = AV.Object.createWithoutData('_User', partner.shareholderId)
@@ -210,14 +202,13 @@ async function createPartnerAccount(accountId, dayInfo) {
         partnerAccount.set('user', user)
         partnerAccount.set('accountType', ACCOUNT_TYPE.PARTNER_ACCOUNT)
         await partnerAccount.save()
-        ProfitFuncs.incAdminProfit(partner.shareholderId,ACCOUNT_TYPE.PARTNER_ACCOUNT,profit)
+        await ProfitFuncs.incAdminProfit(partner.shareholderId,ACCOUNT_TYPE.PARTNER_ACCOUNT,profit)
         partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(profit).done(), 2)
       }
     }
     let investorList = await StationFuncs.getInvestorByStationId(stationAccountInfo.stationId)
     investorProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).subtract(platfomProfit).subtract(partnerProfit).done(), 2)
     if (investorList && investorList.length > 0) {
-      // console.log('investorList====>',investorList)
       for (let i = 0; i < investorList.length; i++) {
         let investor = investorList[i]
         let user = AV.Object.createWithoutData('_User', investor.shareholderId)
@@ -233,7 +224,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         investorAccount.set('user', user)
         investorAccount.set('accountType', ACCOUNT_TYPE.INVESTOR_ACCOUNT)
         await investorAccount.save()
-        ProfitFuncs.incAdminProfit(investor.shareholderId,ACCOUNT_TYPE.INVESTOR_ACCOUNT,profit)
+        await ProfitFuncs.incAdminProfit(investor.shareholderId,ACCOUNT_TYPE.INVESTOR_ACCOUNT,profit)
       }
     } else {
       investorProfit = 0
@@ -247,7 +238,6 @@ async function createPartnerAccount(accountId, dayInfo) {
     let newStationInfo = queryNewStation.get(stationInfo.id)
     return newStationInfo
   } catch (err) {
-    recordAccountError(dayInfo,'生成日结记录失败')
     throw err
   }
 
@@ -294,8 +284,8 @@ async function createStationDayAccount() {
     await dayAccount.save()
     return true
   } catch (error) {
+    console.log('error--------------->',error.message)
     recordAccountError(dayInfo,'生成日结记录失败')
-    throw error
   }
 }
 
@@ -327,26 +317,15 @@ async function getStationAccounts(request, response) {
   if (stationId) {
     query.equalTo('objectId', stationId)
   }
-  // if(startDate){
-  //   query.greaterThanOrEqualTo('accountDay',new Date(startDate))
-  // }
-  // if(endDate){
-  //   query.lessThanOrEqualTo('accountDay',new Date(endDate))
-  // }
-  // query.include(['station','station.admin'])
   try {
     let stations = await query.find()
     let accountList = []
-    // console.log('station.length====>',stations.length)
     for (let i = 0; i < stations.length; i++) {
       let account = await getAccountByStationId(stations[i].id, startDate, endDate)
-      // console.log('account=========>',account)
       if (account && account.stationId) {
         accountList.push(account)
       }
     }
-    // stations.forEach((station)=>{
-    // })
     response.success({accountList: accountList})
   } catch (error) {
     throw error
@@ -369,12 +348,9 @@ async function getAccountByStationId(stationId, startDate, endDate) {
     query.equalTo('station', station)
   }
   if (startDate) {
-    // console.log('startDate+=======>',new Date(new Date(startDate)-1000))
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
   }
   if (endDate) {
-    // console.log('startDate+=======>',new Date(endDate))
-
     query.lessThan('accountDay', new Date(endDate))
   }
   query.include(['station', 'station.admin'])
@@ -384,16 +360,13 @@ async function getAccountByStationId(stationId, startDate, endDate) {
   try {
     while (1) {
       if (lastCreatedAt) {
-        // console.log('lastCreatedAt======>',new Date(lastCreatedAt))
         query.lessThan('createdAt', new Date(lastCreatedAt))
       }
       let accounts = await query.find()
-      console.log('accounts.length=====>', accounts.length, stationId)
       if (accounts.length < 1) {
         break
       }
       accounts.forEach((account) => {
-        // console.log('account.attributes.========>', account.attributes)
         if (account) {
           incoming = mathjs.round(mathjs.chain(incoming).add(account.attributes.incoming).done(), 2)
           profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(), 2)
@@ -417,7 +390,6 @@ async function getAccountByStationId(stationId, startDate, endDate) {
     } else {
       return accountInfo
     }
-    // console.log('accountInfo=======>',accountInfo)
   } catch (error) {
     console.log("getAccounts", error)
     throw error
@@ -437,26 +409,15 @@ async function getPartnerAccounts(request, response) {
   if (userId) {
     query.equalTo('objectId', userId)
   }
-  // if(startDate){
-  //   query.greaterThanOrEqualTo('accountDay',new Date(startDate))
-  // }
-  // if(endDate){
-  //   query.lessThanOrEqualTo('accountDay',new Date(endDate))
-  // }
-  // query.include(['station','station.admin'])
   try {
     let partners = await query.find()
     let accountList = []
-    // console.log('station.length====>',stations.length)
     for (let i = 0; i < partners.length; i++) {
       let account = await getAccountsByPartnerId(partners[i].id, stationId, startDate, endDate)
-      // console.log('account=========>',account)
       if (account && account.stationId) {
         accountList.push(account)
       }
     }
-    // stations.forEach((station)=>{
-    // })
     response.success({accountList: accountList})
   } catch (error) {
     throw error
@@ -502,7 +463,6 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
   try {
     while (1) {
       if (lastCreatedAt) {
-        // console.log('lastCreatedAt======>',new Date(lastCreatedAt))
         query.lessThan('createdAt', new Date(lastCreatedAt))
       }
       let accounts = await query.find()
@@ -510,7 +470,6 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
         break
       }
       accounts.forEach((account) => {
-        // console.log('account.attributes.========>', account.attributes)
         if (account) {
           profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(), 2)
           accountInfo = constructAccountProfit(account, true, true)
@@ -524,7 +483,6 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
     } else {
       return accountInfo
     }
-    // console.log('accountInfo=======>',accountInfo)
   } catch (error) {
     console.log("getAccounts", error)
     throw error
@@ -545,26 +503,15 @@ async function getInvestorAccounts(request, response) {
   if (userId) {
     query.equalTo('objectId', userId)
   }
-  // if(startDate){
-  //   query.greaterThanOrEqualTo('accountDay',new Date(startDate))
-  // }
-  // if(endDate){
-  //   query.lessThanOrEqualTo('accountDay',new Date(endDate))
-  // }
-  // query.include(['station','station.admin'])
   try {
     let partners = await query.find()
     let accountList = []
-    // console.log('station.length====>',stations.length)
     for (let i = 0; i < partners.length; i++) {
       let account = await getAccountsByInvestorId(partners[i].id, stationId, startDate, endDate)
-      // console.log('account=========>',account)
       if (account && account.stationId) {
         accountList.push(account)
       }
     }
-    // stations.forEach((station)=>{
-    // })
     response.success({accountList: accountList})
   } catch (error) {
     throw error
@@ -617,7 +564,6 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
         break
       }
       accounts.forEach((account) => {
-        // console.log('account.attributes.========>', account.attributes)
         if (account) {
           profit = mathjs.round(mathjs.chain(profit).add(account.attributes.profit).done(), 2)
           accountInfo = constructAccountProfit(account, true, true)
@@ -678,7 +624,6 @@ async function getStationAccountsDetail(request, response) {
     accounts.forEach((account)=> {
       accountList.push(constructStationAccountnInfo(account, true))
     })
-    console.log('accountList.length======>', accountList.length)
     response.success(accountList)
   } catch (error) {
     response.error(error)
@@ -738,7 +683,6 @@ async function getPartnerAccountsDetail(request, response) {
     accounts.forEach((account)=> {
       accountList.push(constructAccountProfit(account, true, true))
     })
-    console.log('accountList.length======>', accountList.length)
     response.success(accountList)
   } catch (error) {
     response.error(error)
@@ -798,7 +742,6 @@ async function getInvestorAccountsDetail(request, response) {
     accounts.forEach((account)=> {
       accountList.push(constructAccountProfit(account, true, true))
     })
-    console.log('accountList.length======>', accountList.length)
     response.success(accountList)
   } catch (error) {
     response.error(error)

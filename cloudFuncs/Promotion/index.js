@@ -8,6 +8,12 @@ import Promise from 'bluebird'
 import GLOBAL_CONFIG from '../../config'
 import moment from 'moment'
 import utilFunc from '../Util'
+import mathjs from 'mathjs'
+
+//营销活动类型
+const PROMOTION_CATEGORY_TYPE_RECHARGE = 1        //充值奖励
+const PROMOTION_CATEGORY_TYPE_SCORE = 2           //积分活动
+const PROMOTION_CATEGORY_TYPE_REDENVELOPE = 3     //随机红包
 
 var Promotion = AV.Object.extend('Promotion')
 var RechargePromotion = AV.Object.extend('RechargePromotion')
@@ -24,6 +30,7 @@ function constructCategoryInfo(category) {
   categoryInfo.id = category.id
   categoryInfo.title = categoryAttr.title
   categoryInfo.description = categoryAttr.description
+  categoryInfo.type = categoryAttr.type
   categoryInfo.createdAt = category.createdAt
 
   return categoryInfo
@@ -146,6 +153,15 @@ async function createPromotion(request) {
     {
       initStat = {
         participant: 0,       //参与量
+      }
+      break
+    }
+    case '随机红包':
+    {
+      initStat = {
+        participant: 0,       //参与量
+        winAmount:0,          //中奖总金额
+        winCount:0,           //中奖量
       }
       break
     }
@@ -400,9 +416,9 @@ async function getValidPromotionList(request) {
 
 /**
  * 更新充值奖励活动统计数据
- * @param promotionId       活动id
- * @param recharge          充值金额
- * @param award             奖励金额
+ * @param {String} promotionId     活动id
+ * @param {Number} recharge        充值金额
+ * @param {Number} award           赠送金额
  */
 async function updateRechargePromStat(promotionId, recharge, award) {
   if(!promotionId || !recharge || !award) {
@@ -415,8 +431,8 @@ async function updateRechargePromStat(promotionId, recharge, award) {
   let leanPromotion = await promotion.fetch()
   let stat = leanPromotion.attributes.stat
   stat.participant = stat.participant + 1
-  stat.rechargeAmount = stat.rechargeAmount + recharge
-  stat.awardAmount = stat.awardAmount + award
+  stat.rechargeAmount = mathjs.chain(stat.rechargeAmount).add(recharge).done()
+  stat.awardAmount = mathjs.chain(stat.awardAmount).add(award).done()
   leanPromotion.set('stat', stat)
   let result = await leanPromotion.save()
   return result
@@ -438,8 +454,8 @@ async function addRechargePromRecord(promotionId, userId, recharge, award) {
   let user = AV.Object.createWithoutData('_User', userId)
   rechargePromotion.set('promotion', promotion)
   rechargePromotion.set('user', user)
-  rechargePromotion.set('recharge', recharge)
-  rechargePromotion.set('award', award)
+  rechargePromotion.set('recharge', Number(recharge))
+  rechargePromotion.set('award', Number(award))
   return await rechargePromotion.save()
 }
 

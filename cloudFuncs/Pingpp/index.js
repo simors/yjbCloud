@@ -10,6 +10,7 @@ var dateFormat = require('dateformat')
 var mathjs = require('mathjs')
 var mpMsgFuncs = require('../../mpFuncs/Message')
 import promotionFunc from '../Promotion'
+import profitFunc from '../Profit'
 
 // 交易类型定义
 const DEAL_TYPE_DEPOSIT = 1                // 押金
@@ -168,14 +169,14 @@ function updateWalletInfo(conn, deal) {
           if(currentDebt === 0) {
             sql = "UPDATE `Wallet` SET `balance` = `balance` + ? WHERE `userId` = ?"
             // return mysqlUtil.query(conn, sql, [deal.cost, userId])
-            return mysqlUtil.query(conn, sql, [mathjs.eval(deal.cost + deal.metadata.award), userId])
-          } else if((deal.cost + deal.metadata.award) > currentDebt) {
+            return mysqlUtil.query(conn, sql, [mathjs.chain(deal.cost).add(deal.metadata.award).done(), userId])
+          } else if(mathjs(deal.cost).add(deal.metadata.award).subtract(currentDebt).done() > 0) {
             sql = "UPDATE `Wallet` SET `balance` = `balance` + ?, `debt` = ? WHERE `userId` = ?"
             // return mysqlUtil.query(conn, sql, [deal.cost - currentDebt, 0, userId])
-            return mysqlUtil.query(conn, sql, [mathjs.eval(deal.cost + deal.metadata.award - currentDebt), 0, userId])
+            return mysqlUtil.query(conn, sql, [mathjs.chain(deal.cost).add(deal.metadata.award).subtract(currentDebt).done(), 0, userId])
           } else {
             sql = "UPDATE `Wallet` SET `balance` = ?, `debt` = `debt` - ? WHERE `userId` = ?"
-            return mysqlUtil.query(conn, sql, [0, mathjs.eval(currentDebt - deal.cost - deal.metadata.award), userId])
+            return mysqlUtil.query(conn, sql, [0, mathjs.chain(currentDebt).subtract(deal.cost).subtract(deal.metadata.award).done(), userId])
           }
           break
         case DEAL_TYPE_WITHDRAW:
@@ -205,7 +206,7 @@ function updateWalletInfo(conn, deal) {
           deposit = deal.cost
           break
         case DEAL_TYPE_RECHARGE:
-          balance = mathjs.eval(deal.cost + deal.metadata.award)
+          balance = mathjs.chain(deal.cost).add(deal.metadata.award).done()
           break
         case DEAL_TYPE_SERVICE:
           debt = deal.cost
@@ -287,7 +288,7 @@ async function paymentEvent(request) {
     transaction_no: charge.transaction_no,
     openid: charge.extra.open_id,
     payTime: payTime,
-    metadata: metadata,
+    metadata: charge.metadata,
   }
   try {
     switch (dealType) {
@@ -462,6 +463,7 @@ async function transferEvent(request) {
       }
       case DEAL_TYPE_WITHDRAW:
       {
+        await handleWithdrawDeal(deal)
         break
       }
       default:
@@ -483,6 +485,29 @@ async function handleRefundDeal(deal) {
     await mysqlUtil.beginTransaction(mysqlConn)
     await updateUserDealRecords(mysqlConn, deal)
     await updateWalletInfo(mysqlConn, deal)
+    await mysqlUtil.commit(mysqlConn)
+  } catch (error) {
+    if(mysqlConn) {
+      await mysqlUtil.rollback(mysqlConn)
+    }
+    throw error
+  } finally {
+    if(mysqlConn) {
+      await mysqlUtil.release(mysqlConn)
+    }
+  }
+}
+
+async function handleWithdrawDeal(deal) {
+  if(!deal) {
+    return undefined
+  }
+  let mysqlConn = undefined
+  try {
+    mysqlConn = await mysqlUtil.getConnection()
+    await mysqlUtil.beginTransaction(mysqlConn)
+    await updateUserDealRecords(mysqlConn, deal)
+    await profitFunc.decAdminProfit(mysqlConn, deal.to, deal.cost)
     await mysqlUtil.commit(mysqlConn)
   } catch (error) {
     if(mysqlConn) {
