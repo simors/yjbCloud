@@ -167,11 +167,16 @@ async function authListAdminUsers(req) {
 
   const jsonUsers = [];
 
+  const {mobilePhoneNumber: myMobilePhoneNumber} = currentUser.attributes;
+
   const values = [];
   let cql = 'select count(*),* from _User';
   cql += ' where (type=? or type=?)';
   values.push(AUTH_USER_TYPE.ADMIN);
   values.push(AUTH_USER_TYPE.BOTH);
+  // exclude myself
+  cql += ' and mobilePhoneNumber!=?';
+  values.push(myMobilePhoneNumber);
   if (nickname) {
     cql += ' and nickname=?';
     values.push(nickname);
