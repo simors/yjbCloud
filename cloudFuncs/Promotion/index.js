@@ -150,6 +150,15 @@ async function createPromotion(request) {
       }
       break
     }
+    case '随机红包':
+    {
+      initStat = {
+        participant: 0,       //参与量
+        winAmount:0,          //中奖总金额
+        winCount:0,           //中奖量
+      }
+      break
+    }
     default:
 
   }
