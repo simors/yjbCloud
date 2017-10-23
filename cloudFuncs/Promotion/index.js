@@ -10,6 +10,11 @@ import moment from 'moment'
 import utilFunc from '../Util'
 import mathjs from 'mathjs'
 
+//营销活动类型
+const PROMOTION_CATEGORY_TYPE_RECHARGE = 1        //充值奖励
+const PROMOTION_CATEGORY_TYPE_SCORE = 2           //积分活动
+const PROMOTION_CATEGORY_TYPE_REDENVELOPE = 3     //随机红包
+
 var Promotion = AV.Object.extend('Promotion')
 var RechargePromotion = AV.Object.extend('RechargePromotion')
 
@@ -25,6 +30,7 @@ function constructCategoryInfo(category) {
   categoryInfo.id = category.id
   categoryInfo.title = categoryAttr.title
   categoryInfo.description = categoryAttr.description
+  categoryInfo.type = categoryAttr.type
   categoryInfo.createdAt = category.createdAt
 
   return categoryInfo
