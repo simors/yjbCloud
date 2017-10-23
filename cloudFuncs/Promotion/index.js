@@ -8,6 +8,7 @@ import Promise from 'bluebird'
 import GLOBAL_CONFIG from '../../config'
 import moment from 'moment'
 import utilFunc from '../Util'
+import mathjs from 'mathjs'
 
 var Promotion = AV.Object.extend('Promotion')
 var RechargePromotion = AV.Object.extend('RechargePromotion')
@@ -400,9 +401,9 @@ async function getValidPromotionList(request) {
 
 /**
  * 更新充值奖励活动统计数据
- * @param promotionId       活动id
- * @param recharge          充值金额
- * @param award             奖励金额
+ * @param {String} promotionId     活动id
+ * @param {Number} recharge        充值金额
+ * @param {Number} award           赠送金额
  */
 async function updateRechargePromStat(promotionId, recharge, award) {
   if(!promotionId || !recharge || !award) {
@@ -415,8 +416,8 @@ async function updateRechargePromStat(promotionId, recharge, award) {
   let leanPromotion = await promotion.fetch()
   let stat = leanPromotion.attributes.stat
   stat.participant = stat.participant + 1
-  stat.rechargeAmount = stat.rechargeAmount + recharge
-  stat.awardAmount = stat.awardAmount + award
+  stat.rechargeAmount = mathjs.chain(stat.rechargeAmount).add(recharge).done()
+  stat.awardAmount = mathjs.chain(stat.awardAmount).add(award).done()
   leanPromotion.set('stat', stat)
   let result = await leanPromotion.save()
   return result
@@ -438,8 +439,8 @@ async function addRechargePromRecord(promotionId, userId, recharge, award) {
   let user = AV.Object.createWithoutData('_User', userId)
   rechargePromotion.set('promotion', promotion)
   rechargePromotion.set('user', user)
-  rechargePromotion.set('recharge', recharge)
-  rechargePromotion.set('award', award)
+  rechargePromotion.set('recharge', Number(recharge))
+  rechargePromotion.set('award', Number(award))
   return await rechargePromotion.save()
 }
 

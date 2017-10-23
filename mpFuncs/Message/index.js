@@ -5,6 +5,7 @@ var Promise = require('bluebird')
 var GLOBAL_CONFIG = require('../../config')
 var wechat_api = require('../index').wechat_api
 var PingppFunc = require('../../cloudFuncs/Pingpp')
+import moment from 'moment'
 
 /**
  * 发送充值成功模版消息
@@ -43,7 +44,7 @@ function sendRechargeTmpMsg(openid, amount, balance, score, payTime, type) {
       "color":"#173177"
     },
     "keyword4" : {
-      "value": payTime.toLocaleString(),
+      "value": moment(payTime).format('LLLL'),
       "color":"#173177"
     },
     "remark":{
