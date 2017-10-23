@@ -287,7 +287,7 @@ async function paymentEvent(request) {
     transaction_no: charge.transaction_no,
     openid: charge.extra.open_id,
     payTime: payTime,
-    metadata: metadata,
+    metadata: charge.metadata,
   }
   try {
     switch (dealType) {
