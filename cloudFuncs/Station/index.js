@@ -975,13 +975,13 @@ async function getStations(lastCreatdAt) {
   let stationList = []
 
   try {
-      if (lastCreatdAt) {
-        query.lessThan('createdAt', new Date(lastCreatdAt))
-      }
-      let devices = await query.find()
-      devices.forEach((device) => {
-        stationList.push(constructStationInfo(device, false))
-      })
+    if (lastCreatdAt) {
+      query.lessThan('createdAt', new Date(lastCreatdAt))
+    }
+    let devices = await query.find()
+    devices.forEach((device) => {
+      stationList.push(constructStationInfo(device, false))
+    })
     return stationList
   } catch (error) {
     console.log("getDevices", error)
