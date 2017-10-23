@@ -6,7 +6,7 @@ var OperationLog = require('../OperationLog')
 import AV from 'leanengine'
 import * as errno from '../errno'
 import * as authFuncs from '../Auth'
-import {ROLE_CODE,PERMISSION_CODE} from '../../rolePermission'
+import {ROLE_CODE, PERMISSION_CODE} from '../../rolePermission'
 
 const profitShareType = {
   PROFIT_SHARE_INVESTOR: 'investor',
@@ -125,7 +125,7 @@ function createStation(request, response) {
       var query = new AV.Query('Station')
       query.include('admin')
       query.get(leanStation.id).then((stationInfo)=> {
-        OperationLog.recordOperation(currentUser, '创建服务点'+stationInfo.attributes.name)
+        OperationLog.recordOperation(currentUser, '创建服务点' + stationInfo.attributes.name)
         response.success(constructStationInfo(stationInfo, true))
       })
     }).catch((error) => {
@@ -236,7 +236,7 @@ function updateStation(request, response) {
       var query = new AV.Query('Station')
       query.include('admin')
       query.get(leanStation.id).then((stationInfo)=> {
-        OperationLog.recordOperation(currentUser, '更新服务点'+stationInfo.attributes.name)
+        OperationLog.recordOperation(currentUser, '更新服务点' + stationInfo.attributes.name)
         response.success(constructStationInfo(stationInfo, true))
       })
     }).catch((error) => {
@@ -485,7 +485,7 @@ async function createPartner(request, response) {
     let queryNew = new AV.Query('ProfitSharing')
     queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
-    OperationLog.recordOperation(currentUser, '创建分成方'+finPartner.attributes.shareholder.attributes.idName)
+    OperationLog.recordOperation(currentUser, '创建分成方' + finPartner.attributes.shareholder.attributes.idName)
     response.success(constructProfitSharing(finPartner, true, false))
   } catch (err) {
     response.error(err)
@@ -520,7 +520,7 @@ async function updatePartner(request, response) {
     let queryNew = new AV.Query('ProfitSharing')
     queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
-    OperationLog.recordOperation(currentUser, '更新分成方'+finPartner.attributes.shareholder.attributes.idName)
+    OperationLog.recordOperation(currentUser, '更新分成方' + finPartner.attributes.shareholder.attributes.idName)
     response.success(constructProfitSharing(finPartner, true, false))
   } catch (err) {
     response.error(err)
@@ -696,7 +696,7 @@ function openStation(request, response) {
     var query = new AV.Query('Station')
     query.include(['admin'])
     query.get(item.id).then((result)=> {
-      OperationLog.recordOperation(currentUser, '启用服务点'+result.attributes.name)
+      OperationLog.recordOperation(currentUser, '启用服务点' + result.attributes.name)
       response.success(constructStationInfo(result, true))
     }, (err)=> {
       response.error(err)
@@ -721,7 +721,7 @@ function openPartner(request, response) {
     var query = new AV.Query('ProfitSharing')
     query.include(['station', 'shareholder'])
     query.get(item.id).then((result)=> {
-      OperationLog.recordOperation(currentUser, '启用分成方'+result.attributes.shareholder.attributes.idName)
+      OperationLog.recordOperation(currentUser, '启用分成方' + result.attributes.shareholder.attributes.idName)
       response.success(constructProfitSharing(result))
     }, (err)=> {
       response.error(err)
@@ -746,7 +746,7 @@ function closePartner(request, response) {
     var query = new AV.Query('ProfitSharing')
     query.include(['station', 'shareholder'])
     query.get(item.id).then((result)=> {
-      OperationLog.recordOperation(currentUser, '禁用分成方'+result.attributes.shareholder.attributes.idName)
+      OperationLog.recordOperation(currentUser, '禁用分成方' + result.attributes.shareholder.attributes.idName)
       response.success(constructProfitSharing(result))
     }, (err)=> {
       response.error(err)
@@ -892,31 +892,29 @@ function closeInvestor(request, response) {
 
 function closeStation(request, response) {
   let currentUser = request.currentUser
-  if(!currentUser){
+  if (!currentUser) {
     response.error('not login')
-  }else{
-    authFuncs.authValidPermissions(currentUser.id,[PERMISSION_CODE.STATION_EDIT_WHOLE,PERMISSION_CODE.STATION_EDIT_PART]).then((isValid)=>{
-      if(!isValid){
-        response.error('no permission')
-      }else{
-        var stationId = request.params.stationId
-        var station = AV.Object.createWithoutData('Station', stationId)
-        station.set('status', 0)
-        station.save().then((item)=> {
-          var query = new AV.Query('Station')
-          query.include(['admin'])
-          query.get(item.id).then((result)=> {
-            OperationLog.recordOperation(currentUser, '关闭服务点'+result.attributes.name)
-            response.success(constructStationInfo(result, true))
-          }, (err)=> {
-            response.error(err)
-          })
-        }, (err)=> {
-          response.error(err)
-        })
-      }
-    })
   }
+  authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_EDIT_WHOLE, PERMISSION_CODE.STATION_EDIT_PART]).then((isValid)=> {
+    if (!isValid) {
+      response.error('no permission')
+    }
+    var stationId = request.params.stationId
+    var station = AV.Object.createWithoutData('Station', stationId)
+    station.set('status', 0)
+    station.save().then((item)=> {
+      var query = new AV.Query('Station')
+      query.include(['admin'])
+      query.get(item.id).then((result)=> {
+        OperationLog.recordOperation(currentUser, '关闭服务点' + result.attributes.name)
+        response.success(constructStationInfo(result, true))
+      }, (err)=> {
+        response.error(err)
+      })
+    }, (err)=> {
+      response.error(err)
+    })
+  })
 }
 /**
  * 通过设备编号获取服务网点信息
@@ -975,13 +973,13 @@ async function getStations(lastCreatdAt) {
   let stationList = []
 
   try {
-      if (lastCreatdAt) {
-        query.lessThan('createdAt', new Date(lastCreatdAt))
-      }
-      let devices = await query.find()
-      devices.forEach((device) => {
-        stationList.push(constructStationInfo(device, false))
-      })
+    if (lastCreatdAt) {
+      query.lessThan('createdAt', new Date(lastCreatdAt))
+    }
+    let devices = await query.find()
+    devices.forEach((device) => {
+      stationList.push(constructStationInfo(device, false))
+    })
     return stationList
   } catch (error) {
     console.log("getDevices", error)
@@ -996,17 +994,17 @@ async function getStations(lastCreatdAt) {
  */
 async function changeDeviceNum(stationId, type) {
   let station = AV.Object.createWithoutData('Station', stationId)
-  if(type == 'add'){
+  if (type == 'add') {
     station.increment('deviceNo', 1)
-  }else if(type == 'sub'){
+  } else if (type == 'sub') {
     station.increment('deviceNo', -1)
-  }else{
+  } else {
     throw error
   }
-  try{
+  try {
     let stationInfo = await station.save()
     return stationInfo
-  }catch (error){
+  } catch (error) {
     throw error
   }
 }
@@ -1014,7 +1012,7 @@ async function changeDeviceNum(stationId, type) {
 function stationFuncTest(request, response) {
   let stationId = request.params.stationId
 
-  response.success(changeDeviceNum(stationId,'sub'))
+  response.success(changeDeviceNum(stationId, 'sub'))
 }
 
 var stationFunc = {

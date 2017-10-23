@@ -12,6 +12,7 @@ var StationFuncs = require('../Station')
 import AV from 'leanengine'
 import * as errno from '../errno'
 import moment from 'moment'
+var ProfitFuncs = require('../Profit')
 
 const ACCOUNT_TYPE = {
   INVESTOR_ACCOUNT: 1,
@@ -211,6 +212,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         partnerAccount.set('user', user)
         partnerAccount.set('accountType', ACCOUNT_TYPE.PARTNER_ACCOUNT)
         await partnerAccount.save()
+        await ProfitFuncs.incAdminProfit(partner.shareholderId,ACCOUNT_TYPE.PARTNER_ACCOUNT,profit)
         partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(profit).done(), 2)
       }
     }
@@ -233,6 +235,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         investorAccount.set('user', user)
         investorAccount.set('accountType', ACCOUNT_TYPE.INVESTOR_ACCOUNT)
         await investorAccount.save()
+        ProfitFuncs.incAdminProfit(investor.shareholderId,ACCOUNT_TYPE.INVESTOR_ACCOUNT,profit)
       }
     } else {
       investorProfit = 0
