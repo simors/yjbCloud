@@ -171,8 +171,6 @@ async function createStationAccount(station, dayInfo) {
     account.set('cost', cost)
     account.set('profit', profit)
     let accountInfo = await account.save()
-    let query = new AV.Query('StationAccount')
-
     let newStationAccount = await createPartnerAccount(accountInfo.id, dayInfo)
     return newStationAccount
   } catch (error) {
@@ -212,7 +210,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         partnerAccount.set('user', user)
         partnerAccount.set('accountType', ACCOUNT_TYPE.PARTNER_ACCOUNT)
         await partnerAccount.save()
-        await ProfitFuncs.incAdminProfit(partner.shareholderId,ACCOUNT_TYPE.PARTNER_ACCOUNT,profit)
+        ProfitFuncs.incAdminProfit(partner.shareholderId,ACCOUNT_TYPE.PARTNER_ACCOUNT,profit)
         partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(profit).done(), 2)
       }
     }
@@ -294,6 +292,7 @@ async function createStationDayAccount() {
     dayAccount.set('investorProfit', investorProfit)
     dayAccount.set('accountDay', new Date(dayInfo.yesterday))
     await dayAccount.save()
+    return true
   } catch (error) {
     recordAccountError(dayInfo,'生成日结记录失败')
     throw error
