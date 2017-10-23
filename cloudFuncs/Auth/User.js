@@ -11,8 +11,11 @@ export const AUTH_USER_TYPE = {
 };
 
 export const AUTH_USER_STATUS = {
-  NORMAL:   1,
-  DISABLED: 2,
+  MP_NORMAL:      1,
+  MP_DISABLED:    2,
+
+  ADMIN_NORMAL:   101,
+  ADMIN_DISABLED: 102,
 };
 
 async function authGetRolesAndPermissions(req) {
@@ -118,12 +121,12 @@ async function authListEndUsers(req) {
     values.push(city);
   }
   if (status) {
-    if (status === AUTH_USER_STATUS.DISABLED) {
+    if (status === AUTH_USER_STATUS.MP_DISABLED) {
       cql += ' and status=?';
-      values.push(AUTH_USER_STATUS.DISABLED);
+      values.push(AUTH_USER_STATUS.MP_DISABLED);
     } else {
       cql += ' and (status is not exists or status=?)';
-      values.push(AUTH_USER_STATUS.NORMAL);
+      values.push(AUTH_USER_STATUS.MP_NORMAL);
     }
   }
   cql += ' limit ?,?';
@@ -192,12 +195,12 @@ async function authListAdminUsers(req) {
     values.push(roles);
   }
   if (status) {
-    if (status === AUTH_USER_STATUS.DISABLED) {
+    if (status === AUTH_USER_STATUS.ADMIN_DISABLED) {
       cql += ' and status=?';
-      values.push(AUTH_USER_STATUS.DISABLED);
+      values.push(AUTH_USER_STATUS.ADMIN_DISABLED);
     } else {
       cql += ' and (status is not exists or status=?)';
-      values.push(AUTH_USER_STATUS.NORMAL);
+      values.push(AUTH_USER_STATUS.ADMIN_NORMAL);
     }
   }
   cql += ' limit ?,?';
