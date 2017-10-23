@@ -2,6 +2,7 @@
  * Created by lilu on 2017/9/28.
  */
 var mysqlUtil = require('../Util/mysqlUtil')
+var AuthFuncs = require('../Auth')
 var OrderFunc = require('../Order')
 var DeviceFuncs = require('../Device')
 var Promise = require('bluebird')
@@ -13,6 +14,7 @@ import AV from 'leanengine'
 import * as errno from '../errno'
 import moment from 'moment'
 var ProfitFuncs = require('../Profit')
+import {ROLE_CODE} from '../../rolePermission'
 
 const ACCOUNT_TYPE = {
   INVESTOR_ACCOUNT: 1,
@@ -202,7 +204,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         partnerAccount.set('user', user)
         partnerAccount.set('accountType', ACCOUNT_TYPE.PARTNER_ACCOUNT)
         await partnerAccount.save()
-        await ProfitFuncs.incAdminProfit(partner.shareholderId,ACCOUNT_TYPE.PARTNER_ACCOUNT,profit)
+        await ProfitFuncs.incAdminProfit(partner.shareholderId, ACCOUNT_TYPE.PARTNER_ACCOUNT, profit)
         partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(profit).done(), 2)
       }
     }
@@ -224,7 +226,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         investorAccount.set('user', user)
         investorAccount.set('accountType', ACCOUNT_TYPE.INVESTOR_ACCOUNT)
         await investorAccount.save()
-        await ProfitFuncs.incAdminProfit(investor.shareholderId,ACCOUNT_TYPE.INVESTOR_ACCOUNT,profit)
+        await ProfitFuncs.incAdminProfit(investor.shareholderId, ACCOUNT_TYPE.INVESTOR_ACCOUNT, profit)
       }
     } else {
       investorProfit = 0
@@ -284,8 +286,8 @@ async function createStationDayAccount() {
     await dayAccount.save()
     return true
   } catch (error) {
-    console.log('error--------------->',error.message)
-    recordAccountError(dayInfo,'生成日结记录失败')
+    console.log('error--------------->', error.message)
+    recordAccountError(dayInfo, '生成日结记录失败')
   }
 }
 
@@ -405,12 +407,21 @@ async function getPartnerAccounts(request, response) {
   let userId = request.params.userId
   let startDate = request.params.startDate
   let endDate = request.params.endDate
-  let query = new AV.Query('_User')
-  if (userId) {
-    query.equalTo('objectId', userId)
-  }
+  let lastCreatedAt = request.params.lastCreatedAt
+  let partners = []
   try {
-    let partners = await query.find()
+    if (userId) {
+     partners.push({id:userId})
+    }else if(stationId){
+      let partnerList = await StationFuncs.getPartnerByStationId(stationId)
+      partnerList.forEach((item)=>{
+        partners.push({id:item.shareholderId})
+      })
+    }else{
+      let roles = []
+      roles.push(ROLE_CODE.STATION_PROVIDER)
+      partners = await getUsersByRoles(roles,lastCreatedAt)
+    }
     let accountList = []
     for (let i = 0; i < partners.length; i++) {
       let account = await getAccountsByPartnerId(partners[i].id, stationId, startDate, endDate)
@@ -478,6 +489,8 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
     }
     if (accountInfo && accountInfo.stationId) {
+      accountInfo.startDate = startDate
+      accountInfo.endDate = endDate
       accountInfo.profit = profit
       return accountInfo
     } else {
@@ -499,12 +512,22 @@ async function getInvestorAccounts(request, response) {
   let userId = request.params.userId
   let startDate = request.params.startDate
   let endDate = request.params.endDate
-  let query = new AV.Query('_User')
-  if (userId) {
-    query.equalTo('objectId', userId)
-  }
+  let lastCreatedAt = request.params.lastCreatedAt
+  let partners = []
+
   try {
-    let partners = await query.find()
+    if (userId) {
+      partners.push({id:userId})
+    }else if(stationId){
+      let partnerList = await StationFuncs.getInvestorByStationId(stationId)
+      partnerList.forEach((item)=>{
+        partners.push({id:item.shareholderId})
+      })
+    }else{
+      let roles = []
+      roles.push(ROLE_CODE.STATION_INVESTOR)
+      partners = await getUsersByRoles(roles,lastCreatedAt)
+    }
     let accountList = []
     for (let i = 0; i < partners.length; i++) {
       let account = await getAccountsByInvestorId(partners[i].id, stationId, startDate, endDate)
@@ -850,17 +873,49 @@ async function reqStatLast30DaysAccountProfit(request) {
 async function recordAccountError(dayInfo, errorInfo) {
   let ErrorInfo = AV.Object.extend('AccountErrLog')
   let errorLogInfo = new ErrorInfo()
-  errorLogInfo.set('accountDay',new Date(dayInfo.yesterday))
+  errorLogInfo.set('accountDay', new Date(dayInfo.yesterday))
   errorLogInfo.set('errorType', ERR_LOG_TYPE.UNTREAT)
   errorLogInfo.set('errorInfo', errorInfo)
   await errorLogInfo.save()
   return true
 }
 
+/**
+ *
+ * @param types array
+ * @param lastCreatedAt
+ * @returns {*}
+ */
+async function getUsersByRoles(roles, lastCreatedAt) {
+  if (!roles) {
+    return undefined
+  }
+  let query = new AV.Query('_User')
+  query.containsAll('roles', roles)
+  if (lastCreatedAt) {
+    query.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+  query.equalTo('type', 2)
+  try {
+    let userList = await query.find()
+    let users = []
+    userList.forEach((item)=> {
+      users.push(AuthFuncs.constructUserInfo(item))
+    })
+    return users
+  } catch (err) {
+    throw err
+  }
+}
+
+
 async function accountTestFunc(req) {
   let dayInfo = getYesterday()
-  await recordAccountError(dayInfo,'ceshiyixia')
-  return
+  let {params} = req
+  let {types, lastCreatedAt} = params
+  console.log('params===>', params)
+  return await getUsersByRoles(types, lastCreatedAt)
+
 }
 
 var accountFunc = {
