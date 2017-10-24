@@ -20,17 +20,34 @@ export const AUTH_USER_STATUS = {
   ADMIN_ALL:      200,
 };
 
+async function authValidateLogin(req) {
+  const {phone} = req.params;
+
+  const cql = 'select * from _User where mobilePhoneNumber=?';
+  const values = [phone];
+
+  const {results} = await AV.Query.doCloudQuery(cql, values);
+
+  if (!results.length) {
+    return;
+  }
+
+  const jsonUser = constructUserInfo(results[0]);
+  if (jsonUser.type === AUTH_USER_TYPE.END) {
+    // only admin users are allowed to login
+    throw new AV.Cloud.Error('User denied.', {code: errno.EINVAL});
+  } else if (jsonUser.status === AUTH_USER_STATUS.ADMIN_DISABLED) {
+    // check if this admin user has been disabled
+    throw new AV.Cloud.Error('User disabled.', {code: errno.EACCES});
+  }
+}
+
 async function authGetRolesAndPermissions(req) {
   const {currentUser, params} = req;
 
   if (!currentUser) {
     // no token provided
-    throw new AV.Cloud.Error('Permission denied, need to login.', {code: errno.EPERM});
-  }
-
-  // check if this admin user has been disabled
-  if (currentUser.attributes.status === AUTH_USER_STATUS.ADMIN_DISABLED) {
-    throw new AV.Cloud.Error('User disabled.', {code: errno.EACCES});
+    throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
 
   // to get:
@@ -367,6 +384,7 @@ async function authUpdateUser(req) {
 }
 
 const authApi = {
+  authValidateLogin,
   authGetRolesAndPermissions,
   authListEndUsers,
   authListAdminUsers,

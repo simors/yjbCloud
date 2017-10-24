@@ -26,6 +26,7 @@ AV.Cloud.define('authVerifyIdName', authFunc.verifyIdName)
 AV.Cloud.define('wechatIsSubscribe', mpUserFuncs.isSubscribe)
 AV.Cloud.define('authSetUserMobilePhone', authFunc.setUserMobilePhone)
 
+AV.Cloud.define('authValidateLogin', userFunc.authValidateLogin);
 AV.Cloud.define('authGetRolesAndPermissions', userFunc.authGetRolesAndPermissions);
 AV.Cloud.define('authListEndUsers', userFunc.authListEndUsers);
 AV.Cloud.define('authListAdminUsers', userFunc.authListAdminUsers);
