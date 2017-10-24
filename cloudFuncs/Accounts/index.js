@@ -353,8 +353,8 @@ async function getAccountByStationId(stationId, startDate, endDate) {
   } else if (startDate && endDate) {
     let startQuery = new AV.Query('StationAccount')
     let endQuery = new AV.Query('StationAccount')
-    startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
-    endQuery.lessThan('payTime', new Date(endDate))
+    startQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
+    endQuery.lessThan('accountDay', new Date(endDate))
     query = AV.Query.and(startQuery, endQuery)
   } else {
     query = new AV.Query('StationAccount')
@@ -462,8 +462,8 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
   } else if (startDate && endDate) {
     let startQuery = new AV.Query('AccountProfit')
     let endQuery = new AV.Query('AccountProfit')
-    startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
-    endQuery.lessThan('payTime', new Date(endDate))
+    startQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
+    endQuery.lessThan('accountDay', new Date(endDate))
     query = AV.Query.and(startQuery, endQuery)
   } else {
     query = new AV.Query('AccountProfit')
@@ -568,8 +568,8 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
   } else if (startDate && endDate) {
     let startQuery = new AV.Query('AccountProfit')
     let endQuery = new AV.Query('AccountProfit')
-    startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
-    endQuery.lessThan('payTime', new Date(endDate))
+    startQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
+    endQuery.lessThan('accountDay', new Date(endDate))
     query = AV.Query.and(startQuery, endQuery)
   } else {
     query = new AV.Query('AccountProfit')
@@ -638,8 +638,8 @@ async function getStationAccountsDetail(request, response) {
   } else if (startDate && endDate) {
     let startQuery = new AV.Query('StationAccount')
     let endQuery = new AV.Query('StationAccount')
-    startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
-    endQuery.lessThan('payTime', new Date(endDate))
+    startQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
+    endQuery.lessThan('accountDay', new Date(endDate))
     query = AV.Query.and(startQuery, endQuery)
   } else {
     query = new AV.Query('StationAccount')
@@ -686,8 +686,8 @@ async function getPartnerAccountsDetail(request, response) {
   } else if (startDate && endDate) {
     let startQuery = new AV.Query('AccountProfit')
     let endQuery = new AV.Query('AccountProfit')
-    startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
-    endQuery.lessThan('payTime', new Date(endDate))
+    startQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
+    endQuery.lessThan('accountDay', new Date(endDate))
     query = AV.Query.and(startQuery, endQuery)
   } else {
     query = new AV.Query('AccountProfit')
@@ -745,8 +745,8 @@ async function getInvestorAccountsDetail(request, response) {
   } else if (startDate && endDate) {
     let startQuery = new AV.Query('AccountProfit')
     let endQuery = new AV.Query('AccountProfit')
-    startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
-    endQuery.lessThan('payTime', new Date(endDate))
+    startQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
+    endQuery.lessThan('accountDay', new Date(endDate))
     query = AV.Query.and(startQuery, endQuery)
   } else {
     query = new AV.Query('AccountProfit')
