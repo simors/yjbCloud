@@ -13,9 +13,11 @@ export const AUTH_USER_TYPE = {
 export const AUTH_USER_STATUS = {
   MP_NORMAL:      1,
   MP_DISABLED:    2,
+  MP_ALL:         100,
 
   ADMIN_NORMAL:   101,
   ADMIN_DISABLED: 102,
+  ADMIN_ALL:      200,
 };
 
 async function authGetRolesAndPermissions(req) {
@@ -124,7 +126,7 @@ async function authListEndUsers(req) {
     if (mpStatus === AUTH_USER_STATUS.MP_DISABLED) {
       cql += ' and mpStatus=?';
       values.push(AUTH_USER_STATUS.MP_DISABLED);
-    } else {
+    } else if (mpStatus === AUTH_USER_STATUS.MP_NORMAL) {
       cql += ' and (mpStatus is not exists or mpStatus=?)';
       values.push(AUTH_USER_STATUS.MP_NORMAL);
     }
@@ -198,7 +200,7 @@ async function authListAdminUsers(req) {
     if (status === AUTH_USER_STATUS.ADMIN_DISABLED) {
       cql += ' and status=?';
       values.push(AUTH_USER_STATUS.ADMIN_DISABLED);
-    } else {
+    } else if (status === AUTH_USER_STATUS.ADMIN_NORMAL) {
       cql += ' and (status is not exists or status=?)';
       values.push(AUTH_USER_STATUS.ADMIN_NORMAL);
     }
