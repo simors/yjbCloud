@@ -573,11 +573,12 @@ async function checkPromotionRequest(promotionId, userId) {
   //活动区域
   let user = AV.Object.createWithoutData('_User', userId)
   let userInfo = await user.fetch()
+  let userAttr = userInfo.attributes
   let region = promotionAttr.region
-  if(region.length === 1 && region[0] != userInfo.province.value) {
+  if(region.length === 1 && region[0] != userAttr.province.value) {
     throw new AV.Cloud.Error('没在活动范围', {code: errno.ERROR_PROM_REGION})
   }
-  if(region.length === 2 && (region[0] != userInfo.province.value || region[1] != userInfo.city.value)) {
+  if(region.length === 2 && (region[0] != userAttr.province.value || region[1] != userAttr.city.value)) {
     throw new AV.Cloud.Error('没在活动范围', {code: errno.ERROR_PROM_REGION})
   }
 
