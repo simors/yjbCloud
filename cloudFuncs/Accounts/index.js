@@ -336,7 +336,7 @@ async function getStationAccounts(request, response) {
 
 //查询每个服务点的收益结算
 async function getAccountByStationId(stationId, startDate, endDate) {
-  let query = new AV.Query('StationAccount')
+  let query = undefined
   let lastCreatedAt = undefined
   let incoming = 0
   let profit = 0
@@ -344,16 +344,24 @@ async function getAccountByStationId(stationId, startDate, endDate) {
   let platformProfit = 0
   let partnerProfit = 0
   let investorProfit = 0
-
+  if (startDate && !endDate) {
+    query = new AV.Query('StationAccount')
+    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
+  } else if (endDate && !startDate) {
+    query = new AV.Query('StationAccount')
+    query.lessThan('accountDay', new Date(endDate))
+  } else if (startDate && endDate) {
+    let startQuery = new AV.Query('StationAccount')
+    let endQuery = new AV.Query('StationAccount')
+    startQuery.greaterThanOrEqualTo('payTime', new Date(startDate))
+    endQuery.lessThan('payTime', new Date(endDate))
+    query = AV.Query.and(startQuery, endQuery)
+  } else {
+    query = new AV.Query('StationAccount')
+  }
   if (stationId) {
     let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
-  }
-  if (startDate) {
-    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  }
-  if (endDate) {
-    query.lessThan('accountDay', new Date(endDate))
   }
   query.include(['station', 'station.admin'])
   query.limit(1000)
@@ -446,7 +454,7 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
   if (startDate && !endDate) {
     query = new AV.Query('AccountProfit')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  } else if (!endDate && startDate) {
+  } else if (endDate && !startDate) {
     query = new AV.Query('AccountProfit')
     query.lessThan('accountDay', new Date(endDate))
   } else if (startDate && endDate) {
@@ -552,7 +560,7 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
   if (startDate && !endDate) {
     query = new AV.Query('AccountProfit')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  } else if (!endDate && startDate) {
+  } else if (endDate && !startDate) {
     query = new AV.Query('AccountProfit')
     query.lessThan('accountDay', new Date(endDate))
   } else if (startDate && endDate) {
@@ -620,7 +628,7 @@ async function getStationAccountsDetail(request, response) {
   if (startDate && !endDate) {
     query = new AV.Query('StationAccount')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  } else if (!endDate && startDate) {
+  } else if (endDate && !startDate) {
     query = new AV.Query('StationAccount')
     query.lessThan('accountDay', new Date(endDate))
   } else if (startDate && endDate) {
