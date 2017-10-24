@@ -220,9 +220,9 @@ async function isWithdrawAllowed(userId, willBalance) {
     if (!judgeProcessStatus(adminProfit)) {
       return errno.ERROR_IN_WITHDRAW_PROCESS
     }
-    if (!judgeBalanceEnough(adminProfit, willBalance)) {
-      return errno.ERROR_NOT_ENOUGH_MONEY
-    }
+    // if (!judgeBalanceEnough(adminProfit, willBalance)) {
+    //   return errno.ERROR_NOT_ENOUGH_MONEY
+    // }
     if (!judgeWithdrawDate()) {
       return errno.ERROR_NOT_WITHDRAW_DATE
     }
@@ -236,6 +236,18 @@ async function isWithdrawAllowed(userId, willBalance) {
   }
 }
 
+async function reqTestUpdateAdminProfitProcess(request) {
+  let process = request.params.process
+  let userId = request.params.userId
+  return await updateAdminProfitProcess(userId, process)
+}
+
+async function reqTestJudgeWithdraw(request) {
+  let userId = request.params.userId
+  let willBalance = request.params.willBalance
+  return await isWithdrawAllowed(userId, willBalance)
+}
+
 const profitFunc = {
   EARN_TYPE,
   PROCESS_TYPE,
@@ -246,6 +258,8 @@ const profitFunc = {
   reqTestDecProfit,
   updateAdminProfitProcess,
   isWithdrawAllowed,
+  reqTestUpdateAdminProfitProcess,
+  reqTestJudgeWithdraw,
 }
 
 module.exports = profitFunc;

@@ -473,8 +473,12 @@ async function transferEvent(request) {
       }
       case DEAL_TYPE_WITHDRAW:
       {
-        await handleWithdrawDeal(deal)
-        await profitFunc.updateAdminProfitProcess(deal.to, profitFunc.PROCESS_TYPE.NORMAL_PROCESS)
+        try {
+          await handleWithdrawDeal(deal)
+          await profitFunc.updateAdminProfitProcess(deal.to, profitFunc.PROCESS_TYPE.NORMAL_PROCESS)
+        } catch (e) {
+          throw e
+        }
         break
       }
       default:
