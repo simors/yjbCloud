@@ -99,7 +99,7 @@ async function authListEndUsers(req) {
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
 
-  const {skip=0, limit=10, mobilePhoneNumber, province, city, status} = params;
+  const {skip=0, limit=10, mobilePhoneNumber, province, city, mpStatus} = params;
 
   const jsonUsers = [];
 
@@ -120,12 +120,12 @@ async function authListEndUsers(req) {
     cql += ' and city.value=?';
     values.push(city);
   }
-  if (status) {
-    if (status === AUTH_USER_STATUS.MP_DISABLED) {
-      cql += ' and status=?';
+  if (mpStatus) {
+    if (mpStatus === AUTH_USER_STATUS.MP_DISABLED) {
+      cql += ' and mpStatus=?';
       values.push(AUTH_USER_STATUS.MP_DISABLED);
     } else {
-      cql += ' and (status is not exists or status=?)';
+      cql += ' and (mpStatus is not exists or mpStatus=?)';
       values.push(AUTH_USER_STATUS.MP_NORMAL);
     }
   }
@@ -232,6 +232,7 @@ async function authCreateUser(req) {
   };
 
   ({
+    mpStatus: jsonUser.mpStatus,
     status: jsonUser.status,
     email: jsonUser.email,
     mobilePhoneNumber: jsonUser.mobilePhoneNumber,
@@ -323,6 +324,7 @@ async function authUpdateUser(req) {
   };
 
   ({
+    mpStatus: jsonUser.mpStatus,
     status: jsonUser.status,
     email: jsonUser.email,
     // mobilePhoneNumber: jsonUser.mobilePhoneNumber,
