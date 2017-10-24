@@ -114,6 +114,8 @@ AV.Cloud.define('utilFuncTest', utilFunc.utilFuncTest)
 AV.Cloud.define('profitQueryProfit', profitFunc.reqAdminProfit)
 AV.Cloud.define('profitTestIncProfit', profitFunc.reqTestIncProfit)
 AV.Cloud.define('profitTestDecProfit', profitFunc.reqTestDecProfit)
+AV.Cloud.define('profitTestUpdateAdminProfitProcess', profitFunc.reqTestUpdateAdminProfitProcess)
+AV.Cloud.define('profitTestJudgeWithdraw', profitFunc.reqTestJudgeWithdraw)
 
 //操作日志
 AV.Cloud.define('operationFetchOperationLogs', operationFunc.fetchOperationLogs)

@@ -14,6 +14,8 @@ import mathjs from 'mathjs'
 const PROMOTION_CATEGORY_TYPE_RECHARGE = 1        //充值奖励
 const PROMOTION_CATEGORY_TYPE_SCORE = 2           //积分活动
 const PROMOTION_CATEGORY_TYPE_REDENVELOPE = 3     //随机红包
+const PROMOTION_CATEGORY_TYPE_LOTTERY = 4         //抽奖
+const PROMOTION_CATEGORY_TYPE_EXCHANGE_SCORE = 5  //积分兑换
 
 var Promotion = AV.Object.extend('Promotion')
 var RechargePromotion = AV.Object.extend('RechargePromotion')
@@ -94,17 +96,6 @@ function constructPromotionInfo(promotion, includeCategory, includeUser) {
   }
 
   return promotionInfo
-}
-
-async function getCategoryTitle(categoryId) {
-  if(!categoryId) {
-    return undefined
-  }
-
-  let category = AV.Object.createWithoutData('PromotionCategory', categoryId)
-  let leanCategory = await category.fetch()
-  let title = leanCategory.attributes.title
-  return title
 }
 
 /**
@@ -512,10 +503,86 @@ async function fetchRechargePromRecord(request) {
   return rechargeRecordList
 }
 
+/**
+ * 获取营销活动类型
+ * @param {String} promotionId  活动id
+ */
+async function getPromotionCategoryType(promotionId) {
+  if(!promotionId) {
+    return undefined
+  }
+  let query = new AV.Query('Promotion')
+  query.include('category')
+  let promotionInfo = await query.get(promotionId)
+  if(!promotionInfo) {
+    return undefined
+  }
+  let categoryInfo = promotionInfo.attributes.category
+  return categoryInfo.attributes.type
+}
+
+/**
+ * 检查活动请求
+ * @param {String} promotionId  活动id
+ * @param {String} userId       用户id
+ */
+async function checkPromotionRequest(promotionId, userId) {
+  if(!promotionId || !userId) {
+    return false
+  }
+  let query = new AV.Query('Promotion')
+  query.include('category')
+  let promtionInfo = await query.get(promotionId)
+
+  return true
+}
+
+/**
+ * 营销活动请求入队
+ * @param {String} socketId
+ * @param {String} userId
+ * @param {String} promotionId
+ */
+async function insertPromotionMessage(socketId, userId, promotionId) {
+  if(!socketId || !userId || !promotionId) {
+    return
+  }
+  var ex = 'lottery'
+  var message = {
+    userId: userId,
+    socketId: socketId,
+    promotionId: promotionId,
+  }
+  let categoryType = await getPromotionCategoryType(promotionId)
+  switch (categoryType) {
+    case PROMOTION_CATEGORY_TYPE_LOTTERY:
+      ex = 'lottery'
+      break
+    case PROMOTION_CATEGORY_TYPE_REDENVELOPE:
+      ex = 'redEnvelope'
+      break
+    default:
+      break
+  }
+
+  return amqp.connect(GLOBAL_CONFIG.RABBITMQ_URL).then(function(conn) {
+    return conn.createChannel().then(function(ch) {
+      var ok = ch.assertExchange(ex, 'fanout', {durable: false})
+
+      return ok.then(function() {
+        ch.publish(ex, '', Buffer.from(JSON.stringify(message)));
+        return ch.close();
+      });
+    }).finally(function() { conn.close(); });
+  }).catch((error) => {
+    throw error
+  })
+}
+
 async function promotionFuncTest(request) {
   const {currentUser, params} = request
-  const {categoryId, start, end, region} = params
-  let result = await isPromotionExist(categoryId, start, end, region)
+  const {promotionId} = params
+  let result = await getPromotionCategoryType(promotionId)
   return result
 }
 
@@ -530,6 +597,8 @@ var promotionFunc = {
   updateRechargePromStat: updateRechargePromStat,
   addRechargePromRecord: addRechargePromRecord,
   fetchRechargePromRecord: fetchRechargePromRecord,
+  checkPromotionRequest: checkPromotionRequest,
+  insertPromotionMessage: insertPromotionMessage,
 }
 
 module.exports = promotionFunc
