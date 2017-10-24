@@ -121,6 +121,8 @@ function createStation(request, response) {
     station.set('platformProp', platformProp)
     station.set('stationProp', stationProp)
     station.set('admin', admin)
+    station.set('status', 1)
+    station.set('investment', 0)
     station.save().then((leanStation) => {
       var query = new AV.Query('Station')
       query.include('admin')

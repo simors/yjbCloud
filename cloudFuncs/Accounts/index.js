@@ -396,6 +396,8 @@ async function getAccountByStationId(stationId, startDate, endDate) {
       accountInfo.platformProfit = platformProfit
       accountInfo.partnerProfit = partnerProfit
       accountInfo.investorProfit = investorProfit
+      accountInfo.startDate = startDate
+      accountInfo.endDate = endDate
       return accountInfo
     } else {
       return accountInfo
@@ -604,6 +606,8 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
     }
     if (accountInfo && accountInfo.stationId) {
       accountInfo.profit = profit
+      accountInfo.startDate = startDate
+      accountInfo.endDate = endDate
       return accountInfo
     } else {
       return accountInfo
