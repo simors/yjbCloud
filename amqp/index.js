@@ -5,7 +5,7 @@ var Promise = require('bluebird')
 var amqp = require('amqplib')
 var GLOBAL_CONFIG = require('../config')
 var websocketIO = require('../websocketIO')
-var activityFunc = require('../cloudFuncs/Activity')
+import promotionFunc from '../cloudFuncs/Promotion'
 
 var namespace = websocketIO.of('/')
 
@@ -47,16 +47,15 @@ function connectEvent(conn) {
 
       console.log("queueMessage:", message)
       var socketId = message.socketId
-      var openid = message.openid
-      var activityId = message.activityId
-      var activityCategory = message.activityCategory
+      let promotionId = message.promotionId
+      let userId = message.userId
 
       namespace.clients((error, client) => {
         if(client.indexOf(socketId) === -1) {
           //doNothing 多节点情况下
         } else {
-          activityFunc.handleActivityMessage(activityId, activityCategory, openid).then((result) => {
-            namespace.to(socketId).emit(PROMOTION_RESPONSE, {result: result})
+          promotionFunc.handlePromotionMessage(promotionId, userId).then((amount) => {
+            namespace.to(socketId).emit(PROMOTION_RESPONSE, {amount: amount})
             ch.ack(msg)
           }).catch((error) => {
             console.log("处理活动请求失败", error)

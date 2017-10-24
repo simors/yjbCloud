@@ -1,6 +1,7 @@
 /**
  * Created by wanpeng on 2017/8/28.
  */
+import AV from 'leanengine'
 var GLOBAL_CONFIG = require('../../config')
 var pingpp = require('pingpp')(GLOBAL_CONFIG.PINGPP_API_KEY)
 var mysqlUtil = require('../Util/mysqlUtil')
@@ -11,6 +12,7 @@ var mathjs = require('mathjs')
 var mpMsgFuncs = require('../../mpFuncs/Message')
 import promotionFunc from '../Promotion'
 import profitFunc from '../Profit'
+import * as errno from '../errno'
 
 // 交易类型定义
 const DEAL_TYPE_DEPOSIT = 1                // 押金
@@ -143,6 +145,9 @@ function updateWalletInfo(conn, deal) {
     case DEAL_TYPE_WITHDRAW:
       userId = deal.to
       break
+    case DEAL_TYPE_SYS_PRESENT:
+      userId = deal.to
+      break
     default:
       break
   }
@@ -196,6 +201,10 @@ function updateWalletInfo(conn, deal) {
           sql = "UPDATE `Wallet` SET `deposit` = `deposit` - ? WHERE `userId` = ?"
           return mysqlUtil.query(conn, sql, [deal.cost, userId])
           break
+        case DEAL_TYPE_SYS_PRESENT:
+          sql = "UPDATE `Wallet` SET `balance` = `balance` + ? WHERE `userId` = ?"
+          return mysqlUtil.query(conn, sql, [deal.cost, userId])
+          break
         default:
           return Promise.resolve()
           break
@@ -210,6 +219,9 @@ function updateWalletInfo(conn, deal) {
           break
         case DEAL_TYPE_SERVICE:
           debt = deal.cost
+          break
+        case DEAL_TYPE_SYS_PRESENT:
+          balance = deal.cost
           break
         case DEAL_TYPE_WITHDRAW:
         case DEAL_TYPE_REFUND:
@@ -370,6 +382,45 @@ async function handleRechargeDeal(deal) {
   } catch (error) {
     console.error(error)
   }
+}
+
+async function handleRedEnvelopeDeal(promotionId, userId, amount) {
+  if(!promotionId || !userId || !amount) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let deal = {
+    from: 'platform',
+    to: userId,
+    cost: amount,
+    deal_type: DEAL_TYPE_SYS_PRESENT,
+    charge_id: "",
+    order_no: uuidv4().replace(/-/g, '').substr(0, 16),
+    channel: "",
+    transaction_no: "",
+    openid: "",
+    payTime: Date.now(),
+    metadata: {promotionId: promotionId},
+  }
+  let mysqlConn = undefined
+  try {
+    mysqlConn = await mysqlUtil.getConnection()
+    await mysqlUtil.beginTransaction(mysqlConn)
+    await updateUserDealRecords(mysqlConn, deal)
+    await updateWalletInfo(mysqlConn, deal)
+
+    await mysqlUtil.commit(mysqlConn)
+  } catch (error) {
+    console.error(error)
+    if(mysqlConn) {
+      await mysqlUtil.rollback(mysqlConn)
+    }
+    throw error
+  } finally {
+    if(mysqlConn) {
+      await mysqlUtil.release(mysqlConn)
+    }
+  }
+  return
 }
 
 function createTransfer(request, response) {
@@ -614,6 +665,7 @@ var PingppFunc = {
   updateWalletInfo: updateWalletInfo,
   getUserDealRecords: getUserDealRecords,
   fetchRecharges: fetchRecharges,
+  handleRedEnvelopeDeal: handleRedEnvelopeDeal,
 }
 
 module.exports = PingppFunc

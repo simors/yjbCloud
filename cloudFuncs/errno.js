@@ -150,3 +150,8 @@ export const ERROR_STATION_DISABLE = (ERROR_BASE_STATION - 1)     /*FDFASDSAF S*
 
 export const ERROR_PROM_REPEAT  = (ERROR_BASE_PROMOTION - 1)       /* 活动重复 */
 export const ERROR_PROM_NOIP    = (ERROR_BASE_PROMOTION - 2)       /* 无法获取用户ip信息 */
+export const ERROR_PROM_DISABLED= (ERROR_BASE_PROMOTION - 3)       /* 活动处于禁用状态 */
+export const ERROR_PROM_TIME    = (ERROR_BASE_PROMOTION - 4)       /* 活动时间有误 */
+export const ERROR_PROM_REGION  = (ERROR_BASE_PROMOTION - 5)       /* 活动范围有误 */
+export const ERROR_PROM_INVALID = (ERROR_BASE_PROMOTION - 6)       /* 活动已失效 */
+export const ERROR_PROM_LIMIT   = (ERROR_BASE_PROMOTION - 6)       /* 活动参与次数超限 */
