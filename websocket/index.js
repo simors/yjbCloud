@@ -25,31 +25,14 @@ function connectionEvent(socket) {
     let promotionId = data.promotionId
     let userId = data.userId
 
-    let result = await promotionFunc.checkPromotionRequest(promotionId, userId)
-    if(!result) {
-      socket.emit(PROMOTION_RESPONSE, {})
-      return
+    try {
+      await promotionFunc.checkPromotionRequest(promotionId, userId)
+      await promotionFunc.insertPromotionMessage(socket.id, userId, promotionId)
+      // socket.emit(PROMOTION_RESPONSE, {errorCode: 0})
+    } catch (error) {
+      console.error(error)
+      socket.emit(PROMOTION_RESPONSE, {errorCode: error.code})
     }
-    result = await promotionFunc.insertPromotionMessage(socket.id, userId, promotionId)
-    if(!result) {
-
-      socket.emit(PROMOTION_RESPONSE, {})
-      return
-    }
-
-    // activityFunc.checkActivityRequest(activityId, openid).then((activity) => {
-    //   if(activity.pass) {
-    //     activityFunc.insertActivityMessage(socket.id, openid, activityId, activity.activityCategory).then((result) => {
-    //       console.log("活动请求消息入队成功")
-    //     }).catch((error) => {
-    //       console.log("活动请求消息入队失败", error)
-    //       socket.to(socket.id).emit(PROMOTION_RESPONSE, {result: 'fail'})
-    //     })
-    //   } else {
-    //     socket.emit(PROMOTION_RESPONSE, {result: activity.message})
-    //   }
-    // })
-
   })
 
   //接收到微信客户端的设备开机请求

@@ -146,18 +146,24 @@ export const ERROR_BASE_PROMOTION     =   -(ERROR_BASE + 5000);
 export const ERROR_BASE_PROFIT        =   -(ERROR_BASE + 6000);
 export const ERROR_BASE_DEAL          =   -(ERROR_BASE + 7000);
 
-/* Promotion */
-export const ERROR_PROM_REPEAT  = (ERROR_BASE_PROMOTION - 1)       /* 活动重复 */
-export const ERROR_PROM_NOIP    = (ERROR_BASE_PROMOTION - 2)       /* 无法获取用户ip信息 */
-
 
 /* Profit */
 export const ERROR_IN_WITHDRAW_PROCESS      = (ERROR_BASE_PROFIT - 1)       /* 已经处于提现申请的状态中 */
 export const ERROR_NOT_ENOUGH_MONEY         = (ERROR_BASE_PROFIT - 2)       /* 余额不足 */
 export const ERROR_NOT_WITHDRAW_DATE        = (ERROR_BASE_PROFIT - 3)       /* 非取现日期 */
 
+/* Promotion */
+export const ERROR_PROM_REPEAT  = (ERROR_BASE_PROMOTION - 1)       /* 活动重复 */
+export const ERROR_PROM_NOIP    = (ERROR_BASE_PROMOTION - 2)       /* 无法获取用户ip信息 */
+export const ERROR_PROM_DISABLED= (ERROR_BASE_PROMOTION - 3)       /* 活动处于禁用状态 */
+export const ERROR_PROM_TIME    = (ERROR_BASE_PROMOTION - 4)       /* 活动时间有误 */
+export const ERROR_PROM_REGION  = (ERROR_BASE_PROMOTION - 5)       /* 活动范围有误 */
+export const ERROR_PROM_INVALID = (ERROR_BASE_PROMOTION - 6)       /* 活动已失效 */
+export const ERROR_PROM_LIMIT   = (ERROR_BASE_PROMOTION - 6)       /* 活动参与次数超限 */
+
 /* Deal */
 export const ERROR_UNSUPPORT_CHANNEL        = (ERROR_BASE_DEAL - 1)         /* 不支持的支付渠道 */
 export const ERROR_CREATE_TRANSFER          = (ERROR_BASE_DEAL - 2)         /* 创建交易请求失败 */
 export const ERROR_NOT_MATCH_DEPOSIT        = (ERROR_BASE_DEAL - 3)         /* 提取押金的金额不匹配 */
 export const ERROR_IN_REFUND_PROCESS        = (ERROR_BASE_DEAL - 4)         /* 已经处于提取押金的申请状态 */
+

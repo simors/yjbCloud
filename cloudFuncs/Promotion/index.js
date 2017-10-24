@@ -430,6 +430,29 @@ async function updateRechargePromStat(promotionId, recharge, award) {
 }
 
 /**
+ * 更新随机红包统计数据
+ * @param {String} promotionId     活动id
+ * @param {Number} amount          中奖金额
+ */
+async function updateRedEnvelopePromStat(promotionId, amount) {
+  if(!promotionId || !amount) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let promotion = AV.Object.createWithoutData('Promotion', promotionId)
+  if(!promotion) {
+    throw new AV.Cloud.Error('没找到该活动对象', {code: errno.ENODATA})
+  }
+  let leanPromotion = await promotion.fetch()
+  let stat = leanPromotion.attributes.stat
+  stat.participant = stat.participant + 1
+  stat.winAmount = stat.winAmount + amount
+  stat.winCount = stat.winCount + 1
+  leanPromotion.set('stat', stat)
+  let result = await leanPromotion.save()
+  return result
+}
+
+/**
  * 增加充值活动记录
  * @param {String} promotionId     活动id
  * @param {String} userId          用户id
@@ -528,11 +551,61 @@ async function getPromotionCategoryType(promotionId) {
  */
 async function checkPromotionRequest(promotionId, userId) {
   if(!promotionId || !userId) {
-    return false
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
   let query = new AV.Query('Promotion')
   query.include('category')
-  let promtionInfo = await query.get(promotionId)
+  let promtion = await query.get(promotionId)
+
+  if(!promtion) {
+    throw new AV.Cloud.Error('没有找到活动对象', {code: errno.ENODATA})
+  }
+  let promotionAttr = promtion.attributes
+  //活动使能状态
+  if(promotionAttr.disabled) {
+    throw new AV.Cloud.Error('活动处于禁用状态', {code: errno.ERROR_PROM_DISABLED})
+  }
+  //活动时间有效期
+  if(moment().isBefore(new Date(promotionAttr.start)) || moment().isAfter(new Date(promotionAttr.end))) {
+    throw new AV.Cloud.Error('没在活动时间内', {code: errno.ERROR_PROM_TIME})
+  }
+
+  //活动区域
+  let user = AV.Object.createWithoutData('_User', userId)
+  let userInfo = await user.fetch()
+  let userAttr = userInfo.attributes
+  let region = promotionAttr.region
+  if(region.length === 1 && region[0] != userAttr.province.value) {
+    throw new AV.Cloud.Error('没在活动范围', {code: errno.ERROR_PROM_REGION})
+  }
+  if(region.length === 2 && (region[0] != userAttr.province.value || region[1] != userAttr.city.value)) {
+    throw new AV.Cloud.Error('没在活动范围', {code: errno.ERROR_PROM_REGION})
+  }
+
+  //活动记录检测
+  let category = promotionAttr.category
+  let stat = promotionAttr.stat
+  let awards = promotionAttr.awards
+  if(!category) {
+    return false
+  }
+  switch (category.type) {
+    case PROMOTION_CATEGORY_TYPE_REDENVELOPE:
+    {
+      if(mathjs.chain(stat.winAmount).add(awards.awardMax).subtract(awards.awardAmount).done() > 0) {
+        throw new AV.Cloud.Error('活动已失效', {code: errno.ERROR_PROM_INVALID})
+      }
+      if(mathjs.chain(stat.winCount).subtract(awards.count).done() >= 0) {
+        throw new AV.Cloud.Error('活动已失效', {code: errno.ERROR_PROM_INVALID})
+      }
+      //TODO 检测用户参与次数
+      break
+    }
+    case PROMOTION_CATEGORY_TYPE_LOTTERY:
+    {
+      break
+    }
+  }
 
   return true
 }
@@ -545,7 +618,7 @@ async function checkPromotionRequest(promotionId, userId) {
  */
 async function insertPromotionMessage(socketId, userId, promotionId) {
   if(!socketId || !userId || !promotionId) {
-    return
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
   var ex = 'lottery'
   var message = {
@@ -579,11 +652,78 @@ async function insertPromotionMessage(socketId, userId, promotionId) {
   })
 }
 
+/**
+ * 处理营销活动请求
+ * @param {String} promotionId
+ * @param {String} userId
+ */
+async function handlePromotionMessage(promotionId, userId) {
+  if(!promotionId || !userId) {
+    return undefined
+  }
+  let categoryType = await getPromotionCategoryType(promotionId)
+
+  switch (categoryType) {
+    case PROMOTION_CATEGORY_TYPE_REDENVELOPE:
+    {
+      return await handleRedEnvelopeMessage(promotionId, userId)
+      break
+    }
+    case PROMOTION_CATEGORY_TYPE_LOTTERY:
+    {
+      return await handleLotteryMessage(promotionId, userId)
+      break
+    }
+    default:
+      break
+  }
+}
+
+/**
+ * 处理随机红包请求
+ * @param {String} promotionId
+ * @param {String} userId
+ */
+async function handleRedEnvelopeMessage(promotionId, userId) {
+  let handleRedEnvelopeDeal = require('../Pingpp').handleRedEnvelopeDeal
+  if(!promotionId || !userId) {
+    return undefined
+  }
+
+  let query = new AV.Query('Promotion')
+  let promotion = await query.get(promotionId)
+  if(!promotion) {
+    return undefined
+  }
+  let promotionAttr = promotion.attributes
+  let awards = promotionAttr.awards
+  let amount = mathjs.round(mathjs.random(Number(awards.awardMax)), 2)  //随机生成红包金额
+
+  await handleRedEnvelopeDeal(promotionId, userId, amount)
+  await updateRedEnvelopePromStat(promotionId, amount)
+  return amount
+}
+
+
+/**
+ * 处理抽奖请求
+ * @param {String} promotionId
+ * @param {String} userId
+ */
+async function handleLotteryMessage(promotionId, userId) {
+
+}
+
 async function promotionFuncTest(request) {
   const {currentUser, params} = request
-  const {promotionId} = params
-  let result = await getPromotionCategoryType(promotionId)
-  return result
+  const {promotionId, userId} = params
+
+  try {
+    let result = await handleRedEnvelopeMessage(promotionId, userId)
+    return result
+  } catch (error) {
+    console.error(error)
+  }
 }
 
 var promotionFunc = {
@@ -599,6 +739,7 @@ var promotionFunc = {
   fetchRechargePromRecord: fetchRechargePromRecord,
   checkPromotionRequest: checkPromotionRequest,
   insertPromotionMessage: insertPromotionMessage,
+  handlePromotionMessage: handlePromotionMessage,
 }
 
 module.exports = promotionFunc
