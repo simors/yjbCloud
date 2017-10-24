@@ -22,6 +22,10 @@ const DEAL_TYPE_REFUND = 4                 // 押金退款
 const DEAL_TYPE_WITHDRAW = 5               // 提现
 const DEAL_TYPE_SYS_PRESENT = 6            // 系统赠送
 
+const WALLET_PROCESS_TYPE = {
+  NORMAL_PROCESS: 0,    // 正常状态
+  REFUND_PROCESS: 1,    // 正在提取押金
+}
 
 /**
  * 在mysql中插入交易记录
@@ -99,7 +103,7 @@ function getWalletInfo(userId) {
 
   return mysqlUtil.getConnection().then((conn) => {
     mysqlConn = conn
-    sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `score` FROM `Wallet` WHERE `userId` = ?"
+    sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `score`, `process` FROM `Wallet` WHERE `userId` = ?"
     return mysqlUtil.query(conn, sql, [userId])
   }).then((queryRes) => {
     if(queryRes.results.length === 1) {
@@ -110,6 +114,7 @@ function getWalletInfo(userId) {
       walletInfo.debt = queryRes.results[0].debt || 0
       walletInfo.user_name = queryRes.results[0].user_name || ""
       walletInfo.score = queryRes.results[0].score || 0
+      walletInfo.process = queryRes.results[0].process || WALLET_PROCESS_TYPE.NORMAL_PROCESS
       return walletInfo
     }
     return undefined
@@ -121,6 +126,60 @@ function getWalletInfo(userId) {
       mysqlUtil.release(mysqlConn)
     }
   })
+}
+
+function judgeWalletProcess(wallet) {
+  return WALLET_PROCESS_TYPE.NORMAL_PROCESS == wallet.process
+}
+
+function judgeWalletRefund(wallet, deposit) {
+  return wallet.deposit == deposit
+}
+
+/**
+ * 判断用户是否可以做提取押金的操作
+ * @param userId
+ * @param deposit
+ * @returns {number}
+ */
+async function isRefundAllowed(userId, deposit) {
+  try {
+    let wallet = await getWalletInfo(userId)
+    if (!judgeWalletProcess(wallet)) {
+      return errno.ERROR_IN_REFUND_PROCESS
+    }
+    if (!judgeWalletRefund(wallet, deposit)) {
+      return errno.ERROR_NOT_MATCH_DEPOSIT
+    }
+    return 0
+  } catch (e) {
+    throw e
+  }
+}
+
+/**
+ * 更新用户钱包的process处理状态，process的可取值为WALLET_PROCESS_TYPE
+ * @param userId      用户id
+ * @param process     待修改状态
+ * @returns {Function|results|Array}
+ */
+async function updateWalletProcess(userId, process) {
+  let conn = undefined
+  try {
+    conn = await mysqlUtil.getConnection()
+    let sql = 'UPDATE `Wallet` SET `process`=? WHERE `userId`=?'
+    let updateRes = await mysqlUtil.query(conn, sql, [process, userId])
+    if (0 == updateRes.results.changedRows) {
+      throw new AV.Cloud.Error('update wallet process error', {code: errno.EIO})
+    }
+    return updateRes.results
+  } catch (e) {
+    throw e
+  } finally {
+    if (conn) {
+      await mysqlUtil.release(conn)
+    }
+  }
 }
 
 /**
@@ -423,13 +482,14 @@ async function handleRedEnvelopeDeal(promotionId, userId, amount) {
   return
 }
 
-function createTransfer(request, response) {
+async function createTransfer(request) {
   var order_no = uuidv4().replace(/-/g, '').substr(0, 16)
   var amount = mathjs.number(request.params.amount) * 100
   var metadata = request.params.metadata
   var dealType = metadata.dealType
   var channel = request.params.channel
   var openid = request.params.openid
+  let toUser = metadata.toUser
 
   if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_DEV_APP_ID) {
     amount = mathjs.chain(amount).multiply(0.01).done()
@@ -438,42 +498,59 @@ function createTransfer(request, response) {
   } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_PRO_APP_ID) {
   }
 
-  var description = ''
-  if(dealType === DEAL_TYPE_REFUND) {
-    description = "押金退款"
-  } else if(dealType === DEAL_TYPE_WITHDRAW) {
-    description = "账户提现"
+  if(channel !== 'wx_pub') { //目前只支持微信公众号提现
+    throw new AV.Cloud.Error('only support wx withdraw', {code: errno.ERROR_UNSUPPORT_CHANNEL})
   }
 
-  if(channel == 'wx_pub') { //目前只支持微信公众号提现
-    pingpp.transfers.create({
-      order_no: order_no,
-      app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
-      channel: "wx_pub",
-      amount: amount,
-      currency: "cny",
-      type: "b2c",
-      recipient: openid, //微信openId
-      extra: {
-        // user_name: username,
-        // force_check: true,
-      },
-      description: description ,
-      metadata: metadata,
-    }, function (err, transfer) {
-      if (err != null ) {
-        console.log('pingpp.transfers.create', err)
-        response.error({
-          errcode: 1,
-          message: err.message,
-        })
-        return
-      }
-      response.success(transfer)
-    })
-  } else {
-    response.error(new Error("目前暂不支持渠道[" + channel + "]提现"))
+  var description = ''
+  let errcode = 0
+  if(dealType === DEAL_TYPE_REFUND) {
+    description = "押金退款"
+    errcode = await isRefundAllowed(toUser, amount)
+    if (0 != errcode) {
+      throw new AV.Cloud.Error('cann\'t refund', {code: errcode})
+    }
+    try {
+      await updateWalletProcess(toUser, WALLET_PROCESS_TYPE.REFUND_PROCESS)
+    } catch (e) {
+      throw e
+    }
+  } else if(dealType === DEAL_TYPE_WITHDRAW) {
+    description = "账户提现"
+    errcode = await profitFunc.isWithdrawAllowed(toUser, amount)
+    if (0 != errcode) {
+      throw new AV.Cloud.Error('cann\'t withdraw', {code: errcode})
+    }
+    try {
+      await profitFunc.updateAdminProfitProcess(toUser, profitFunc.PROCESS_TYPE.WITHDRAW_PROCESS)
+    } catch (e) {
+      throw e
+    }
   }
+
+  let retTransfer = undefined
+  pingpp.transfers.create({
+    order_no: order_no,
+    app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
+    channel: "wx_pub",
+    amount: amount,
+    currency: "cny",
+    type: "b2c",
+    recipient: openid, //微信openId
+    extra: {
+      // user_name: username,
+      // force_check: true,
+    },
+    description: description ,
+    metadata: metadata,
+  }, function (err, transfer) {
+    if (err != null ) {
+      console.log('pingpp.transfers.create', err)
+      throw new AV.Cloud.Error('request transfer error' + err.message, {code: errno.ERROR_CREATE_TRANSFER})
+    }
+    retTransfer = transfer
+  })
+  return retTransfer
 }
 
 async function transferEvent(request) {
@@ -509,12 +586,22 @@ async function transferEvent(request) {
     switch (dealType) {
       case DEAL_TYPE_REFUND:
       {
-        await handleRefundDeal(deal)
+        try {
+          await handleRefundDeal(deal)
+          await updateWalletProcess(deal.to, WALLET_PROCESS_TYPE.NORMAL_PROCESS)
+        } catch (e) {
+          throw e
+        }
         break
       }
       case DEAL_TYPE_WITHDRAW:
       {
-        await handleWithdrawDeal(deal)
+        try {
+          await handleWithdrawDeal(deal)
+          await profitFunc.updateAdminProfitProcess(deal.to, profitFunc.PROCESS_TYPE.NORMAL_PROCESS)
+        } catch (e) {
+          throw e
+        }
         break
       }
       default:
