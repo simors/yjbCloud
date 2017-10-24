@@ -159,3 +159,5 @@ export const ERROR_NOT_WITHDRAW_DATE        = (ERROR_BASE_PROFIT - 3)       /* �
 /* Deal */
 export const ERROR_UNSUPPORT_CHANNEL        = (ERROR_BASE_DEAL - 1)         /* 不支持的支付渠道 */
 export const ERROR_CREATE_TRANSFER          = (ERROR_BASE_DEAL - 2)         /* 创建交易请求失败 */
+export const ERROR_NOT_MATCH_DEPOSIT        = (ERROR_BASE_DEAL - 3)         /* 提取押金的金额不匹配 */
+export const ERROR_IN_REFUND_PROCESS        = (ERROR_BASE_DEAL - 4)         /* 已经处于提取押金的申请状态 */

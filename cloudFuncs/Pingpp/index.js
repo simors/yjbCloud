@@ -22,6 +22,10 @@ const DEAL_TYPE_REFUND = 4                 // 押金退款
 const DEAL_TYPE_WITHDRAW = 5               // 提现
 const DEAL_TYPE_SYS_PRESENT = 6            // 系统赠送
 
+const WALLET_PROCESS_TYPE = {
+  NORMAL_PROCESS: 0,    // 正常状态
+  REFUND_PROCESS: 1,    // 正在提取押金
+}
 
 /**
  * 在mysql中插入交易记录
@@ -99,7 +103,7 @@ function getWalletInfo(userId) {
 
   return mysqlUtil.getConnection().then((conn) => {
     mysqlConn = conn
-    sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `score` FROM `Wallet` WHERE `userId` = ?"
+    sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `score`, `process` FROM `Wallet` WHERE `userId` = ?"
     return mysqlUtil.query(conn, sql, [userId])
   }).then((queryRes) => {
     if(queryRes.results.length === 1) {
@@ -110,6 +114,7 @@ function getWalletInfo(userId) {
       walletInfo.debt = queryRes.results[0].debt || 0
       walletInfo.user_name = queryRes.results[0].user_name || ""
       walletInfo.score = queryRes.results[0].score || 0
+      walletInfo.process = queryRes.results[0].process || WALLET_PROCESS_TYPE.NORMAL_PROCESS
       return walletInfo
     }
     return undefined
@@ -121,6 +126,60 @@ function getWalletInfo(userId) {
       mysqlUtil.release(mysqlConn)
     }
   })
+}
+
+function judgeWalletProcess(wallet) {
+  return WALLET_PROCESS_TYPE.NORMAL_PROCESS == wallet.process
+}
+
+function judgeWalletRefund(wallet, deposit) {
+  return wallet.deposit == deposit
+}
+
+/**
+ * 判断用户是否可以做提取押金的操作
+ * @param userId
+ * @param deposit
+ * @returns {number}
+ */
+async function isRefundAllowed(userId, deposit) {
+  try {
+    let wallet = await getWalletInfo(userId)
+    if (!judgeWalletProcess(wallet)) {
+      return errno.ERROR_IN_REFUND_PROCESS
+    }
+    if (!judgeWalletRefund(wallet, deposit)) {
+      return errno.ERROR_NOT_MATCH_DEPOSIT
+    }
+    return 0
+  } catch (e) {
+    throw e
+  }
+}
+
+/**
+ * 更新用户钱包的process处理状态，process的可取值为WALLET_PROCESS_TYPE
+ * @param userId      用户id
+ * @param process     待修改状态
+ * @returns {Function|results|Array}
+ */
+async function updateWalletProcess(userId, process) {
+  let conn = undefined
+  try {
+    conn = await mysqlUtil.getConnection()
+    let sql = 'UPDATE `Wallet` SET `process`=? WHERE `userId`=?'
+    let updateRes = await mysqlUtil.query(conn, sql, [process, userId])
+    if (0 == updateRes.results.changedRows) {
+      throw new AV.Cloud.Error('update wallet process error', {code: errno.EIO})
+    }
+    return updateRes.results
+  } catch (e) {
+    throw e
+  } finally {
+    if (conn) {
+      await mysqlUtil.release(conn)
+    }
+  }
 }
 
 /**
@@ -395,11 +454,21 @@ async function createTransfer(request) {
   }
 
   var description = ''
+  let errcode = 0
   if(dealType === DEAL_TYPE_REFUND) {
     description = "押金退款"
+    errcode = await isRefundAllowed(toUser, amount)
+    if (0 != errcode) {
+      throw new AV.Cloud.Error('cann\'t refund', {code: errcode})
+    }
+    try {
+      await updateWalletProcess(toUser, WALLET_PROCESS_TYPE.REFUND_PROCESS)
+    } catch (e) {
+      throw e
+    }
   } else if(dealType === DEAL_TYPE_WITHDRAW) {
     description = "账户提现"
-    let errcode = await profitFunc.isWithdrawAllowed(toUser, amount)
+    errcode = await profitFunc.isWithdrawAllowed(toUser, amount)
     if (0 != errcode) {
       throw new AV.Cloud.Error('cann\'t withdraw', {code: errcode})
     }
@@ -468,7 +537,12 @@ async function transferEvent(request) {
     switch (dealType) {
       case DEAL_TYPE_REFUND:
       {
-        await handleRefundDeal(deal)
+        try {
+          await handleRefundDeal(deal)
+          await updateWalletProcess(deal.to, WALLET_PROCESS_TYPE.NORMAL_PROCESS)
+        } catch (e) {
+          throw e
+        }
         break
       }
       case DEAL_TYPE_WITHDRAW:
