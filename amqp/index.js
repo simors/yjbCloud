@@ -41,7 +41,7 @@ function connectEvent(conn) {
     })
 
     function handleQueueMessage(msg) {
-      var ACTIVITY_RESPONSE = require('../websocket').ACTIVITY_RESPONSE
+      var PROMOTION_RESPONSE = require('../websocket').PROMOTION_RESPONSE
       var body = msg.content.toString()
       var message = JSON.parse(body)
 
@@ -56,7 +56,7 @@ function connectEvent(conn) {
           //doNothing 多节点情况下
         } else {
           activityFunc.handleActivityMessage(activityId, activityCategory, openid).then((result) => {
-            namespace.to(socketId).emit(ACTIVITY_RESPONSE, {result: result})
+            namespace.to(socketId).emit(PROMOTION_RESPONSE, {result: result})
             ch.ack(msg)
           }).catch((error) => {
             console.log("处理活动请求失败", error)

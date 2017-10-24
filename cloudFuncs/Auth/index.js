@@ -16,6 +16,7 @@ export function constructUserInfo(user) {
 
   var userInfo = {}
   userInfo.id = user.id
+  userInfo.mpStatus = userAttr.mpStatus
   userInfo.status = userAttr.status
   userInfo.email = userAttr.email
   userInfo.emailVerified = userAttr.emailVerified

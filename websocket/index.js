@@ -6,36 +6,49 @@ var redis = require('redis')
 var activityFunc = require('../cloudFuncs/Activity')
 var turnOnDevice = require('../mqtt').turnOnDevice
 var turnOffDevice = require('../mqtt').turnOffDevice
+import promotionFunc from '../cloudFuncs/Promotion'
 
 //websocket消息
-const ACTIVITY_REQUEST = 'activity_request'     //活动请求&应答
-const ACTIVITY_RESPONSE = 'activity_response'
 const TURN_ON_DEVICE = 'turn_on_device'         //设备开机请求&应答
 const TURN_ON_DEVICE_SUCCESS = 'turn_on_device_success'
 const TURN_ON_DEVICE_FAILED = 'turn_on_device_failed'
 const TURN_OFF_DEVICE = 'turn_off_device'       //设备关机请求&应答
 const TURN_OFF_DEVICE_SUCCESS = 'turn_off_device_success'
 const TURN_OFF_DEVICE_FAILED = 'turn_off_device_failed'
+const PROMOTION_REQUEST = 'PROMOTION_REQUEST'               //营销活动请求
+const PROMOTION_RESPONSE = 'PROMOTION_RESPONSE'             //营销活动请求
 
 function connectionEvent(socket) {
   //接收到H5页面的活动请求
-  socket.on(ACTIVITY_REQUEST, function (data) {
+  socket.on(PROMOTION_REQUEST, async function (data) {
     console.log("收到活动请求：", data)
-    var activityId = data.activityId
-    var openid = data.openid
+    let promotionId = data.promotionId
+    let userId = data.userId
 
-    activityFunc.checkActivityRequest(activityId, openid).then((activity) => {
-      if(activity.pass) {
-        activityFunc.insertActivityMessage(socket.id, openid, activityId, activity.activityCategory).then((result) => {
-          console.log("活动请求消息入队成功")
-        }).catch((error) => {
-          console.log("活动请求消息入队失败", error)
-          socket.to(socket.id).emit(ACTIVITY_RESPONSE, {result: 'fail'})
-        })
-      } else {
-        socket.emit(ACTIVITY_RESPONSE, {result: activity.message})
-      }
-    })
+    let result = await promotionFunc.checkPromotionRequest(promotionId, userId)
+    if(!result) {
+      socket.emit(PROMOTION_RESPONSE, {})
+      return
+    }
+    result = await promotionFunc.insertPromotionMessage(socket.id, userId, promotionId)
+    if(!result) {
+
+      socket.emit(PROMOTION_RESPONSE, {})
+      return
+    }
+
+    // activityFunc.checkActivityRequest(activityId, openid).then((activity) => {
+    //   if(activity.pass) {
+    //     activityFunc.insertActivityMessage(socket.id, openid, activityId, activity.activityCategory).then((result) => {
+    //       console.log("活动请求消息入队成功")
+    //     }).catch((error) => {
+    //       console.log("活动请求消息入队失败", error)
+    //       socket.to(socket.id).emit(PROMOTION_RESPONSE, {result: 'fail'})
+    //     })
+    //   } else {
+    //     socket.emit(PROMOTION_RESPONSE, {result: activity.message})
+    //   }
+    // })
 
   })
 
@@ -91,8 +104,7 @@ function connectionEvent(socket) {
 }
 
 var websocketFunc = {
-  ACTIVITY_REQUEST: ACTIVITY_REQUEST,
-  ACTIVITY_RESPONSE: ACTIVITY_RESPONSE,
+  PROMOTION_RESPONSE: PROMOTION_RESPONSE,
   TURN_ON_DEVICE: TURN_ON_DEVICE,
   TURN_ON_DEVICE_SUCCESS: TURN_ON_DEVICE_SUCCESS,
   TURN_ON_DEVICE_FAILED: TURN_ON_DEVICE_FAILED,
