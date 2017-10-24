@@ -1,6 +1,8 @@
 /**
  * Created by wanpeng on 2017/8/28.
  */
+import AV from 'leanengine'
+import * as errno from '../errno'
 var GLOBAL_CONFIG = require('../../config')
 var pingpp = require('pingpp')(GLOBAL_CONFIG.PINGPP_API_KEY)
 var mysqlUtil = require('../Util/mysqlUtil')
@@ -372,13 +374,14 @@ async function handleRechargeDeal(deal) {
   }
 }
 
-function createTransfer(request, response) {
+async function createTransfer(request) {
   var order_no = uuidv4().replace(/-/g, '').substr(0, 16)
   var amount = mathjs.number(request.params.amount) * 100
   var metadata = request.params.metadata
   var dealType = metadata.dealType
   var channel = request.params.channel
   var openid = request.params.openid
+  let toUser = metadata.toUser
 
   if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_DEV_APP_ID) {
     amount = mathjs.chain(amount).multiply(0.01).done()
@@ -387,42 +390,49 @@ function createTransfer(request, response) {
   } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_PRO_APP_ID) {
   }
 
+  if(channel !== 'wx_pub') { //目前只支持微信公众号提现
+    throw new AV.Cloud.Error('only support wx withdraw', {code: errno.ERROR_UNSUPPORT_CHANNEL})
+  }
+
   var description = ''
   if(dealType === DEAL_TYPE_REFUND) {
     description = "押金退款"
   } else if(dealType === DEAL_TYPE_WITHDRAW) {
     description = "账户提现"
+    let errcode = await profitFunc.isWithdrawAllowed(toUser, amount)
+    if (0 != errcode) {
+      throw new AV.Cloud.Error('cann\'t withdraw', {code: errcode})
+    }
+    try {
+      await profitFunc.updateAdminProfitProcess(toUser, profitFunc.PROCESS_TYPE.WITHDRAW_PROCESS)
+    } catch (e) {
+      throw e
+    }
   }
 
-  if(channel == 'wx_pub') { //目前只支持微信公众号提现
-    pingpp.transfers.create({
-      order_no: order_no,
-      app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
-      channel: "wx_pub",
-      amount: amount,
-      currency: "cny",
-      type: "b2c",
-      recipient: openid, //微信openId
-      extra: {
-        // user_name: username,
-        // force_check: true,
-      },
-      description: description ,
-      metadata: metadata,
-    }, function (err, transfer) {
-      if (err != null ) {
-        console.log('pingpp.transfers.create', err)
-        response.error({
-          errcode: 1,
-          message: err.message,
-        })
-        return
-      }
-      response.success(transfer)
-    })
-  } else {
-    response.error(new Error("目前暂不支持渠道[" + channel + "]提现"))
-  }
+  let retTransfer = undefined
+  pingpp.transfers.create({
+    order_no: order_no,
+    app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
+    channel: "wx_pub",
+    amount: amount,
+    currency: "cny",
+    type: "b2c",
+    recipient: openid, //微信openId
+    extra: {
+      // user_name: username,
+      // force_check: true,
+    },
+    description: description ,
+    metadata: metadata,
+  }, function (err, transfer) {
+    if (err != null ) {
+      console.log('pingpp.transfers.create', err)
+      throw new AV.Cloud.Error('request transfer error' + err.message, {code: errno.ERROR_CREATE_TRANSFER})
+    }
+    retTransfer = transfer
+  })
+  return retTransfer
 }
 
 async function transferEvent(request) {
@@ -464,6 +474,7 @@ async function transferEvent(request) {
       case DEAL_TYPE_WITHDRAW:
       {
         await handleWithdrawDeal(deal)
+        await profitFunc.updateAdminProfitProcess(deal.to, profitFunc.PROCESS_TYPE.NORMAL_PROCESS)
         break
       }
       default:

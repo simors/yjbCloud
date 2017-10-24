@@ -136,17 +136,26 @@ export const ENOTRECOVERABLE    =   -131;       /* State not recoverable */
 export const ERFKILL            =   -132;       /* Operation not possible due to RF-kill */
 export const EHWPOISON          =   -133;       /* Memory page has hardware error */
 
-export const ERROR_BASE         =   1000;
-export const ERROR_BASE_AUTH    =   -(ERROR_BASE);
-export const ERROR_BASE_DEVICE  =   -(ERROR_BASE + 1000);
-export const ERROR_BASE_ORDER   =   -(ERROR_BASE + 2000);
-export const ERROR_BASE_STATION   =   -(ERROR_BASE + 3000);
-export const ERROR_BASE_ACCOUNT   =   -(ERROR_BASE + 4000);
-export const ERROR_BASE_PROMOTION = -(ERROR_BASE + 5000);
+export const ERROR_BASE               =   1000;
+export const ERROR_BASE_AUTH          =   -(ERROR_BASE);
+export const ERROR_BASE_DEVICE        =   -(ERROR_BASE + 1000);
+export const ERROR_BASE_ORDER         =   -(ERROR_BASE + 2000);
+export const ERROR_BASE_STATION       =   -(ERROR_BASE + 3000);
+export const ERROR_BASE_ACCOUNT       =   -(ERROR_BASE + 4000);
+export const ERROR_BASE_PROMOTION     =   -(ERROR_BASE + 5000);
+export const ERROR_BASE_PROFIT        =   -(ERROR_BASE + 6000);
+export const ERROR_BASE_DEAL          =   -(ERROR_BASE + 7000);
 
-
-export const ERROR_STATION_DISABLE = (ERROR_BASE_STATION - 1)     /*FDFASDSAF S*/
-
-
+/* Promotion */
 export const ERROR_PROM_REPEAT  = (ERROR_BASE_PROMOTION - 1)       /* 活动重复 */
 export const ERROR_PROM_NOIP    = (ERROR_BASE_PROMOTION - 2)       /* 无法获取用户ip信息 */
+
+
+/* Profit */
+export const ERROR_IN_WITHDRAW_PROCESS      = (ERROR_BASE_PROFIT - 1)       /* 已经处于提现申请的状态中 */
+export const ERROR_NOT_ENOUGH_MONEY         = (ERROR_BASE_PROFIT - 2)       /* 余额不足 */
+export const ERROR_NOT_WITHDRAW_DATE        = (ERROR_BASE_PROFIT - 3)       /* 非取现日期 */
+
+/* Deal */
+export const ERROR_UNSUPPORT_CHANNEL        = (ERROR_BASE_DEAL - 1)         /* 不支持的支付渠道 */
+export const ERROR_CREATE_TRANSFER          = (ERROR_BASE_DEAL - 2)         /* 创建交易请求失败 */
