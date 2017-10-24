@@ -25,10 +25,13 @@ async function authGetRolesAndPermissions(req) {
 
   if (!currentUser) {
     // no token provided
-    throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
+    throw new AV.Cloud.Error('Permission denied, need to login.', {code: errno.EPERM});
   }
 
-  // TODO: limit
+  // check if this admin user has been disabled
+  if (currentUser.attributes.status === AUTH_USER_STATUS.ADMIN_DISABLED) {
+    throw new AV.Cloud.Error('User disabled.', {code: errno.EACCES});
+  }
 
   // to get:
   // 1. all roles, 2. all permissions
