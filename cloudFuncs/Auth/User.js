@@ -11,8 +11,11 @@ export const AUTH_USER_TYPE = {
 };
 
 export const AUTH_USER_STATUS = {
-  NORMAL:   1,
-  DISABLED: 2,
+  MP_NORMAL:      1,
+  MP_DISABLED:    2,
+
+  ADMIN_NORMAL:   101,
+  ADMIN_DISABLED: 102,
 };
 
 async function authGetRolesAndPermissions(req) {
@@ -96,7 +99,7 @@ async function authListEndUsers(req) {
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
 
-  const {skip=0, limit=10, mobilePhoneNumber, province, city, status} = params;
+  const {skip=0, limit=10, mobilePhoneNumber, province, city, mpStatus} = params;
 
   const jsonUsers = [];
 
@@ -117,13 +120,13 @@ async function authListEndUsers(req) {
     cql += ' and city.value=?';
     values.push(city);
   }
-  if (status) {
-    if (status === AUTH_USER_STATUS.DISABLED) {
-      cql += ' and status=?';
-      values.push(AUTH_USER_STATUS.DISABLED);
+  if (mpStatus) {
+    if (mpStatus === AUTH_USER_STATUS.MP_DISABLED) {
+      cql += ' and mpStatus=?';
+      values.push(AUTH_USER_STATUS.MP_DISABLED);
     } else {
-      cql += ' and (status is not exists or status=?)';
-      values.push(AUTH_USER_STATUS.NORMAL);
+      cql += ' and (mpStatus is not exists or mpStatus=?)';
+      values.push(AUTH_USER_STATUS.MP_NORMAL);
     }
   }
   cql += ' limit ?,?';
@@ -167,11 +170,16 @@ async function authListAdminUsers(req) {
 
   const jsonUsers = [];
 
+  const {mobilePhoneNumber: myMobilePhoneNumber} = currentUser.attributes;
+
   const values = [];
   let cql = 'select count(*),* from _User';
   cql += ' where (type=? or type=?)';
   values.push(AUTH_USER_TYPE.ADMIN);
   values.push(AUTH_USER_TYPE.BOTH);
+  // exclude myself
+  cql += ' and mobilePhoneNumber!=?';
+  values.push(myMobilePhoneNumber);
   if (nickname) {
     cql += ' and nickname=?';
     values.push(nickname);
@@ -187,12 +195,12 @@ async function authListAdminUsers(req) {
     values.push(roles);
   }
   if (status) {
-    if (status === AUTH_USER_STATUS.DISABLED) {
+    if (status === AUTH_USER_STATUS.ADMIN_DISABLED) {
       cql += ' and status=?';
-      values.push(AUTH_USER_STATUS.DISABLED);
+      values.push(AUTH_USER_STATUS.ADMIN_DISABLED);
     } else {
       cql += ' and (status is not exists or status=?)';
-      values.push(AUTH_USER_STATUS.NORMAL);
+      values.push(AUTH_USER_STATUS.ADMIN_NORMAL);
     }
   }
   cql += ' limit ?,?';
@@ -224,6 +232,7 @@ async function authCreateUser(req) {
   };
 
   ({
+    mpStatus: jsonUser.mpStatus,
     status: jsonUser.status,
     email: jsonUser.email,
     mobilePhoneNumber: jsonUser.mobilePhoneNumber,
@@ -315,6 +324,7 @@ async function authUpdateUser(req) {
   };
 
   ({
+    mpStatus: jsonUser.mpStatus,
     status: jsonUser.status,
     email: jsonUser.email,
     // mobilePhoneNumber: jsonUser.mobilePhoneNumber,
