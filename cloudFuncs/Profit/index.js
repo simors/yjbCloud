@@ -220,12 +220,12 @@ async function isWithdrawAllowed(userId, willBalance) {
     if (!judgeProcessStatus(adminProfit)) {
       return errno.ERROR_IN_WITHDRAW_PROCESS
     }
-    // if (!judgeBalanceEnough(adminProfit, willBalance)) {
-    //   return errno.ERROR_NOT_ENOUGH_MONEY
-    // }
-    if (!judgeWithdrawDate()) {
-      return errno.ERROR_NOT_WITHDRAW_DATE
+    if (!judgeBalanceEnough(adminProfit, willBalance)) {
+      return errno.ERROR_NOT_ENOUGH_MONEY
     }
+    // if (!judgeWithdrawDate()) {
+    //   return errno.ERROR_NOT_WITHDRAW_DATE
+    // }
     return 0
   } catch (e) {
     throw e
