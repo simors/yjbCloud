@@ -532,7 +532,7 @@ async function fetchRechargePromRecord(request) {
  */
 async function getPromotionCategoryType(promotionId) {
   if(!promotionId) {
-    return undefined
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
   let query = new AV.Query('Promotion')
   query.include('category')
@@ -659,10 +659,9 @@ async function insertPromotionMessage(socketId, userId, promotionId) {
  */
 async function handlePromotionMessage(promotionId, userId) {
   if(!promotionId || !userId) {
-    return undefined
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
   let categoryType = await getPromotionCategoryType(promotionId)
-
   switch (categoryType) {
     case PROMOTION_CATEGORY_TYPE_REDENVELOPE:
     {
@@ -687,13 +686,13 @@ async function handlePromotionMessage(promotionId, userId) {
 async function handleRedEnvelopeMessage(promotionId, userId) {
   let handleRedEnvelopeDeal = require('../Pingpp').handleRedEnvelopeDeal
   if(!promotionId || !userId) {
-    return undefined
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
   let query = new AV.Query('Promotion')
   let promotion = await query.get(promotionId)
   if(!promotion) {
-    return undefined
+    throw new AV.Cloud.Error('没有找到活动对象', {code: errno.ENODATA})
   }
   let promotionAttr = promotion.attributes
   let awards = promotionAttr.awards

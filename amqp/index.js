@@ -55,7 +55,7 @@ function connectEvent(conn) {
           //doNothing 多节点情况下
         } else {
           promotionFunc.handlePromotionMessage(promotionId, userId).then((amount) => {
-            namespace.to(socketId).emit(PROMOTION_RESPONSE, {amount: amount})
+            namespace.to(socketId).emit(PROMOTION_RESPONSE, {errorCode: 0, amount: amount})
             ch.ack(msg)
           }).catch((error) => {
             console.log("处理活动请求失败", error)
