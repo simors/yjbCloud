@@ -38,9 +38,9 @@ function createTmpQRCode(sceneId, expire_seconds) {
 }
 
 async function reqGenerateUserQRCode(request) {
-  let userId = request.params.userId
+  let phone = request.params.phone
   try {
-    let qrcodeUrl = await createTmpQRCode(userId, 24 * 3600 * 2)
+    let qrcodeUrl = await createTmpQRCode(phone, 24 * 3600 * 2)
     return qrcodeUrl
   } catch (e) {
     throw new AV.Cloud.Error('Query admin profit error', {code: errno.EIO})
