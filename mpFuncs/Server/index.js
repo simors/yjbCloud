@@ -25,6 +25,10 @@ function subscribeEvent(req, res, next) {
         content: "欢迎使用衣家宝干衣柜"
       })
     }
+  }).then(() => {
+    let updateUserScore = require('../../cloudFuncs/Score').updateUserScore
+    let SCORE_OP_TYPE_FOCUS = require('../../cloudFuncs/Score').SCORE_OP_TYPE_FOCUS
+    return updateUserScore(userId, SCORE_OP_TYPE_FOCUS, {})
   }).catch((error) => {
     console.log("subscribeEvent error", error)
     res.reply({
