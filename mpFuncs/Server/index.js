@@ -12,12 +12,6 @@ var authFunc = require('../../cloudFuncs/Auth')
 function subscribeEvent(req, res, next) {
   var message = req.weixin
   var openid = message.FromUserName
-  let eventKey = message.EventKey
-  let phone = ''
-  if (eventKey) {
-    phone = eventKey.slice(8, eventKey.length)
-  }
-
 
   authFunc.updateUserSubscribe(openid, true).then((result) => {
     if(result) {
@@ -38,8 +32,6 @@ function subscribeEvent(req, res, next) {
       content: "服务器异常，请联系客服！"
     })
   })
-
-
 }
 
 //用户取消关注事件处理
