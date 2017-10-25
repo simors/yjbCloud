@@ -700,12 +700,6 @@ async function getPartnerAccountsDetail(request, response) {
     let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
   }
-  if (startDate) {
-    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  }
-  if (endDate) {
-    query.lessThan('accountDay', new Date(endDate))
-  }
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
@@ -758,12 +752,6 @@ async function getInvestorAccountsDetail(request, response) {
   if (stationId) {
     let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
-  }
-  if (startDate) {
-    query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  }
-  if (endDate) {
-    query.lessThan('accountDay', new Date(endDate))
   }
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
