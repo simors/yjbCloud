@@ -1,6 +1,9 @@
 import AV from 'leanengine';
 import * as errno from '../errno';
 import {constructUserInfo, constructRoleInfo, constructPermissionInfo} from './index';
+import authFunc from './index'
+import utilFunc from '../Util'
+import mpAuthFuncs from '../../mpFuncs/Auth'
 
 // --- enum
 
@@ -20,6 +23,28 @@ export const AUTH_USER_STATUS = {
   ADMIN_ALL:      200,
 };
 
+async function authValidateLogin(req) {
+  const {phone} = req.params;
+
+  const cql = 'select * from _User where mobilePhoneNumber=?';
+  const values = [phone];
+
+  const {results} = await AV.Query.doCloudQuery(cql, values);
+
+  if (!results.length) {
+    return;
+  }
+
+  const jsonUser = constructUserInfo(results[0]);
+  if (jsonUser.type === AUTH_USER_TYPE.END) {
+    // only admin users are allowed to login
+    throw new AV.Cloud.Error('User denied.', {code: errno.EINVAL});
+  } else if (jsonUser.status === AUTH_USER_STATUS.ADMIN_DISABLED) {
+    // check if this admin user has been disabled
+    throw new AV.Cloud.Error('User disabled.', {code: errno.EACCES});
+  }
+}
+
 async function authGetRolesAndPermissions(req) {
   const {currentUser, params} = req;
 
@@ -27,8 +52,6 @@ async function authGetRolesAndPermissions(req) {
     // no token provided
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
-
-  // TODO: limit
 
   // to get:
   // 1. all roles, 2. all permissions
@@ -363,13 +386,28 @@ async function authUpdateUser(req) {
   return constructUserInfo(ptrUser);
 }
 
+async function authFetchUserByPhone(phone) {
+  let query = new AV.Query('_User');
+  query.equalTo('mobilePhoneNumber', phone);
+  return await query.first()
+}
+
+async function authFetchUserByOpenId(openid) {
+  let query = new AV.Query('_User')
+  query.equalTo("authData.weixin.openid", openid)
+  return await query.first()
+}
+
 const authApi = {
+  authValidateLogin,
   authGetRolesAndPermissions,
   authListEndUsers,
   authListAdminUsers,
   authCreateUser,
   authDeleteUser,
   authUpdateUser,
+  authFetchUserByPhone,
+  authFetchUserByOpenId,
 };
 
 module.exports = authApi;

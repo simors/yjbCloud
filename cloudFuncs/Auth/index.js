@@ -343,6 +343,10 @@ async function setUserMobilePhone(request, response) {
   let user = await currentUser.save()
   let userInfo = await user.fetch()
   response.success(constructUserInfo(userInfo))
+  //用户积分变更
+  let updateUserScore = require('../Score').updateUserScore
+  let SCORE_OP_TYPE_BIND_PHONE = require('../Score').SCORE_OP_TYPE_BIND_PHONE
+  await updateUserScore(userInfo.id, SCORE_OP_TYPE_BIND_PHONE, {})
 }
 
 /**
@@ -365,6 +369,8 @@ async function updateUserSubscribe(openid, subscribe) {
   let result = await user.save()
   return result
 }
+
+
 
 async function authFuncTest(request, response) {
   let userId = request.params.userId
