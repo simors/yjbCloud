@@ -1,6 +1,9 @@
 import AV from 'leanengine';
 import * as errno from '../errno';
 import {constructUserInfo, constructRoleInfo, constructPermissionInfo} from './index';
+import authFunc from './index'
+import utilFunc from '../Util'
+import mpAuthFuncs from '../../mpFuncs/Auth'
 
 // --- enum
 
@@ -383,6 +386,18 @@ async function authUpdateUser(req) {
   return constructUserInfo(ptrUser);
 }
 
+async function authFetchUserByPhone(phone) {
+  let query = new AV.Query('_User');
+  query.equalTo('mobilePhoneNumber', phone);
+  return await query.first()
+}
+
+async function authFetchUserByOpenId(openid) {
+  let query = new AV.Query('_User')
+  query.equalTo("authData.weixin.openid", openid)
+  return await query.first()
+}
+
 const authApi = {
   authValidateLogin,
   authGetRolesAndPermissions,
@@ -391,6 +406,8 @@ const authApi = {
   authCreateUser,
   authDeleteUser,
   authUpdateUser,
+  authFetchUserByPhone,
+  authFetchUserByOpenId,
 };
 
 module.exports = authApi;

@@ -32,8 +32,6 @@ function subscribeEvent(req, res, next) {
       content: "服务器异常，请联系客服！"
     })
   })
-
-
 }
 
 //用户取消关注事件处理
