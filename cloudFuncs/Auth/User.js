@@ -1,6 +1,6 @@
 import AV from 'leanengine';
 import * as errno from '../errno';
-import {constructUserInfo, constructRoleInfo, constructPermissionInfo} from './index';
+import {constructUserInfo, constructRoleInfo, constructPermissionInfo, constructMpAuthData} from './index';
 import authFunc from './index'
 import utilFunc from '../Util'
 import mpAuthFuncs from '../../mpFuncs/Auth'
@@ -398,7 +398,69 @@ async function authFetchUserByOpenId(openid) {
   return await query.first()
 }
 
+async function authListOpenIdsTest(req) {
+  const {currentUser, params} = req;
+
+  if (!currentUser) {
+    // no token provided
+    throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
+  }
+
+  return await authListOpenIds(params);
+}
+
+async function authListOpenIds(params) {
+
+  const {limit=10, lastUpdatedAt, province, city, mpStatus} = params;
+
+  const openIds = [];
+  let updatedAt = undefined;
+
+  const values = [];
+  let cql = 'select authData from _User';
+  cql += ' where authData is exists';
+  if (province) {
+    cql += ' and province.value=?';
+    values.push(province);
+  }
+  if (city) {
+    cql += ' and city.value=?';
+    values.push(city);
+  }
+  if (mpStatus) {
+    if (mpStatus === AUTH_USER_STATUS.MP_DISABLED) {
+      cql += ' and mpStatus=?';
+      values.push(AUTH_USER_STATUS.MP_DISABLED);
+    } else if (mpStatus === AUTH_USER_STATUS.MP_NORMAL) {
+      cql += ' and (mpStatus is not exists or mpStatus=?)';
+      values.push(AUTH_USER_STATUS.MP_NORMAL);
+    }
+  }
+  if (lastUpdatedAt) {
+    cql += ' and updatedAt<date(?)';
+    values.push(lastUpdatedAt);
+  }
+  cql += ' limit ?';
+  values.push(limit);
+  cql += ' order by -updatedAt';
+
+  const {results} = await AV.Query.doCloudQuery(cql, values);
+
+  results.forEach((i) => {
+    const authData = constructMpAuthData(i);
+    openIds.push(authData.openid);
+    updatedAt = i.updatedAt;
+  });
+
+  return {
+    openIds,
+    lastUpdatedAt: updatedAt
+  };
+}
+
 const authApi = {
+  AUTH_USER_TYPE,
+  AUTH_USER_STATUS,
   authValidateLogin,
   authGetRolesAndPermissions,
   authListEndUsers,
@@ -408,6 +470,8 @@ const authApi = {
   authUpdateUser,
   authFetchUserByPhone,
   authFetchUserByOpenId,
+  authListOpenIds,
+  authListOpenIdsTest,
 };
 
 module.exports = authApi;
