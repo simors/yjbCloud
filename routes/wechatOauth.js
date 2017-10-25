@@ -45,6 +45,7 @@ router.get('/', async function (req, res, next) {
         user.set('city', {label: userAddrInfo.city, value: userAddrInfo.city_id})
       }
       user.set('subscribe', userWechatInfo.subscribe)
+      user.set('score', 0)
       await AV.User.associateWithAuthData(user, platform, authData)
     }
     redirectUrl =  GLOBAL_CONFIG.MP_CLIENT_DOMAIN + state + '?' + querystring.stringify(authData)

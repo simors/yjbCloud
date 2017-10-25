@@ -18,7 +18,7 @@ const PROMOTION_CATEGORY_TYPE_LOTTERY = 4         //抽奖
 const PROMOTION_CATEGORY_TYPE_EXCHANGE_SCORE = 5  //积分兑换
 
 var Promotion = AV.Object.extend('Promotion')
-var RechargePromotion = AV.Object.extend('RechargePromotion')
+var PromotionRecord = AV.Object.extend('PromotionRecord')
 
 function constructCategoryInfo(category) {
   if(!category) {
@@ -38,31 +38,27 @@ function constructCategoryInfo(category) {
   return categoryInfo
 }
 
-function constructRechargePromotionInfo(recharge, includePromotion, includeUser) {
+function constructPromotionRecordInfo(promotionRecord, includePromotion, includeUser) {
   let constructUserInfo = require('../Auth').constructUserInfo
-
-  if(!recharge) {
+  if(!promotionRecord) {
     return undefined
   }
-  let rechargepromInfo = {}
-  let rechargepromAttr = recharge.attributes
-  if(!rechargepromAttr) {
+  let promotionRecordInfo = {}
+  let promotionRecordAttr = promotionRecord.attributes
+  if(!promotionRecordAttr) {
     return undefined
   }
-  rechargepromInfo.id = recharge.id
-  rechargepromInfo.promotionId = rechargepromAttr.promotion.id
-  rechargepromInfo.userId = rechargepromAttr.user.id
-  rechargepromInfo.recharge = rechargepromAttr.recharge
-  rechargepromInfo.award = rechargepromAttr.award
-  rechargepromInfo.createdAt = rechargepromAttr.createdAt
+  promotionRecordInfo.id = promotionRecord.id
+  promotionRecordInfo.promotionId = promotionRecordAttr.promotion.id
+  promotionRecordInfo.userId = promotionRecordAttr.user.id
+  promotionRecordInfo.metadata = promotionRecordAttr.metadata
+  promotionRecordInfo.createdAt = promotionRecordAttr.createdAt
   if(includePromotion) {
-    rechargepromInfo.promotion = constructPromotionInfo(rechargepromAttr.promotion, false, false)
+    promotionRecordInfo.promotion = constructPromotionInfo(promotionRecordAttr.promotion, false, false)
   }
   if(includeUser) {
-    rechargepromInfo.user = constructUserInfo(rechargepromAttr.user)
+    promotionRecordInfo.user = constructUserInfo(promotionRecordAttr.user)
   }
-
-  return rechargepromInfo
 }
 
 function constructPromotionInfo(promotion, includeCategory, includeUser) {
@@ -130,8 +126,8 @@ async function createPromotion(request) {
   let promotion = new Promotion()
   let category = AV.Object.createWithoutData('PromotionCategory', categoryId)
   let leanCategory = await category.fetch()
-  switch (leanCategory.attributes.title) {
-    case '充值奖励':
+  switch (leanCategory.attributes.type) {
+    case PROMOTION_CATEGORY_TYPE_RECHARGE:
     {
       initStat = {
         participant: 0,       //参与量
@@ -140,19 +136,27 @@ async function createPromotion(request) {
       }
       break
     }
-    case '积分活动':
+    case PROMOTION_CATEGORY_TYPE_SCORE:
     {
       initStat = {
         participant: 0,       //参与量
+        scoreAmount: 0,       //赠送积分总数
       }
       break
     }
-    case '随机红包':
+    case PROMOTION_CATEGORY_TYPE_REDENVELOPE:
     {
       initStat = {
         participant: 0,       //参与量
         winAmount:0,          //中奖总金额
         winCount:0,           //中奖量
+      }
+      break
+    }
+    case PROMOTION_CATEGORY_TYPE_EXCHANGE_SCORE:
+    {
+      initStat = {
+        participant: 0,       //参与量
       }
       break
     }
@@ -406,6 +410,46 @@ async function getValidPromotionList(request) {
 }
 
 /**
+ * 获取当前用户积分活动倍率
+ * @param     {String} userId     用户id
+ * @returns   {Promise.<Object>}  promotion
+ */
+async function getValidScorePromRate(userId) {
+  if(!userId) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let user = AV.Object.createWithoutData('_User', userId)
+  let userInfo = await user.fetch()
+  let userAttr = userInfo.attributes
+
+  let categoryQuery = new AV.Query('PromotionCategory')
+  categoryQuery.equalTo('type', PROMOTION_CATEGORY_TYPE_SCORE)
+  let category = await categoryQuery.first()
+
+  let userRegion = [userAttr.province.value, userAttr.city.value]
+  let timeQuery = new AV.Query('Promotion')
+  let regionQueryA = new AV.Query('Promotion')
+  let regionQueryB = new AV.Query('Promotion')
+  let statusQuery = new AV.Query('Promotion')
+  timeQuery.greaterThan('end', new Date())
+  timeQuery.lessThanOrEqualTo('start', new Date())
+  regionQueryA.containsAll('region', userRegion)
+  regionQueryB.containedIn('region', userRegion)
+  let regionQuery = AV.Query.or(regionQueryA, regionQueryB)
+  statusQuery.equalTo('disabled', false)
+  statusQuery.equalTo('category', category)
+
+  let query = AV.Query.and(statusQuery, timeQuery, regionQuery)
+  query.include('user')
+
+  let promotion = await query.first()
+  if(!promotion) {
+    return undefined
+  }
+  return constructPromotionInfo(promotion, false, false)
+}
+
+/**
  * 更新充值奖励活动统计数据
  * @param {String} promotionId     活动id
  * @param {Number} recharge        充值金额
@@ -453,31 +497,83 @@ async function updateRedEnvelopePromStat(promotionId, amount) {
 }
 
 /**
- * 增加充值活动记录
+ * 增加活动记录
  * @param {String} promotionId     活动id
  * @param {String} userId          用户id
- * @param {Number} recharge        充值金额
- * @param {Number} award           赠送金额
+ * @param {Object} metadata        活动数据
  */
-async function addRechargePromRecord(promotionId, userId, recharge, award) {
-  if(!promotionId || !userId || !recharge || !award) {
+async function addPromotionRecord(promotionId, userId, metadata) {
+  if(!promotionId || !userId || !metadata) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
-  let rechargePromotion = new RechargePromotion()
+
+  let promotionRecord = new PromotionRecord()
   let promotion = AV.Object.createWithoutData('Promotion', promotionId)
   let user = AV.Object.createWithoutData('_User', userId)
-  rechargePromotion.set('promotion', promotion)
-  rechargePromotion.set('user', user)
-  rechargePromotion.set('recharge', Number(recharge))
-  rechargePromotion.set('award', Number(award))
-  return await rechargePromotion.save()
+  promotionRecord.set('promotion', promotion)
+  promotionRecord.set('user', user)
+  promotionRecord.set('metadata', metadata)
+  return await promotionRecord.save()
 }
 
+// /**
+//  * 分页查询充值奖励活动记录
+//  * @param request
+//  */
+// async function fetchRechargePromRecord(request) {
+//   const {currentUser, params} = request
+//   if(!currentUser) {
+//     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+//   }
+//   const {promotionId, lastCreatedAt, limit, isRefresh, start, end, mobilePhoneNumber} = params
+//
+//   if(!promotionId) {
+//     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+//   }
+//
+//   let startQuery = new AV.Query('RechargePromotion')
+//   let endQuery = new AV.Query('RechargePromotion')
+//   let otherQuery = new AV.Query('RechargePromotion')
+//   let rechargeRecordList = []
+//
+//   if(start) {
+//     startQuery.greaterThanOrEqualTo('createdAt', new Date(start))
+//   }
+//   if(end) {
+//     endQuery.lessThan('createdAt', new Date(end))
+//   }
+//   if(!isRefresh && lastCreatedAt) {
+//     otherQuery.lessThan('createdAt', new Date(lastCreatedAt))
+//   }
+//   if(mobilePhoneNumber) {
+//     let userQuery = new AV.Query('_User')
+//     userQuery.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+//     let user = await userQuery.first()
+//     if(!user) {
+//       return rechargeRecordList
+//     }
+//     otherQuery.equalTo('user', user)
+//   }
+//   let promotion = AV.Object.createWithoutData('Promotion', promotionId)
+//   otherQuery.equalTo('promotion', promotion)
+//
+//   let query = AV.Query.and(startQuery, endQuery, otherQuery)
+//   query.include('user')
+//   query.limit(limit || 10)
+//   query.descending('createdAt')
+//
+//   let results = await query.find()
+//   results.forEach((record) => {
+//     rechargeRecordList.push(constructRechargePromotionInfo(record, false, true))
+//   })
+//   return rechargeRecordList
+// }
+
 /**
- * 分页查询充值奖励活动记录
+ * 分页查询活动记录
  * @param request
  */
-async function fetchRechargePromRecord(request) {
+async function fetchPromotionRecord(request) {
   const {currentUser, params} = request
   if(!currentUser) {
     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
@@ -488,10 +584,10 @@ async function fetchRechargePromRecord(request) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
-  let startQuery = new AV.Query('RechargePromotion')
-  let endQuery = new AV.Query('RechargePromotion')
-  let otherQuery = new AV.Query('RechargePromotion')
-  let rechargeRecordList = []
+  let startQuery = new AV.Query('PromotionRecord')
+  let endQuery = new AV.Query('PromotionRecord')
+  let otherQuery = new AV.Query('PromotionRecord')
+  let promotionRecordList = []
 
   if(start) {
     startQuery.greaterThanOrEqualTo('createdAt', new Date(start))
@@ -507,7 +603,7 @@ async function fetchRechargePromRecord(request) {
     userQuery.equalTo('mobilePhoneNumber', mobilePhoneNumber)
     let user = await userQuery.first()
     if(!user) {
-      return rechargeRecordList
+      return promotionRecordList
     }
     otherQuery.equalTo('user', user)
   }
@@ -520,10 +616,10 @@ async function fetchRechargePromRecord(request) {
   query.descending('createdAt')
 
   let results = await query.find()
-  results.forEach((record) => {
-    rechargeRecordList.push(constructRechargePromotionInfo(record, false, true))
+  results.forEach((promotionRecord) => {
+    promotionRecordList.push(constructPromotionRecordInfo(promotionRecord, false, true))
   })
-  return rechargeRecordList
+  return promotionRecordList
 }
 
 /**
@@ -734,11 +830,12 @@ var promotionFunc = {
   editPromotion: editPromotion,
   getValidPromotionList: getValidPromotionList,
   updateRechargePromStat: updateRechargePromStat,
-  addRechargePromRecord: addRechargePromRecord,
-  fetchRechargePromRecord: fetchRechargePromRecord,
   checkPromotionRequest: checkPromotionRequest,
   insertPromotionMessage: insertPromotionMessage,
   handlePromotionMessage: handlePromotionMessage,
+  getValidScorePromRate: getValidScorePromRate,
+  fetchPromotionRecord: fetchPromotionRecord,
+  addPromotionRecord: addPromotionRecord,
 }
 
 module.exports = promotionFunc

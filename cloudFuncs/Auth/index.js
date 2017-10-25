@@ -366,6 +366,8 @@ async function updateUserSubscribe(openid, subscribe) {
   return result
 }
 
+
+
 async function authFuncTest(request, response) {
   let userId = request.params.userId
   let userInfo = await getUserInfoById(userId)
