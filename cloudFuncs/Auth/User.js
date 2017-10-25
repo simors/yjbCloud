@@ -13,10 +13,34 @@ export const AUTH_USER_TYPE = {
 export const AUTH_USER_STATUS = {
   MP_NORMAL:      1,
   MP_DISABLED:    2,
+  MP_ALL:         100,
 
   ADMIN_NORMAL:   101,
   ADMIN_DISABLED: 102,
+  ADMIN_ALL:      200,
 };
+
+async function authValidateLogin(req) {
+  const {phone} = req.params;
+
+  const cql = 'select * from _User where mobilePhoneNumber=?';
+  const values = [phone];
+
+  const {results} = await AV.Query.doCloudQuery(cql, values);
+
+  if (!results.length) {
+    return;
+  }
+
+  const jsonUser = constructUserInfo(results[0]);
+  if (jsonUser.type === AUTH_USER_TYPE.END) {
+    // only admin users are allowed to login
+    throw new AV.Cloud.Error('User denied.', {code: errno.EINVAL});
+  } else if (jsonUser.status === AUTH_USER_STATUS.ADMIN_DISABLED) {
+    // check if this admin user has been disabled
+    throw new AV.Cloud.Error('User disabled.', {code: errno.EACCES});
+  }
+}
 
 async function authGetRolesAndPermissions(req) {
   const {currentUser, params} = req;
@@ -25,8 +49,6 @@ async function authGetRolesAndPermissions(req) {
     // no token provided
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
-
-  // TODO: limit
 
   // to get:
   // 1. all roles, 2. all permissions
@@ -124,7 +146,7 @@ async function authListEndUsers(req) {
     if (mpStatus === AUTH_USER_STATUS.MP_DISABLED) {
       cql += ' and mpStatus=?';
       values.push(AUTH_USER_STATUS.MP_DISABLED);
-    } else {
+    } else if (mpStatus === AUTH_USER_STATUS.MP_NORMAL) {
       cql += ' and (mpStatus is not exists or mpStatus=?)';
       values.push(AUTH_USER_STATUS.MP_NORMAL);
     }
@@ -198,7 +220,7 @@ async function authListAdminUsers(req) {
     if (status === AUTH_USER_STATUS.ADMIN_DISABLED) {
       cql += ' and status=?';
       values.push(AUTH_USER_STATUS.ADMIN_DISABLED);
-    } else {
+    } else if (status === AUTH_USER_STATUS.ADMIN_NORMAL) {
       cql += ' and (status is not exists or status=?)';
       values.push(AUTH_USER_STATUS.ADMIN_NORMAL);
     }
@@ -362,6 +384,7 @@ async function authUpdateUser(req) {
 }
 
 const authApi = {
+  authValidateLogin,
   authGetRolesAndPermissions,
   authListEndUsers,
   authListAdminUsers,

@@ -1,8 +1,10 @@
 /**
  * Created by wanpeng on 2017/7/26.
  */
+import AV from 'leanengine'
 var wechat_api = require('../index').wechat_api
 var Promise = require('bluebird');
+import * as errno from '../../cloudFuncs/errno'
 
 
 function createLimitQRCode(sceneId) {
@@ -35,9 +37,20 @@ function createTmpQRCode(sceneId, expire_seconds) {
   })
 }
 
+async function reqGenerateUserQRCode(request) {
+  let phone = request.params.phone
+  try {
+    let qrcodeUrl = await createTmpQRCode(phone, 24 * 3600 * 2)
+    return qrcodeUrl
+  } catch (e) {
+    throw new AV.Cloud.Error('Query admin profit error', {code: errno.EIO})
+  }
+}
+
 var mpQrcodeFuncs = {
   createLimitQRCode: createLimitQRCode,
   createTmpQRCode: createTmpQRCode,
+  reqGenerateUserQRCode,
 }
 
 module.exports = mpQrcodeFuncs

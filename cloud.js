@@ -14,6 +14,7 @@ var excelFunc = require('./cloudFuncs/Util/excel')
 var profitFunc = require('./cloudFuncs/Profit')
 var utilFunc = require('./cloudFuncs/Util')
 var operationFunc = require('./cloudFuncs/OperationLog')
+var mpQrcodeFuncs = require('./mpFuncs/Qrcode')
 
 /**
  * 云函数
@@ -26,6 +27,7 @@ AV.Cloud.define('authVerifyIdName', authFunc.verifyIdName)
 AV.Cloud.define('wechatIsSubscribe', mpUserFuncs.isSubscribe)
 AV.Cloud.define('authSetUserMobilePhone', authFunc.setUserMobilePhone)
 
+AV.Cloud.define('authValidateLogin', userFunc.authValidateLogin);
 AV.Cloud.define('authGetRolesAndPermissions', userFunc.authGetRolesAndPermissions);
 AV.Cloud.define('authListEndUsers', userFunc.authListEndUsers);
 AV.Cloud.define('authListAdminUsers', userFunc.authListAdminUsers);
@@ -119,6 +121,9 @@ AV.Cloud.define('profitTestJudgeWithdraw', profitFunc.reqTestJudgeWithdraw)
 
 //操作日志
 AV.Cloud.define('operationFetchOperationLogs', operationFunc.fetchOperationLogs)
+
+// 微信二维码
+AV.Cloud.define('wechatGenerateUserQrcode', mpQrcodeFuncs.reqGenerateUserQRCode)
 
 
 module.exports = AV.Cloud;
