@@ -436,7 +436,7 @@ async function handleRechargeDeal(deal) {
     await mpMsgFuncs.sendRechargeTmpMsg(deal.openid, deal.cost, userWalletInfo.balance, userWalletInfo.score, new Date(deal.payTime * 1000), deal.deal_type)
     if(deal.metadata.promotionId) {
       await promotionFunc.updateRechargePromStat(deal.metadata.promotionId, deal.cost, deal.metadata.award)
-      await promotionFunc.addRechargePromRecord(deal.metadata.promotionId, deal.from, deal.cost, deal.metadata.award)
+      await promotionFunc.addPromotionRecord(deal.metadata.promotionId, deal.from, {recharge: deal.cost, award: deal.metadata.award})
     }
   } catch (error) {
     console.error(error)
