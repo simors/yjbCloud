@@ -165,10 +165,6 @@ function  orderPayment(request, response) {
 
   PingppFunc.getWalletInfo(userId).then((walletInfo) => {
     if(!walletInfo || amount > walletInfo.balance) {
-      // return updateOrderStatus(orderId, ORDER_STATUS_UNPAID, endTime, amount).then((order) => {
-      //   orderInfo = order
-      //   response.success(orderInfo)
-      // })
       response.success(new Error("余额不足"))
     } else {
       return updateOrderStatus(orderId, ORDER_STATUS_PAID, endTime, amount).then((order) => {
@@ -192,6 +188,10 @@ function  orderPayment(request, response) {
         if(orderInfo.status === ORDER_STATUS_PAID) {
           return mpMsgFuncs.sendOrderPaymentTmpMsg(walletInfo.openid, amount, orderInfo.id, orderInfo.deviceAddr)
         }
+      }).then(() => {
+        let updateUserScore = require('../Score').updateUserScore
+        let SCORE_OP_TYPE_SERVICE = require('../Score').SCORE_OP_TYPE_SERVICE
+        return updateUserScore(userId, SCORE_OP_TYPE_SERVICE, {})
       }).catch((error) => {
         throw error
       })

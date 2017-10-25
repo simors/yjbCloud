@@ -348,6 +348,9 @@ async function paymentEvent(request) {
   var payTime = charge.created  //unix时间戳
 
   console.log("收到paymentEvent消息 charge:", charge)
+  let updateUserScore = require('../Score').updateUserScore
+  let SCORE_OP_TYPE_DEPOSIT = require('../Score').SCORE_OP_TYPE_DEPOSIT
+  let SCORE_OP_TYPE_RECHARGE = require('../Score').SCORE_OP_TYPE_RECHARGE
   var deal = {
     from: fromUser,
     to: toUser,
@@ -375,6 +378,20 @@ async function paymentEvent(request) {
   } catch (error) {
     console.error(error)
     throw error
+  }
+  try {
+    switch (dealType) {
+      case DEAL_TYPE_DEPOSIT:
+        await updateUserScore(fromUser, SCORE_OP_TYPE_DEPOSIT, {})
+        break
+      case DEAL_TYPE_RECHARGE:
+        await updateUserScore(fromUser, SCORE_OP_TYPE_RECHARGE, {recharge: amount})
+        break
+      default:
+        break
+    }
+  } catch (error) {
+    console.error(error)
   }
 }
 /**
