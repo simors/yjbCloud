@@ -12,6 +12,12 @@ var authFunc = require('../../cloudFuncs/Auth')
 function subscribeEvent(req, res, next) {
   var message = req.weixin
   var openid = message.FromUserName
+  let eventKey = message.EventKey
+  let phone = ''
+  if (eventKey) {
+    phone = eventKey.slice(8, eventKey.length)
+  }
+
 
   authFunc.updateUserSubscribe(openid, true).then((result) => {
     if(result) {
