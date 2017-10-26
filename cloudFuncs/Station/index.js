@@ -548,7 +548,7 @@ function createInvestor(request, response) {
   queryPre.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
   queryPre.first().then((item)=> {
     if (item) {
-      response.error(new Error("该服务点已有该投资人!"))
+      response.error("该服务点已有该投资人!")
       return
     } else {
       investor.set('shareholder', user)
