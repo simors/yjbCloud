@@ -52,7 +52,7 @@ function constructPromotionRecordInfo(promotionRecord, includePromotion, include
   promotionRecordInfo.promotionId = promotionRecordAttr.promotion.id
   promotionRecordInfo.userId = promotionRecordAttr.user.id
   promotionRecordInfo.metadata = promotionRecordAttr.metadata
-  promotionRecordInfo.createdAt = promotionRecordAttr.createdAt
+  promotionRecordInfo.createdAt = promotionRecord.createdAt
   if(includePromotion) {
     promotionRecordInfo.promotion = constructPromotionInfo(promotionRecordAttr.promotion, false, false)
   }
