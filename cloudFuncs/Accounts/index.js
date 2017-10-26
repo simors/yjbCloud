@@ -879,6 +879,63 @@ async function reqStatLast30DaysAccountProfit(request) {
   return statAccountProfit(currentUser, type, startDate, endDate)
 }
 
+/**
+ * 获取服务点投资人在过去3个月所有服务点的投资收益
+ * @param request
+ * @returns {Array}
+ */
+async function reqStatLast3MonthsAccountProfit(request) {
+  let currentUser = request.currentUser
+  let type = request.params.accountType
+
+  let startDate = moment().subtract(3, 'months').format('YYYY-MM-DD')
+  let endDate = moment().format('YYYY-MM-DD')
+
+  if (!currentUser) {
+    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
+  }
+
+  return statAccountProfit(currentUser, type, startDate, endDate)
+}
+
+/**
+ * 获取服务点投资人在过去半年所有服务点的投资收益
+ * @param request
+ * @returns {Array}
+ */
+async function reqStatLastHalfYearAccountProfit(request) {
+  let currentUser = request.currentUser
+  let type = request.params.accountType
+
+  let startDate = moment().subtract(6, 'months').format('YYYY-MM-DD')
+  let endDate = moment().format('YYYY-MM-DD')
+
+  if (!currentUser) {
+    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
+  }
+
+  return statAccountProfit(currentUser, type, startDate, endDate)
+}
+
+/**
+ * 获取服务点投资人在过去一年所有服务点的投资收益
+ * @param request
+ * @returns {Array}
+ */
+async function reqStatLast1YearAccountProfit(request) {
+  let currentUser = request.currentUser
+  let type = request.params.accountType
+
+  let startDate = moment().subtract(1, 'years').format('YYYY-MM-DD')
+  let endDate = moment().format('YYYY-MM-DD')
+
+  if (!currentUser) {
+    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
+  }
+
+  return statAccountProfit(currentUser, type, startDate, endDate)
+}
+
 async function recordAccountError(dayInfo, errorInfo) {
   let ErrorInfo = AV.Object.extend('AccountErrLog')
   let errorLogInfo = new ErrorInfo()
@@ -941,6 +998,9 @@ var accountFunc = {
   accountTestFunc: accountTestFunc,
   reqStatAccountProfit,
   reqStatLast30DaysAccountProfit,
+  reqStatLast3MonthsAccountProfit,
+  reqStatLastHalfYearAccountProfit,
+  reqStatLast1YearAccountProfit,
 }
 
 module.exports = accountFunc
