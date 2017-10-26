@@ -27,6 +27,7 @@ AV.Cloud.define('authFetchDealRecords', authFunc.fetchDealRecords)
 AV.Cloud.define('authVerifyIdName', authFunc.verifyIdName)
 AV.Cloud.define('wechatIsSubscribe', mpUserFuncs.isSubscribe)
 AV.Cloud.define('authSetUserMobilePhone', authFunc.setUserMobilePhone)
+AV.Cloud.define('authUpdateUserRegion', authFunc.updateUserRegion)
 
 AV.Cloud.define('authValidateLogin', userFunc.authValidateLogin);
 AV.Cloud.define('authGetRolesAndPermissions', userFunc.authGetRolesAndPermissions);
@@ -112,6 +113,9 @@ AV.Cloud.define('accountGetInvestorAccountsDetail', accountsFunc.getInvestorAcco
 AV.Cloud.define('accountGetDayAccountsSum', accountsFunc.getDayAccountsSum)
 AV.Cloud.define('accountTestFunc', accountsFunc.accountTestFunc)
 AV.Cloud.define('accountStatLast30DaysAccountProfit', accountsFunc.reqStatLast30DaysAccountProfit)
+AV.Cloud.define('accountStatLast3MonthsAccountProfit', accountsFunc.reqStatLast3MonthsAccountProfit)
+AV.Cloud.define('accountStatLastHalfYearAccountProfit', accountsFunc.reqStatLastHalfYearAccountProfit)
+AV.Cloud.define('accountStatLast1YearAccountProfit', accountsFunc.reqStatLast1YearAccountProfit)
 AV.Cloud.define('accountStatAccountProfit', accountsFunc.reqStatAccountProfit)
 
 AV.Cloud.define('stationAccountToExcel', excelFunc.stationAccountToExcel)
@@ -132,5 +136,7 @@ AV.Cloud.define('operationFetchOperationLogs', operationFunc.fetchOperationLogs)
 // 微信二维码
 AV.Cloud.define('wechatGenerateUserQrcode', mpQrcodeFuncs.reqGenerateUserQRCode)
 
+//Hook函数
+AV.Cloud.onLogin(authFunc.onLogin)
 
 module.exports = AV.Cloud;

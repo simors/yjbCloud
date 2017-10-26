@@ -70,7 +70,7 @@ async function updateUserScore(userId, type, metadata) {
   user.set('score', score)
   let result = await user.save()
   if(promotion) {
-    await addPromotionRecord(promotion.id, userId, {score: incrScore})
+    await addPromotionRecord(promotion.id, userId, {score: incrScore, type: type})
   }
   return result
 }
