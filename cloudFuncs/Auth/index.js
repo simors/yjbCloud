@@ -80,6 +80,24 @@ export function constructPermissionInfo(leanPerm) {
   return permInfo;
 }
 
+function constructMpAuthData(leanUser) {
+  if (!leanUser) {
+    return undefined;
+  }
+
+  const userAttr = leanUser.attributes;
+  if (!userAttr) {
+    return undefined;
+  }
+
+  const authInfo = {};
+  authInfo.id = leanUser.id;
+  authInfo.openid = userAttr.authData.weixin.openid;
+  authInfo.access_token = userAttr.authData.weixin.access_token;
+
+  return authInfo;
+}
+
 /**
  * Test if current login user belongs to one of the provided roles.
  * @param {String} userId
@@ -382,6 +400,7 @@ var authFunc = {
   constructUserInfo: constructUserInfo,
   constructRoleInfo: constructRoleInfo,
   constructPermissionInfo: constructPermissionInfo,
+  constructMpAuthData: constructMpAuthData,
   authValidRoles: authValidRoles,
   authValidPermissions: authValidPermissions,
   authGetRolesByUser: authGetRolesByUser,

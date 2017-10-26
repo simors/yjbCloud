@@ -1,6 +1,7 @@
 var AV = require('leanengine')
 var authFunc = require('./cloudFuncs/Auth')
-var userFunc = require('./cloudFuncs/Auth/User')  // TODO: merge into auth
+var userFunc = require('./cloudFuncs/Auth/User')
+var notificationFunc = require('./cloudFuncs/Notification')
 var activityFunc = require('./cloudFuncs/Activity')
 var deviceFunc = require('./cloudFuncs/Device')
 var PingppFunc = require('./cloudFuncs/Pingpp')
@@ -34,6 +35,11 @@ AV.Cloud.define('authListAdminUsers', userFunc.authListAdminUsers);
 AV.Cloud.define('authCreateUser', userFunc.authCreateUser);
 AV.Cloud.define('authDeleteUser', userFunc.authDeleteUser);
 AV.Cloud.define('authUpdateUser', userFunc.authUpdateUser);
+AV.Cloud.define('authListOpenIdsTest', userFunc.authListOpenIdsTest);
+
+//消息推送
+AV.Cloud.define('sendSystemNotification', notificationFunc.sendSystemNotification);
+AV.Cloud.define('sendPromotionNotification', notificationFunc.sendPromotionNotification);
 
 //设备
 AV.Cloud.define('deviceFetchDeviceInfo', deviceFunc.fetchDeviceInfo)
