@@ -59,6 +59,7 @@ function constructPromotionRecordInfo(promotionRecord, includePromotion, include
   if(includeUser) {
     promotionRecordInfo.user = constructUserInfo(promotionRecordAttr.user)
   }
+  return promotionRecordInfo
 }
 
 function constructPromotionInfo(promotion, includeCategory, includeUser) {
