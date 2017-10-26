@@ -29,10 +29,10 @@ AV.Cloud.define('wechatIsSubscribe', mpUserFuncs.isSubscribe)
 AV.Cloud.define('authSetUserMobilePhone', authFunc.setUserMobilePhone)
 AV.Cloud.define('authUpdateUserRegion', authFunc.updateUserRegion)
 
-AV.Cloud.define('authValidateLogin', userFunc.authValidateLogin);
 AV.Cloud.define('authGetRolesAndPermissions', userFunc.authGetRolesAndPermissions);
 AV.Cloud.define('authListEndUsers', userFunc.authListEndUsers);
 AV.Cloud.define('authListAdminUsers', userFunc.authListAdminUsers);
+AV.Cloud.define('authListSysAdminUsers', userFunc.authListSysAdminUsers);
 AV.Cloud.define('authCreateUser', userFunc.authCreateUser);
 AV.Cloud.define('authDeleteUser', userFunc.authDeleteUser);
 AV.Cloud.define('authUpdateUser', userFunc.authUpdateUser);
