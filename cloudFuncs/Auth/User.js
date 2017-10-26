@@ -23,6 +23,14 @@ export const AUTH_USER_STATUS = {
   ADMIN_ALL:      200,
 };
 
+export const AUTH_ROLE_CODE = {
+  PLATFORM_MANAGER:             100,        // 平台管理员
+  STATION_MANAGER:              200,        // 服务点管理员
+  STATION_INVESTOR:             300,        // 服务点投资人
+  STATION_PROVIDER:             400,        // 服务单位
+  SYS_MANAGER:                  500,        // 系统管理员
+};
+
 async function authValidateLogin(req) {
   const {phone} = req.params;
 
@@ -176,7 +184,7 @@ async function authListEndUsers(req) {
  * @param {object} req
  * params = {
  *   limit?: number,
- *   idName?: string,
+ *   nickname?: string,
  *   mobilePhoneNumber?: string,
  *   roles?: Array<number>, role codes
  *   status?: string, 'disabled'
@@ -241,6 +249,69 @@ async function authListAdminUsers(req) {
 
   return {
     count,
+    jsonUsers
+  };
+}
+
+/**
+ * List system admin users.
+ * @param {object} req
+ * params = {
+ *   limit?: number,
+ *   nickname?: string,
+ *   mobilePhoneNumber?: string,
+ *   status?: string, 'disabled'
+ * }
+ * @returns {Promise.<Array>} an Array of json representation User(s)
+ */
+async function authListSysAdminUsers(req) {
+  const {currentUser, params} = req;
+
+  if (!currentUser) {
+    // no token provided
+    throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
+  }
+
+  const {limit=10, nickname, mobilePhoneNumber, status} = params;
+
+  const jsonUsers = [];
+
+  const values = [];
+  let cql = 'select * from _User';
+  cql += ' where (type=? or type=?)';
+  values.push(AUTH_USER_TYPE.ADMIN);
+  values.push(AUTH_USER_TYPE.BOTH);
+  if (nickname) {
+    cql += ' and nickname=?';
+    values.push(nickname);
+  }
+  if (mobilePhoneNumber) {
+    cql += ' and mobilePhoneNumber=?';
+    values.push(mobilePhoneNumber);
+  }
+  // match user who has system admin role
+  cql += ' and roles in ?';
+  values.push([AUTH_ROLE_CODE.SYS_MANAGER]);
+  if (status) {
+    if (status === AUTH_USER_STATUS.ADMIN_DISABLED) {
+      cql += ' and status=?';
+      values.push(AUTH_USER_STATUS.ADMIN_DISABLED);
+    } else if (status === AUTH_USER_STATUS.ADMIN_NORMAL) {
+      cql += ' and (status is not exists or status=?)';
+      values.push(AUTH_USER_STATUS.ADMIN_NORMAL);
+    }
+  }
+  cql += ' limit ?';
+  values.push(limit);
+  cql += ' order by -createdAt';
+
+  const {results} = await AV.Query.doCloudQuery(cql, values);
+
+  results.forEach((i) => {
+    jsonUsers.push(constructUserInfo(i));
+  });
+
+  return {
     jsonUsers
   };
 }
@@ -472,6 +543,7 @@ const authApi = {
   authGetRolesAndPermissions,
   authListEndUsers,
   authListAdminUsers,
+  authListSysAdminUsers,
   authCreateUser,
   authDeleteUser,
   authUpdateUser,
