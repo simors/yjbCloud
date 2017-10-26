@@ -468,7 +468,6 @@ async function createPartner(request, response) {
     query.equalTo('type', profitShareType.PROFIT_SHARE_PARTNER)
     let prePartner = await query.first()
     let status = request.params.status
-    console.log('prePartne===>', prePartner)
     if (prePartner) {
       response.error(new Error('已经存在该分成方'))
       return
@@ -546,7 +545,6 @@ function createInvestor(request, response) {
   var queryPre = new AV.Query('ProfitSharing')
   queryPre.equalTo('shareholder', user)
   queryPre.equalTo('station', station)
-  queryPre.equalTo('status', 1)
   queryPre.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
   queryPre.first().then((item)=> {
     if (item) {
