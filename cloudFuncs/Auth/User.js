@@ -378,7 +378,9 @@ async function authUpdateUser(req) {
   // update _User
 
   for (const [key, value] of Object.entries(jsonUser)) {
-    ptrUser.set(key, value);
+    if (value) {
+      ptrUser.set(key, value);
+    }
   }
 
   await ptrUser.save(null, {fetchWhenSave: true});
@@ -390,6 +392,11 @@ async function authFetchUserByPhone(phone) {
   let query = new AV.Query('_User');
   query.equalTo('mobilePhoneNumber', phone);
   return await query.first()
+}
+
+async function reqFetchUserByPhone(request) {
+  let phone = request.params.phone
+  return await authFetchUserByPhone(phone)
 }
 
 async function authFetchUserByOpenId(openid) {
@@ -469,6 +476,7 @@ const authApi = {
   authDeleteUser,
   authUpdateUser,
   authFetchUserByPhone,
+  reqFetchUserByPhone,
   authFetchUserByOpenId,
   authListOpenIds,
   authListOpenIdsTest,
