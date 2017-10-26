@@ -4,6 +4,7 @@
 import AV from 'leanengine'
 import PingppFunc from '../Pingpp'
 import * as errno from '../errno'
+import utilFunc from '../Util'
 
 export function constructUserInfo(user) {
   if(!user) {
@@ -388,6 +389,40 @@ async function updateUserSubscribe(openid, subscribe) {
   return result
 }
 
+/**
+ * 用户登录之时执行的Hook函数
+ * @param request
+ */
+async function onLogin(request) {
+  const {currentUser} = request
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  //TODO 黑名单过滤
+}
+
+/**
+ * 更新用户区域信息
+ * @param request
+ */
+async function updateUserRegion(request) {
+  const {currentUser, meta} = request
+  const remoteAddress = meta.remoteAddress
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  if(!remoteAddress) {
+    throw new AV.Cloud.Error('获取用户ip失败', {code: errno.ERROR_PROM_NOIP})
+  }
+  let userAddrInfo = await utilFunc.getIpInfo(remoteAddress)
+  if(userAddrInfo) {
+    currentUser.set('country', {label: userAddrInfo.country, value: userAddrInfo.country_id})
+    currentUser.set('province', {label: userAddrInfo.region, value: userAddrInfo.region_id})
+    currentUser.set('city', {label: userAddrInfo.city, value: userAddrInfo.city_id})
+  }
+  return await currentUser.save()
+}
+
 
 
 async function authFuncTest(request, response) {
@@ -415,7 +450,9 @@ var authFunc = {
   getUserId: getUserId,
   getUserInfoById: getUserInfoById,
   setUserMobilePhone: setUserMobilePhone,
-  updateUserSubscribe: updateUserSubscribe
+  updateUserSubscribe: updateUserSubscribe,
+  onLogin: onLogin,
+  updateUserRegion: updateUserRegion,
 }
 
 module.exports = authFunc
