@@ -796,6 +796,7 @@ async function handleRedEnvelopeMessage(promotionId, userId) {
 
   await handleRedEnvelopeDeal(promotionId, userId, amount)
   await updateRedEnvelopePromStat(promotionId, amount)
+  await addPromotionRecord(promotionId, userId, {amount: amount})
   return amount
 }
 
