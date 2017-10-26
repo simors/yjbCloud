@@ -680,7 +680,7 @@ async function getPartnerAccountsDetail(request, response) {
   if (startDate && !endDate) {
     query = new AV.Query('AccountProfit')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  } else if (!endDate && startDate) {
+  } else if (endDate && !startDate) {
     query = new AV.Query('AccountProfit')
     query.lessThan('accountDay', new Date(endDate))
   } else if (startDate && endDate) {
@@ -733,7 +733,7 @@ async function getInvestorAccountsDetail(request, response) {
   if (startDate && !endDate) {
     query = new AV.Query('AccountProfit')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  } else if (!endDate && startDate) {
+  } else if (endDate && !startDate) {
     query = new AV.Query('AccountProfit')
     query.lessThan('accountDay', new Date(endDate))
   } else if (startDate && endDate) {
@@ -780,13 +780,22 @@ async function getDayAccountsSum(request, response) {
   let endDate = request.params.endDate
   let limit = request.params.limit || 30
   let lastCreatedAt = request.params.lastCreatedAt
-  let query = new AV.Query('DayAccountSum')
+  let query = undefined
 
-  if (startDate) {
+  if (startDate && !endDate) {
+    query = new AV.Query('DayAccountSum')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
-  }
-  if (endDate) {
+  } else if (endDate && !startDate) {
+    query = new AV.Query('DayAccountSum')
     query.lessThan('accountDay', new Date(endDate))
+  } else if (startDate && endDate) {
+    let startQuery = new AV.Query('DayAccountSum')
+    let endQuery = new AV.Query('DayAccountSum')
+    startQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
+    endQuery.lessThan('accountDay', new Date(endDate))
+    query = AV.Query.and(startQuery, endQuery)
+  } else {
+    query = new AV.Query('DayAccountSum')
   }
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
