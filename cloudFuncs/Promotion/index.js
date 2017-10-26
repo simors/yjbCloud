@@ -52,13 +52,14 @@ function constructPromotionRecordInfo(promotionRecord, includePromotion, include
   promotionRecordInfo.promotionId = promotionRecordAttr.promotion.id
   promotionRecordInfo.userId = promotionRecordAttr.user.id
   promotionRecordInfo.metadata = promotionRecordAttr.metadata
-  promotionRecordInfo.createdAt = promotionRecordAttr.createdAt
+  promotionRecordInfo.createdAt = promotionRecord.createdAt
   if(includePromotion) {
     promotionRecordInfo.promotion = constructPromotionInfo(promotionRecordAttr.promotion, false, false)
   }
   if(includeUser) {
     promotionRecordInfo.user = constructUserInfo(promotionRecordAttr.user)
   }
+  return promotionRecordInfo
 }
 
 function constructPromotionInfo(promotion, includeCategory, includeUser) {
@@ -796,6 +797,7 @@ async function handleRedEnvelopeMessage(promotionId, userId) {
 
   await handleRedEnvelopeDeal(promotionId, userId, amount)
   await updateRedEnvelopePromStat(promotionId, amount)
+  await addPromotionRecord(promotionId, userId, {amount: amount})
   return amount
 }
 
