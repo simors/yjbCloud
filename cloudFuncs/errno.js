@@ -147,7 +147,6 @@ export const ERROR_BASE_PROFIT        =   -(ERROR_BASE + 6000);
 export const ERROR_BASE_DEAL          =   -(ERROR_BASE + 7000);
 
 /* Auth */
-export const ERROR_AUTH_INVALID_SMSCODE     = (ERROR_BASE_AUTH - 1)         /* 无效的短信验证码 */
 
 /* Profit */
 export const ERROR_IN_WITHDRAW_PROCESS      = (ERROR_BASE_PROFIT - 1)       /* 已经处于提现申请的状态中 */

@@ -356,10 +356,8 @@ async function setUserMobilePhone(request) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
-  let result = await AV.Cloud.verifySmsCode(smsCode, phone)
-  if(!result) {
-    throw new AV.Cloud.Error('无效的短信验证码', {code: errno.ERROR_AUTH_INVALID_SMSCODE})
-  }
+  await AV.Cloud.verifySmsCode(smsCode, phone)
+
   currentUser.setMobilePhoneNumber(phone)
   currentUser.set('mobilePhoneVerified', true)
 
