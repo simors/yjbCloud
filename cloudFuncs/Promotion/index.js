@@ -158,6 +158,7 @@ async function createPromotion(request) {
     {
       initStat = {
         participant: 0,       //参与量
+        scoreAmount: 0,       //总兑换积分
       }
       break
     }
@@ -498,6 +499,28 @@ async function updateRedEnvelopePromStat(promotionId, amount) {
 }
 
 /**
+ * 更新积分兑换活动&积分倍率活动统计数据
+ * @param promotionId
+ * @param scores
+ */
+async function updateScorePromState(promotionId, scores) {
+  if(!promotionId || !amount) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let promotion = AV.Object.createWithoutData('Promotion', promotionId)
+  if(!promotion) {
+    throw new AV.Cloud.Error('没找到该活动对象', {code: errno.ENODATA})
+  }
+  let leanPromotion = await promotion.fetch()
+  let stat = leanPromotion.attributes.stat
+  stat.participant = stat.participant + 1
+  stat.scoreAmount = stat.scoreAmount + mathjs.abs(scores)
+  leanPromotion.set('stat', stat)
+  let result = await leanPromotion.save()
+  return result
+}
+
+/**
  * 增加活动记录
  * @param {String} promotionId     活动id
  * @param {String} userId          用户id
@@ -811,6 +834,90 @@ async function handleLotteryMessage(promotionId, userId) {
 
 }
 
+/**
+ * 获取有效的积分兑换活动
+ * @param request
+ */
+async function getScoreExchangePromotion(request) {
+  const {currentUser, meta} = request
+  const remoteAddress = meta.remoteAddress
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  if(!remoteAddress) {
+    throw new AV.Cloud.Error('获取用户ip失败', {code: errno.ERROR_PROM_NOIP})
+  }
+
+  let categoryQuery = new AV.Query('PromotionCategory')
+  categoryQuery.equalTo('type', PROMOTION_CATEGORY_TYPE_EXCHANGE_SCORE)
+  let category = await categoryQuery.first()
+
+  let userAddrInfo = await utilFunc.getIpInfo(remoteAddress)
+  let userRegion = [userAddrInfo.region_id, userAddrInfo.city_id]
+  let timeQuery = new AV.Query('Promotion')
+  let regionQueryA = new AV.Query('Promotion')
+  let regionQueryB = new AV.Query('Promotion')
+  let otherQuery = new AV.Query('Promotion')
+  timeQuery.greaterThan('end', new Date())
+  timeQuery.lessThanOrEqualTo('start', new Date())
+
+  regionQueryA.containsAll('region', userRegion)
+  regionQueryB.containedIn('region', userRegion)
+  let regionQuery = AV.Query.or(regionQueryA, regionQueryB)
+
+  otherQuery.equalTo('disabled', false)
+  otherQuery.equalTo('category', category)
+
+  let query = AV.Query.and(otherQuery, timeQuery, regionQuery)
+  query.include('user')
+  query.include('category')
+
+  let promotion = await query.first()
+  if(!promotion) {
+    return undefined
+  }
+  return constructPromotionInfo(promotion, false, false)
+}
+
+/**
+ * 积分兑换礼品（积分兑换活动）
+ * @param request
+ */
+async function exchangeGift(request) {
+  const {currentUser, params} = request
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  const {promotionId, giftId, phone, addr} = params
+  if(!promotionId || !giftId || !phone || addr) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+
+  let query = new AV.Query('Promotion')
+  let promotionInfo = query.get(promotionId)
+  if(!promotionInfo) {
+    throw new AV.Cloud.Error('没找到该活动对象', {code: errno.ENODATA})
+  }
+  let gifts = promotionInfo.attributes.awards.gifts
+  let gift = undefined
+  gifts.forEach((record) => {
+    if(record.id === giftId) {
+      gift = record
+    }
+  })
+  if(!gift) {
+    throw new AV.Cloud.Error('没找到该活动对象', {code: errno.ENODATA})
+  }
+  let updateUserScore = require('../Score').updateUserScore
+  let SCORE_OP_TYPE_EXCHANGE = require('../Score').SCORE_OP_TYPE_EXCHANGE
+  await updateUserScore(currentUser.id, SCORE_OP_TYPE_EXCHANGE, {consume: gift.scores})
+  await addPromotionRecord(promotionId, currentUser.id, {
+    scores: gift.scores,
+    gift: gift.title,
+    phone: phone,
+    addr: addr})
+}
+
 async function promotionFuncTest(request) {
   const {currentUser, params} = request
   const {promotionId, userId} = params
@@ -838,6 +945,9 @@ var promotionFunc = {
   getValidScorePromRate: getValidScorePromRate,
   fetchPromotionRecord: fetchPromotionRecord,
   addPromotionRecord: addPromotionRecord,
+  getScoreExchangePromotion: getScoreExchangePromotion,
+  exchangeGift: exchangeGift,
+  updateScorePromState: updateScorePromState,
 }
 
 module.exports = promotionFunc

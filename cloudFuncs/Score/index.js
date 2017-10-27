@@ -32,6 +32,7 @@ const OP_SCORE = {
 async function updateUserScore(userId, type, metadata) {
   let getValidScorePromRate = require('../Promotion').getValidScorePromRate
   let addPromotionRecord = require('../Promotion').addPromotionRecord
+  let updateScorePromState = require('../Promotion').updateScorePromState
   if(!userId || type) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
@@ -71,6 +72,7 @@ async function updateUserScore(userId, type, metadata) {
   let result = await user.save()
   if(promotion) {
     await addPromotionRecord(promotion.id, userId, {score: incrScore, type: type})
+    await updateScorePromState(promotion.id, incrScore)
   }
   return result
 }
