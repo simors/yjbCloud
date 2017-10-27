@@ -298,7 +298,7 @@ async function createStationDayAccount() {
     await dayAccount.save()
     return true
   } catch (error) {
-    console.log('error--------------->', error.message)
+    console.log(error)
     recordAccountError(dayInfo, '生成日结记录失败')
   }
 }
