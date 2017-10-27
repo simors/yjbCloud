@@ -387,15 +387,18 @@ async function getValidPromotionList(request) {
   let userAddrInfo = await utilFunc.getIpInfo(remoteAddress)
   let userRegion = [userAddrInfo.region_id, userAddrInfo.city_id]
   let timeQuery = new AV.Query('Promotion')
-  let regionQueryA = new AV.Query('Promotion')
-  let regionQueryB = new AV.Query('Promotion')
   let statusQuery = new AV.Query('Promotion')
   timeQuery.greaterThan('end', new Date())
   timeQuery.lessThanOrEqualTo('start', new Date())
 
-  regionQueryA.containsAll('region', userRegion)
-  regionQueryB.containedIn('region', userRegion)
-  let regionQuery = AV.Query.or(regionQueryA, regionQueryB)
+  let regionQueryA = new AV.Query('Promotion')
+  let regionQueryB = new AV.Query('Promotion')
+  let regionQueryC = new AV.Query('Promotion')
+  regionQueryA.containsAll('region', [userRegion[0]])
+  regionQueryC.sizeEqualTo('region', 1)
+  let regionQueryD = AV.Query.and(regionQueryA, regionQueryC)
+  regionQueryB.containsAll('region', userRegion)
+  let regionQuery = AV.Query.or(regionQueryD, regionQueryB)
 
   statusQuery.equalTo('disabled', false)
 
@@ -431,14 +434,19 @@ async function getValidScoreProm(userId) {
 
   let userRegion = [userAttr.province.value, userAttr.city.value]
   let timeQuery = new AV.Query('Promotion')
-  let regionQueryA = new AV.Query('Promotion')
-  let regionQueryB = new AV.Query('Promotion')
   let statusQuery = new AV.Query('Promotion')
   timeQuery.greaterThan('end', new Date())
   timeQuery.lessThanOrEqualTo('start', new Date())
-  regionQueryA.containsAll('region', userRegion)
-  regionQueryB.containedIn('region', userRegion)
-  let regionQuery = AV.Query.or(regionQueryA, regionQueryB)
+
+  let regionQueryA = new AV.Query('Promotion')
+  let regionQueryB = new AV.Query('Promotion')
+  let regionQueryC = new AV.Query('Promotion')
+  regionQueryA.containsAll('region', [userRegion[0]])
+  regionQueryC.sizeEqualTo('region', 1)
+  let regionQueryD = AV.Query.and(regionQueryA, regionQueryC)
+  regionQueryB.containsAll('region', userRegion)
+  let regionQuery = AV.Query.or(regionQueryD, regionQueryB)
+
   statusQuery.equalTo('disabled', false)
   statusQuery.equalTo('category', category)
 
