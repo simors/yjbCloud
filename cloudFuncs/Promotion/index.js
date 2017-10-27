@@ -364,6 +364,7 @@ async function isPromotionExist(categoryId, start, end, region) {
 
   let category = AV.Object.createWithoutData('PromotionCategory', categoryId)
   otherQuery.equalTo('category', category)
+  otherQuery.equalTo('disabled', false)
 
   let query = AV.Query.and(timeQuery, regionQuery, otherQuery)
   let results = await query.find()
