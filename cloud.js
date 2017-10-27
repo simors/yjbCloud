@@ -16,6 +16,7 @@ var profitFunc = require('./cloudFuncs/Profit')
 var utilFunc = require('./cloudFuncs/Util')
 var operationFunc = require('./cloudFuncs/OperationLog')
 var mpQrcodeFuncs = require('./mpFuncs/Qrcode')
+var sysAuthFunc = require('./cloudFuncs/SysAuth')
 
 /**
  * 云函数
@@ -140,5 +141,9 @@ AV.Cloud.define('wechatGenerateUserQrcode', mpQrcodeFuncs.reqGenerateUserQRCode)
 
 //Hook函数
 AV.Cloud.onLogin(authFunc.onLogin)
+
+// 系统管理员操作认证
+AV.Cloud.define('sysauthSendAuthCode', sysAuthFunc.reqSendAuthCode)
+AV.Cloud.define('sysauthVerifyAuthCode', sysAuthFunc.reqVerifyAuthCode)
 
 module.exports = AV.Cloud;
