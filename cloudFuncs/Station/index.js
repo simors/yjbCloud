@@ -266,7 +266,7 @@ function fetchPartnerByStationId(request, response) {
   query.find().then((sharings)=> {
     var sharingList = []
     sharings.forEach((sharing)=> {
-      sharingList.push(constructProfitSharing(sharing, true, false))
+      sharingList.push(constructProfitSharing(sharing, true, true))
     })
     response.success(sharingList)
   }, (err)=> {
@@ -350,7 +350,7 @@ function fetchInvestorByStationId(request, response) {
       query.find().then((sharings)=> {
         var sharingList = []
         sharings.forEach((sharing)=> {
-          let sharingInfo = constructProfitSharing(sharing, true, false)
+          let sharingInfo = constructProfitSharing(sharing, true, true)
           sharingList.push(sharingInfo)
         })
         response.success(sharingList)
