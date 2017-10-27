@@ -30,7 +30,7 @@ const OP_SCORE = {
  * @param {Object} metadata     操作数据
  */
 async function updateUserScore(userId, type, metadata) {
-  let getValidScorePromRate = require('../Promotion').getValidScorePromRate
+  let getValidScoreProm = require('../Promotion').getValidScoreProm
   let addPromotionRecord = require('../Promotion').addPromotionRecord
   let updateScorePromState = require('../Promotion').updateScorePromState
   if(!userId || type) {
@@ -40,7 +40,7 @@ async function updateUserScore(userId, type, metadata) {
   if(!user) {
     throw new AV.Cloud.Error('没找到该用户', {code: errno.ENODATA})
   }
-  let promotion = await getValidScorePromRate(userId)
+  let promotion = await getValidScoreProm(userId)
   let rate = 1
   let incrScore = 0
   if(promotion) {

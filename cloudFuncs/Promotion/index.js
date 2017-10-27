@@ -413,11 +413,11 @@ async function getValidPromotionList(request) {
 }
 
 /**
- * 获取当前用户积分活动倍率
+ * 获取当前用户积分活动
  * @param     {String} userId     用户id
  * @returns   {Promise.<Object>}  promotion
  */
-async function getValidScorePromRate(userId) {
+async function getValidScoreProm(userId) {
   if(!userId) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
@@ -856,15 +856,18 @@ async function getScoreExchangePromotion(request) {
   let userAddrInfo = await utilFunc.getIpInfo(remoteAddress)
   let userRegion = [userAddrInfo.region_id, userAddrInfo.city_id]
   let timeQuery = new AV.Query('Promotion')
-  let regionQueryA = new AV.Query('Promotion')
-  let regionQueryB = new AV.Query('Promotion')
   let otherQuery = new AV.Query('Promotion')
   timeQuery.greaterThan('end', new Date())
   timeQuery.lessThanOrEqualTo('start', new Date())
 
-  regionQueryA.containsAll('region', userRegion)
-  regionQueryB.containedIn('region', userRegion)
-  let regionQuery = AV.Query.or(regionQueryA, regionQueryB)
+  let regionQueryA = new AV.Query('Promotion')
+  let regionQueryB = new AV.Query('Promotion')
+  let regionQueryC = new AV.Query('Promotion')
+  regionQueryA.containsAll('region', [userRegion[0]])
+  regionQueryC.sizeEqualTo('region', 1)
+  let regionQueryD = AV.Query.and(regionQueryA, regionQueryC)
+  regionQueryB.containsAll('region', userRegion)
+  let regionQuery = AV.Query.or(regionQueryD, regionQueryB)
 
   otherQuery.equalTo('disabled', false)
   otherQuery.equalTo('category', category)
@@ -943,7 +946,7 @@ var promotionFunc = {
   checkPromotionRequest: checkPromotionRequest,
   insertPromotionMessage: insertPromotionMessage,
   handlePromotionMessage: handlePromotionMessage,
-  getValidScorePromRate: getValidScorePromRate,
+  getValidScoreProm: getValidScoreProm,
   fetchPromotionRecord: fetchPromotionRecord,
   addPromotionRecord: addPromotionRecord,
   getScoreExchangePromotion: getScoreExchangePromotion,
