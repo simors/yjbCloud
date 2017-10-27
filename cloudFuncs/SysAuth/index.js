@@ -15,13 +15,11 @@ var redis = require('redis');
 
 const PRIFIX = 'sysauth:'
 
-function sendAuthCodeTmpMsg(openid, operator, operation, clientIp, code) {
+async function sendAuthCodeTmpMsg(openid, operator, operation, clientIp, code) {
   let templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_AUTH_CODE
   let title = '管理员' + operator + '正在操作”' + operation + '“，如果确认其有权限操作，请将验证码' + code + '告知' + operator
-  let area = ''
-  utilFunc.getIpInfo(clientIp).then((addrInfo) => {
-    area = addrInfo.region + addrInfo.city
-  })
+  let addrInfo = await utilFunc.getIpInfo(clientIp)
+  let area = addrInfo.region + addrInfo.city
 
   let data = {
     "first": {
@@ -42,14 +40,10 @@ function sendAuthCodeTmpMsg(openid, operator, operation, clientIp, code) {
     }
   }
 
-  return new Promise((resolve, reject) => {
-    wechat_api.sendTemplate(openid, templateId, undefined, data, function (err, result) {
-      if(err) {
-        console.log("sendAuthCodeTmpMsg", err)
-        return reject()
-      }
-      return resolve()
-    })
+  wechat_api.sendTemplate(openid, templateId, undefined, data, function (err, result) {
+    if(err) {
+      console.log("sendAuthCodeTmpMsg", err)
+    }
   })
 }
 
