@@ -447,7 +447,7 @@ async function getPartnerAccounts(request, response) {
     let accountList = []
     for (let i = 0; i < partners.length; i++) {
       let account = await getAccountsByPartnerId(partners[i].id, stationId, startDate, endDate)
-      if (account && account.stationId) {
+      if (account&& account.userId  ) {
         accountList.push(account)
       }
     }
@@ -510,12 +510,13 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
       })
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
     }
-    if (accountInfo && accountInfo.stationId) {
+    if (accountInfo && accountInfo.userId ) {
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
       accountInfo.profit = profit
       if(!stationId){
-        accountInfo.station=undefined
+        accountInfo.station = undefined
+        accountInfo.stationId = undefined
       }
       return accountInfo
     } else {
@@ -556,7 +557,7 @@ async function getInvestorAccounts(request, response) {
     let accountList = []
     for (let i = 0; i < partners.length; i++) {
       let account = await getAccountsByInvestorId(partners[i].id, stationId, startDate, endDate)
-      if (account && account.stationId) {
+      if (account && account.userId) {
         accountList.push(account)
       }
     }
@@ -619,11 +620,12 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
       })
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
     }
-    if (accountInfo && accountInfo.stationId) {
+    if (accountInfo&& accountInfo.userId) {
       accountInfo.profit = profit
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
       if(!stationId){
+        accountInfo.stationId = undefined
         accountInfo.station = undefined
       }
       return accountInfo
