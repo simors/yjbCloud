@@ -671,7 +671,10 @@ async function getStationAccountsDetail(request, response) {
     let accounts = await query.find()
     let accountList = []
     accounts.forEach((account)=> {
-      accountList.push(constructStationAccountnInfo(account, true))
+      let accountInfo = constructStationAccountnInfo(account, true)
+      accountInfo.startDate = startDate
+      accountInfo.endDate = endDate
+      accountList.push(accountInfo)
     })
     response.success(accountList)
   } catch (error) {
@@ -724,7 +727,10 @@ async function getPartnerAccountsDetail(request, response) {
     let accounts = await query.find()
     let accountList = []
     accounts.forEach((account)=> {
-      accountList.push(constructAccountProfit(account, true, true))
+      let accountInfo = constructAccountProfit(account, true,true)
+      accountInfo.startDate = startDate
+      accountInfo.endDate = endDate
+      accountList.push(accountInfo)
     })
     response.success(accountList)
   } catch (error) {
@@ -777,7 +783,10 @@ async function getInvestorAccountsDetail(request, response) {
     let accounts = await query.find()
     let accountList = []
     accounts.forEach((account)=> {
-      accountList.push(constructAccountProfit(account, true, true))
+      let accountInfo = constructAccountProfit(account, true,true)
+      accountInfo.startDate = startDate
+      accountInfo.endDate = endDate
+      accountList.push(accountInfo)
     })
     response.success(accountList)
   } catch (error) {
