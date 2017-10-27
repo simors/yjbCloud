@@ -102,8 +102,8 @@ async function verifyCode(operator, code) {
 
 async function reqSendAuthCode(request) {
   let {operator, operation} = request.params
-  // let clientIp = request.meta.remoteAddress
-  let clientIp = '113.247.53.242'
+  let clientIp = request.meta.remoteAddress
+  // let clientIp = '113.247.53.242'
 
   let sysUserList = await authApi.authFetchSysAdminUsers(undefined, undefined, authApi.AUTH_USER_STATUS.ADMIN_NORMAL)
   let sysUser = undefined
