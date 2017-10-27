@@ -901,7 +901,7 @@ async function exchangeGift(request) {
     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
   }
   const {promotionId, giftId, phone, addr} = params
-  if(!promotionId || !giftId || !phone || addr) {
+  if(!promotionId || !giftId || !phone || !addr) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
@@ -923,7 +923,7 @@ async function exchangeGift(request) {
   let updateUserScore = require('../Score').updateUserScore
   let SCORE_OP_TYPE_EXCHANGE = require('../Score').SCORE_OP_TYPE_EXCHANGE
   await updateUserScore(currentUser.id, SCORE_OP_TYPE_EXCHANGE, {consume: gift.scores})
-  await addPromotionRecord(promotionId, currentUser.id, {
+  return await addPromotionRecord(promotionId, currentUser.id, {
     scores: gift.scores,
     gift: gift.title,
     phone: phone,
