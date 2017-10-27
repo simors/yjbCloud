@@ -514,7 +514,9 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
       accountInfo.profit = profit
-      stationId?null:accountInfo.station.name = '全服务点'
+      if(!stationId){
+        accountInfo.station=undefined
+      }
       return accountInfo
     } else {
       return accountInfo
@@ -621,7 +623,9 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
       accountInfo.profit = profit
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
-      stationId?null:accountInfo.station.name = '全服务点'
+      if(!stationId){
+        accountInfo.station = undefined
+      }
       return accountInfo
     } else {
       return accountInfo
