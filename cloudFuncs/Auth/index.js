@@ -279,10 +279,11 @@ function isUserSignIn(openid) {
 async function fetchWalletInfo(request) {
   let getWalletInfo = require('../Pingpp').getWalletInfo
   const {currentUser, params} = request
-  if(!currentUser) {
-    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  let userId = params.userId
+  if(!userId) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
-  return await getWalletInfo(currentUser.id)
+  return await getWalletInfo(userId)
 }
 
 function fetchDealRecords(request, response) {
