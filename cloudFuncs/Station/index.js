@@ -122,7 +122,7 @@ function createStation(request, response) {
     station.set('stationProp', stationProp)
     station.set('admin', admin)
     station.set('status', 1)
-    station.set('investment', 0)
+
     station.save().then((leanStation) => {
       var query = new AV.Query('Station')
       query.include('admin')
@@ -318,7 +318,7 @@ function getPartnerByStationId(stationId) {
 function fetchInvestorByStationId(request, response) {
   var stationId = request.params.stationId
   var status = request.params.status
-  var username = request.params.username
+  var mobilePhoneNumber = request.params.mobilePhoneNumber
   var station = undefined
   var limit = request.params.limit || 100
   var lastCreateTime = request.params.lastCreateTime
@@ -338,18 +338,15 @@ function fetchInvestorByStationId(request, response) {
   }
   query.include(['station', 'shareholder'])
   query.descending('createdDate')
-  if (username) {
+  if (mobilePhoneNumber) {
     var queryUser = new AV.Query('_User')
-    queryUser.equalTo('nickname', username)
-    queryUser.find().then((users)=> {
-      var userList = []
-      if (users && users.length > 0) {
-        users.forEach((user)=> {
-          var userInfo = AV.Object.createWithoutData('_User', user.id)
-          userList.push(userInfo)
-        })
+    queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+    queryUser.first().then((user)=> {
+
+      if(!user){
+        response.error('没有查到该用户')
       }
-      query.containedIn('shareholder', userList)
+      query.equalTo('shareholder', user)
       query.find().then((sharings)=> {
         var sharingList = []
         sharings.forEach((sharing)=> {
@@ -471,7 +468,6 @@ async function createPartner(request, response) {
     query.equalTo('type', profitShareType.PROFIT_SHARE_PARTNER)
     let prePartner = await query.first()
     let status = request.params.status
-    console.log('prePartne===>', prePartner)
     if (prePartner) {
       response.error(new Error('已经存在该分成方'))
       return
@@ -549,12 +545,10 @@ function createInvestor(request, response) {
   var queryPre = new AV.Query('ProfitSharing')
   queryPre.equalTo('shareholder', user)
   queryPre.equalTo('station', station)
-  queryPre.equalTo('status', 1)
   queryPre.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
   queryPre.first().then((item)=> {
     if (item) {
-      response.error(new Error("该服务点已有该投资人!"))
-      return
+      response.error({message:"该服务点已有该投资人!"})
     } else {
       investor.set('shareholder', user)
       investor.set('station', station)

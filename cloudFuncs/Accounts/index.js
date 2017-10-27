@@ -179,12 +179,19 @@ async function createStationAccount(station, dayInfo) {
 async function createPartnerAccount(accountId, dayInfo) {
   let partnerProfit = 0
   let investorProfit = 0
+  let platfomProfit = 0
   try {
     let queryAccount = new AV.Query('StationAccount')
     queryAccount.include(['station'])
     let stationAccount = await queryAccount.get(accountId)
     let stationAccountInfo = constructStationAccountnInfo(stationAccount, true)
-    let platfomProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(stationAccountInfo.station.platformProp).done(), 2)
+    if(stationAccountInfo.profit>0){
+      platfomProfit  = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(stationAccountInfo.station.platformProp).done(), 2)
+    }else{
+      platfomProfit = stationAccountInfo.profit
+    }
+
+
     let station = AV.Object.createWithoutData('Station', stationAccountInfo.stationId)
     let stationAccountObject = AV.Object.createWithoutData('StationAccount', accountId)
     let partnerList = await StationFuncs.getPartnerByStationId(stationAccountInfo.stationId)
@@ -195,8 +202,11 @@ async function createPartnerAccount(accountId, dayInfo) {
         let profitSharing = AV.Object.createWithoutData('ProfitSharing', partner.id)
         let PartnerAccount = AV.Object.extend('AccountProfit')
         let partnerAccount = new PartnerAccount()
+        let profit = 0
         partnerAccount.set('stationAccount', stationAccountObject)
-        let profit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(partner.royalty).done(), 2)
+        if(stationAccountInfo.profit>0){
+          profit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(partner.royalty).done(), 2)
+        }
         partnerAccount.set('profit', profit)
         partnerAccount.set('accountDay', dayInfo.yesterday)
         partnerAccount.set('profitSharing', profitSharing)
@@ -209,7 +219,9 @@ async function createPartnerAccount(accountId, dayInfo) {
       }
     }
     let investorList = await StationFuncs.getInvestorByStationId(stationAccountInfo.stationId)
-    investorProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).subtract(platfomProfit).subtract(partnerProfit).done(), 2)
+    if(stationAccountInfo.profit>0){
+      investorProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).subtract(platfomProfit).subtract(partnerProfit).done(), 2)
+    }
     if (investorList && investorList.length > 0) {
       for (let i = 0; i < investorList.length; i++) {
         let investor = investorList[i]
@@ -502,6 +514,7 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
       accountInfo.profit = profit
+      stationId?null:accountInfo.station.name = '全服务点'
       return accountInfo
     } else {
       return accountInfo
@@ -608,6 +621,7 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
       accountInfo.profit = profit
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
+      stationId?null:accountInfo.station.name = '全服务点'
       return accountInfo
     } else {
       return accountInfo
@@ -879,6 +893,63 @@ async function reqStatLast30DaysAccountProfit(request) {
   return statAccountProfit(currentUser, type, startDate, endDate)
 }
 
+/**
+ * 获取服务点投资人在过去3个月所有服务点的投资收益
+ * @param request
+ * @returns {Array}
+ */
+async function reqStatLast3MonthsAccountProfit(request) {
+  let currentUser = request.currentUser
+  let type = request.params.accountType
+
+  let startDate = moment().subtract(3, 'months').format('YYYY-MM-DD')
+  let endDate = moment().format('YYYY-MM-DD')
+
+  if (!currentUser) {
+    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
+  }
+
+  return statAccountProfit(currentUser, type, startDate, endDate)
+}
+
+/**
+ * 获取服务点投资人在过去半年所有服务点的投资收益
+ * @param request
+ * @returns {Array}
+ */
+async function reqStatLastHalfYearAccountProfit(request) {
+  let currentUser = request.currentUser
+  let type = request.params.accountType
+
+  let startDate = moment().subtract(6, 'months').format('YYYY-MM-DD')
+  let endDate = moment().format('YYYY-MM-DD')
+
+  if (!currentUser) {
+    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
+  }
+
+  return statAccountProfit(currentUser, type, startDate, endDate)
+}
+
+/**
+ * 获取服务点投资人在过去一年所有服务点的投资收益
+ * @param request
+ * @returns {Array}
+ */
+async function reqStatLast1YearAccountProfit(request) {
+  let currentUser = request.currentUser
+  let type = request.params.accountType
+
+  let startDate = moment().subtract(1, 'years').format('YYYY-MM-DD')
+  let endDate = moment().format('YYYY-MM-DD')
+
+  if (!currentUser) {
+    throw new AV.Cloud.Error('User didn\'t login', {code: errno.EINVAL})
+  }
+
+  return statAccountProfit(currentUser, type, startDate, endDate)
+}
+
 async function recordAccountError(dayInfo, errorInfo) {
   let ErrorInfo = AV.Object.extend('AccountErrLog')
   let errorLogInfo = new ErrorInfo()
@@ -941,6 +1012,9 @@ var accountFunc = {
   accountTestFunc: accountTestFunc,
   reqStatAccountProfit,
   reqStatLast30DaysAccountProfit,
+  reqStatLast3MonthsAccountProfit,
+  reqStatLastHalfYearAccountProfit,
+  reqStatLast1YearAccountProfit,
 }
 
 module.exports = accountFunc

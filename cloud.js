@@ -29,10 +29,10 @@ AV.Cloud.define('wechatIsSubscribe', mpUserFuncs.isSubscribe)
 AV.Cloud.define('authSetUserMobilePhone', authFunc.setUserMobilePhone)
 AV.Cloud.define('authUpdateUserRegion', authFunc.updateUserRegion)
 
-AV.Cloud.define('authValidateLogin', userFunc.authValidateLogin);
 AV.Cloud.define('authGetRolesAndPermissions', userFunc.authGetRolesAndPermissions);
 AV.Cloud.define('authListEndUsers', userFunc.authListEndUsers);
 AV.Cloud.define('authListAdminUsers', userFunc.authListAdminUsers);
+AV.Cloud.define('authListSysAdminUsers', userFunc.authListSysAdminUsers);
 AV.Cloud.define('authCreateUser', userFunc.authCreateUser);
 AV.Cloud.define('authDeleteUser', userFunc.authDeleteUser);
 AV.Cloud.define('authUpdateUser', userFunc.authUpdateUser);
@@ -115,6 +115,9 @@ AV.Cloud.define('accountGetInvestorAccountsDetail', accountsFunc.getInvestorAcco
 AV.Cloud.define('accountGetDayAccountsSum', accountsFunc.getDayAccountsSum)
 AV.Cloud.define('accountTestFunc', accountsFunc.accountTestFunc)
 AV.Cloud.define('accountStatLast30DaysAccountProfit', accountsFunc.reqStatLast30DaysAccountProfit)
+AV.Cloud.define('accountStatLast3MonthsAccountProfit', accountsFunc.reqStatLast3MonthsAccountProfit)
+AV.Cloud.define('accountStatLastHalfYearAccountProfit', accountsFunc.reqStatLastHalfYearAccountProfit)
+AV.Cloud.define('accountStatLast1YearAccountProfit', accountsFunc.reqStatLast1YearAccountProfit)
 AV.Cloud.define('accountStatAccountProfit', accountsFunc.reqStatAccountProfit)
 
 AV.Cloud.define('stationAccountToExcel', excelFunc.stationAccountToExcel)
