@@ -9,18 +9,17 @@ var GLOBAL_CONFIG = require('../../config')
 var wechat_api = require('../../mpFuncs/index').wechat_api
 import utilFunc from '../Util'
 import authApi from '../Auth/User'
+import authFunc from '../Auth'
 const uuidv4 = require('uuid/v4')
 var redis = require('redis');
 
 const PRIFIX = 'sysauth:'
 
-function sendAuthCodeTmpMsg(openid, operator, operation, clientIp, code) {
+async function sendAuthCodeTmpMsg(openid, operator, operation, clientIp, code) {
   let templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_AUTH_CODE
   let title = '管理员' + operator + '正在操作”' + operation + '“，如果确认其有权限操作，请将验证码' + code + '告知' + operator
-  let area = ''
-  utilFunc.getIpInfo(clientIp).then((addrInfo) => {
-    area = addrInfo.region + addrInfo.city
-  })
+  let addrInfo = await utilFunc.getIpInfo(clientIp)
+  let area = addrInfo.region + addrInfo.city
 
   let data = {
     "first": {
@@ -41,14 +40,10 @@ function sendAuthCodeTmpMsg(openid, operator, operation, clientIp, code) {
     }
   }
 
-  return new Promise((resolve, reject) => {
-    wechat_api.sendTemplate(openid, templateId, undefined, data, function (err, result) {
-      if(err) {
-        console.log("sendAuthCodeTmpMsg", err)
-        return reject()
-      }
-      return resolve()
-    })
+  wechat_api.sendTemplate(openid, templateId, undefined, data, function (err, result) {
+    if(err) {
+      console.log("sendAuthCodeTmpMsg", err)
+    }
   })
 }
 
@@ -115,8 +110,9 @@ async function reqSendAuthCode(request) {
   let openid = sysUser.authData.weixin.openid
   let code = uuidv4().replace(/-/g, '').substr(0, 6)
   try {
+    let operatorUser = await authFunc.getUserInfoById(operator)
     await saveCode(operator, code)
-    await sendAuthCodeTmpMsg(openid, operator, operation, clientIp, code)
+    await sendAuthCodeTmpMsg(openid, operatorUser.nickname, operation, clientIp, code)
   } catch (e) {
     throw new AV.Cloud.Error('send auth code wechat mp message error', {code: errno.EIO})
   }
