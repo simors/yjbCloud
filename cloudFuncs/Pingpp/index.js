@@ -103,7 +103,7 @@ function getWalletInfo(userId) {
 
   return mysqlUtil.getConnection().then((conn) => {
     mysqlConn = conn
-    sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `score`, `process` FROM `Wallet` WHERE `userId` = ?"
+    sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `process` FROM `Wallet` WHERE `userId` = ?"
     return mysqlUtil.query(conn, sql, [userId])
   }).then((queryRes) => {
     if(queryRes.results.length === 1) {
@@ -113,7 +113,6 @@ function getWalletInfo(userId) {
       walletInfo.openid = queryRes.results[0].openid || ""
       walletInfo.debt = queryRes.results[0].debt || 0
       walletInfo.user_name = queryRes.results[0].user_name || ""
-      walletInfo.score = queryRes.results[0].score || 0
       walletInfo.process = queryRes.results[0].process || WALLET_PROCESS_TYPE.NORMAL_PROCESS
       return walletInfo
     }
@@ -450,7 +449,9 @@ async function handleRechargeDeal(deal) {
   }
   try {
     let userWalletInfo = await getWalletInfo(deal.from)
-    await mpMsgFuncs.sendRechargeTmpMsg(deal.openid, deal.cost, userWalletInfo.balance, userWalletInfo.score, new Date(deal.payTime * 1000), deal.deal_type)
+    let getUserInfoById = require('../Auth').getUserInfoById
+    let userInfo = await getUserInfoById(deal.from)
+    await mpMsgFuncs.sendRechargeTmpMsg(deal.openid, deal.cost, userWalletInfo.balance, userInfo.score, new Date(deal.payTime * 1000), deal.deal_type)
     if(deal.metadata.promotionId) {
       await promotionFunc.updateRechargePromStat(deal.metadata.promotionId, deal.cost, deal.metadata.award)
       await promotionFunc.addPromotionRecord(deal.metadata.promotionId, deal.from, {recharge: deal.cost, award: deal.metadata.award})

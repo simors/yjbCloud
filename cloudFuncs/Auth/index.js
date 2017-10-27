@@ -40,6 +40,7 @@ export function constructUserInfo(user) {
   userInfo.type = userAttr.type         // 'admin' / 'both'
   userInfo.note = userAttr.note
   userInfo.subscribe = userAttr.subscribe
+  userInfo.score = userAttr.score
   userInfo.roles = userAttr.roles
 
   return userInfo
@@ -271,16 +272,17 @@ function isUserSignIn(openid) {
   })
 }
 
-function fetchWalletInfo(request, response) {
-  var userId = request.params.userId
-
-  PingppFunc.getWalletInfo(userId).then((walletInfo) => {
-    response.success(walletInfo)
-  }).catch((error) => {
-    console.log("fetchWalletInfo", error)
-    response.error(error)
-  })
-
+/**
+ * 获取用户钱包信息
+ * @param request
+ */
+async function fetchWalletInfo(request) {
+  let getWalletInfo = require('../Pingpp').getWalletInfo
+  const {currentUser, params} = request
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  return await getWalletInfo(currentUser.id)
 }
 
 function fetchDealRecords(request, response) {
