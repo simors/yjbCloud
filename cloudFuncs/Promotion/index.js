@@ -906,7 +906,7 @@ async function exchangeGift(request) {
   }
 
   let query = new AV.Query('Promotion')
-  let promotionInfo = query.get(promotionId)
+  let promotionInfo = await query.get(promotionId)
   if(!promotionInfo) {
     throw new AV.Cloud.Error('没找到该活动对象', {code: errno.ENODATA})
   }

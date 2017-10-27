@@ -33,7 +33,7 @@ async function updateUserScore(userId, type, metadata) {
   let getValidScoreProm = require('../Promotion').getValidScoreProm
   let addPromotionRecord = require('../Promotion').addPromotionRecord
   let updateScorePromState = require('../Promotion').updateScorePromState
-  if(!userId || type) {
+  if(!userId || !type) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
   let user = AV.Object.createWithoutData('_User', userId)
@@ -67,7 +67,11 @@ async function updateUserScore(userId, type, metadata) {
     default:
       break
   }
+
   score = mathjs.chain(score).add(incrScore).done()
+  if(score < 0) {
+    throw new AV.Cloud.Error('积分不足', {code: errno.ERROR_PROM_NOSCORE})
+  }
   user.set('score', score)
   let result = await user.save()
   if(promotion) {
