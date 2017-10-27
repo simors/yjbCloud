@@ -345,30 +345,32 @@ async function getUserInfoById(userId) {
   return constructUserInfo(userInfo)
 }
 
-async function setUserMobilePhone(request, response) {
-  let currentUser = request.currentUser
-  let phone = request.params.phone
-  let smsCode = request.params.smsCode
-
+async function setUserMobilePhone(request) {
+  const {currentUser, params} = request
+  const {phone, smsCode} = params
   if(!currentUser) {
-    response.error(new Error("用户未登录"))
-    return
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
   }
+
+  if(!phone || !smsCode) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+
   let result = await AV.Cloud.verifySmsCode(smsCode, phone)
   if(!result) {
-    response.error(new Error("无效的短信验证码"))
-    return
+    throw new AV.Cloud.Error('无效的短信验证码', {code: errno.ERROR_AUTH_INVALID_SMSCODE})
   }
   currentUser.setMobilePhoneNumber(phone)
   currentUser.set('mobilePhoneVerified', true)
 
   let user = await currentUser.save()
   let userInfo = await user.fetch()
-  response.success(constructUserInfo(userInfo))
+
   //用户积分变更
   let updateUserScore = require('../Score').updateUserScore
   let SCORE_OP_TYPE_BIND_PHONE = require('../Score').SCORE_OP_TYPE_BIND_PHONE
-  await updateUserScore(userInfo.id, SCORE_OP_TYPE_BIND_PHONE, {})
+  updateUserScore(userInfo.id, SCORE_OP_TYPE_BIND_PHONE, {})
+  return constructUserInfo(userInfo)
 }
 
 /**
