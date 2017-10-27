@@ -513,7 +513,7 @@ async function updateRedEnvelopePromStat(promotionId, amount) {
  * @param scores
  */
 async function updateScorePromState(promotionId, scores) {
-  if(!promotionId || !amount) {
+  if(!promotionId || !scores) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
   let promotion = AV.Object.createWithoutData('Promotion', promotionId)
@@ -920,14 +920,15 @@ async function exchangeGift(request) {
   if(!gift) {
     throw new AV.Cloud.Error('没找到该活动对象', {code: errno.ENODATA})
   }
-  let updateUserScore = require('../Score').updateUserScore
-  let SCORE_OP_TYPE_EXCHANGE = require('../Score').SCORE_OP_TYPE_EXCHANGE
-  await updateUserScore(currentUser.id, SCORE_OP_TYPE_EXCHANGE, {consume: gift.scores})
-  return await addPromotionRecord(promotionId, currentUser.id, {
+  let subtractUserScore = require('../Score').subtractUserScore
+  await subtractUserScore(currentUser.id, gift.scores)
+  let result = await addPromotionRecord(promotionId, currentUser.id, {
     scores: gift.scores,
     gift: gift.title,
     phone: phone,
     addr: addr})
+  await updateScorePromState(promotionId, gift.scores)
+  return result
 }
 
 async function promotionFuncTest(request) {

@@ -60,25 +60,41 @@ async function updateUserScore(userId, type, metadata) {
       let recharge = metadata.recharge || 0
       incrScore = mathjs.chain(OP_SCORE[type]).multiply(recharge).multiply(rate).done()
       break
-    case SCORE_OP_TYPE_EXCHANGE:
-      let consume = Number(metadata.consume) || 0
-      incrScore = -consume
-      break
     default:
       break
   }
 
   score = mathjs.chain(score).add(incrScore).done()
-  if(score < 0) {
-    throw new AV.Cloud.Error('积分不足', {code: errno.ERROR_PROM_NOSCORE})
-  }
   user.set('score', score)
   let result = await user.save()
-  if(promotion) {
+  if(promotion && result) {
     await addPromotionRecord(promotion.id, userId, {score: incrScore, type: type})
     await updateScorePromState(promotion.id, incrScore)
   }
   return result
+}
+
+/**
+ * 扣除用户积分（积分兑换活动）
+ * @param {String} userId       用户id
+ * @param {Number} scores       消费积分
+ */
+async function subtractUserScore(userId, scores) {
+  if(!userId || !scores) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let user = AV.Object.createWithoutData('_User', userId)
+  if(!user) {
+    throw new AV.Cloud.Error('没找到该用户', {code: errno.ENODATA})
+  }
+  let userInfo = await user.fetch()
+  let score = userInfo.attributes.score
+  score = mathjs.chain(score).subtract(scores).done()
+  if(score < 0) {
+    throw new AV.Cloud.Error('积分不足', {code: errno.ERROR_PROM_NOSCORE})
+  }
+  user.set('score', score)
+  return await user.save()
 }
 
 async function scoreFuncTest(request) {
@@ -98,6 +114,7 @@ var scoreFunc = {
   SCORE_OP_TYPE_ID_AUTH,
   SCORE_OP_TYPE_EXCHANGE,
   updateUserScore,
+  subtractUserScore,
   scoreFuncTest,
 }
 
