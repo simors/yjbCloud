@@ -51,7 +51,16 @@ async function fetchOperationLogs(request) {
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
   let query = new AV.Query('OperationLog')
-  let {lastCreatedAt, userId, limit} = params
+  let {lastCreatedAt, userId, limit ,mobilePhoneNumber} = params
+  if(mobilePhoneNumber){
+    let queryUser = new AV.Query('_User')
+    queryUser.equalTo('mobilePhoneNumber',mobilePhoneNumber)
+    let user = await queryUser.first()
+    if(!user){
+      throw new AV.Cloud.Error('没有找到该用户', {code: errno.EPERM});
+    }
+    query.equalTo('user', user)
+  }
   if (userId) {
     let user = AV.Object.createWithoutData('_User', userId)
     query.equalTo('user', user)
