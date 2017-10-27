@@ -501,7 +501,8 @@ async function handleRedEnvelopeDeal(promotionId, userId, amount) {
 
 async function createTransfer(request) {
   var order_no = uuidv4().replace(/-/g, '').substr(0, 16)
-  var amount = mathjs.number(request.params.amount) * 100
+  let originalAmount = request.params.amount
+  var amount = mathjs.number(originalAmount) * 100
   var metadata = request.params.metadata
   var dealType = metadata.dealType
   var channel = request.params.channel
@@ -523,7 +524,7 @@ async function createTransfer(request) {
   let errcode = 0
   if(dealType === DEAL_TYPE_REFUND) {
     description = "押金退款"
-    errcode = await isRefundAllowed(toUser, amount)
+    errcode = await isRefundAllowed(toUser, originalAmount)
     if (0 != errcode) {
       throw new AV.Cloud.Error('cann\'t refund', {code: errcode})
     }
@@ -534,7 +535,7 @@ async function createTransfer(request) {
     }
   } else if(dealType === DEAL_TYPE_WITHDRAW) {
     description = "账户提现"
-    errcode = await profitFunc.isWithdrawAllowed(toUser, amount)
+    errcode = await profitFunc.isWithdrawAllowed(toUser, originalAmount)
     if (0 != errcode) {
       throw new AV.Cloud.Error('cann\'t withdraw', {code: errcode})
     }
