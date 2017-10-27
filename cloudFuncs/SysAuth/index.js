@@ -9,6 +9,7 @@ var GLOBAL_CONFIG = require('../../config')
 var wechat_api = require('../../mpFuncs/index').wechat_api
 import utilFunc from '../Util'
 import authApi from '../Auth/User'
+import authFunc from '../Auth'
 const uuidv4 = require('uuid/v4')
 var redis = require('redis');
 
@@ -115,8 +116,9 @@ async function reqSendAuthCode(request) {
   let openid = sysUser.authData.weixin.openid
   let code = uuidv4().replace(/-/g, '').substr(0, 6)
   try {
+    let operatorUser = await authFunc.getUserInfoById(operator)
     await saveCode(operator, code)
-    await sendAuthCodeTmpMsg(openid, operator, operation, clientIp, code)
+    await sendAuthCodeTmpMsg(openid, operatorUser.nickname, operation, clientIp, code)
   } catch (e) {
     throw new AV.Cloud.Error('send auth code wechat mp message error', {code: errno.EIO})
   }
