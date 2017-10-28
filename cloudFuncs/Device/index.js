@@ -233,9 +233,11 @@ function updateDeviceStatus(deviceNo, status, updateTime) {
   query.equalTo('deviceNo', deviceNo)
 
   return query.first().then((device) => {
-    device.set('status', status)
+    let currentStatus = device.attributes.status
+    if(currentStatus != DEVICE_STATUS_UNREGISTER) {
+      device.set('status', status)
+    }
     device.set('updateTime', updateTime)
-
     return device.save()
   }).catch((error) => {
     console.log("updateDeviceStatus", error)
