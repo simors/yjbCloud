@@ -151,6 +151,7 @@ function fetchStations(request, response) {
   var limit = request.params.limit || 100
   var status = request.params.status
   var addr = request.params.addr
+  var mobilePhoneNumber = request.params.mobilePhoneNumber
   var lastCreatedAt = request.params.lastCreatedAt
   var query = new AV.Query('Station')
   if (province) {
@@ -177,17 +178,35 @@ function fetchStations(request, response) {
   query.limit(limit)
   query.include(['admin'])
   query.descending('createdDate')
-
-  query.find().then((stationList)=> {
-    var stations = []
-    stationList.forEach((record)=> {
-      var station = constructStationInfo(record, true)
-      stations.push(station)
+  if(mobilePhoneNumber){
+    var queryUser = new AV.Query('_User')
+    queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+    queryUser.first().then((user)=>{
+      var userInfo = AV.Object.createWithoutData('_User', user.id)
+      query.equalTo('admin', userInfo)
+      query.find().then((stationList)=> {
+        var stations = []
+        stationList.forEach((record)=> {
+          var station = constructStationInfo(record, true)
+          stations.push(station)
+        })
+        response.success(stations)
+      }, (err)=> {
+        response.error(err)
+      })
     })
-    response.success(stations)
-  }, (err)=> {
-    response.error(err)
-  })
+  }else{
+    query.find().then((stationList)=> {
+      var stations = []
+      stationList.forEach((record)=> {
+        var station = constructStationInfo(record, true)
+        stations.push(station)
+      })
+      response.success(stations)
+    }, (err)=> {
+      response.error(err)
+    })
+  }
 }
 
 /**
