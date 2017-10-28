@@ -77,7 +77,7 @@ function sendOrderPaymentTmpMsg(openid, amount, orderId, addr) {
 
   var data = {
     "first": {
-      "value":"尊敬的衣家宝用户，您已充值成功\n",
+      "value":"尊敬的衣家宝用户，您的订单支付成功\n",
       "color":"#173177"
     },
     "orderMoneySum": {

@@ -148,6 +148,9 @@ export const ERROR_BASE_DEAL          =   -(ERROR_BASE + 7000);
 
 /* Auth */
 
+/* Order */
+export const ERROR_NO_ENOUGH_BALANCE        = (ERROR_BASE_ORDER - 1)        /* 用户钱包余额不足 */
+
 /* Profit */
 export const ERROR_IN_WITHDRAW_PROCESS      = (ERROR_BASE_PROFIT - 1)       /* 已经处于提现申请的状态中 */
 export const ERROR_NOT_ENOUGH_MONEY         = (ERROR_BASE_PROFIT - 2)       /* 余额不足 */
