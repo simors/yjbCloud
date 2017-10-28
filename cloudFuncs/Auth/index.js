@@ -280,7 +280,7 @@ async function fetchWalletInfo(request) {
   let getWalletInfo = require('../Pingpp').getWalletInfo
   const {currentUser, params} = request
   let userId = params.userId
-  if(!userId || !currentUser) {
+  if(!userId && !currentUser) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
   return await getWalletInfo(currentUser.id || userId)
