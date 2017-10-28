@@ -546,7 +546,7 @@ function createInvestor(request, response) {
   queryPre.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
   queryPre.first().then((item)=> {
     if (item) {
-      response.error({message:"该服务点已有该投资人!"})
+      response.error(new Error( "该服务点已有该投资人!"))
     } else {
       investor.set('shareholder', user)
       investor.set('station', station)
@@ -557,7 +557,7 @@ function createInvestor(request, response) {
       investor.save().then((item)=> {
         var queryStation = new AV.Query('Station')
         queryStation.get(stationId).then((stationInfo)=> {
-          var investmentSum = stationInfo.attributes.investment
+          var investmentSum = stationInfo.attributes.investment || 0
           investmentSum = investmentSum + investment
           station.set('investment', investmentSum)
           station.save().then(()=> {
