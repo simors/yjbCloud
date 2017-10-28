@@ -70,6 +70,10 @@ AV.Cloud.define('stationCreatePartner', stationFunc.createPartner)
 AV.Cloud.define('stationUpdatePartner', stationFunc.updatePartner)
 AV.Cloud.define('stationOpenPartner', stationFunc.openPartner)
 AV.Cloud.define('stationClosePartner', stationFunc.closePartner)
+AV.Cloud.define('stationAdminHaveStation', stationFunc.adminHaveStation)
+AV.Cloud.define('stationInvestorHaveStation', stationFunc.investorHaveStation)
+AV.Cloud.define('stationPartnerHaveStation', stationFunc.partnerHaveStation)
+
 AV.Cloud.define('userFuncTest', stationFunc.userFuncTest)
 AV.Cloud.define('stationFetchProfitSharebyUser', stationFunc.reqFetchProfitSharebyUser)
 
@@ -95,6 +99,7 @@ AV.Cloud.define('pingppPaymentEvent', PingppFunc.paymentEvent)
 AV.Cloud.define('pingppCreateTransfer', PingppFunc.createTransfer)
 AV.Cloud.define('pingppTransferEvent', PingppFunc.transferEvent)
 AV.Cloud.define('pingppFetchRecharges', PingppFunc.fetchRecharges)
+AV.Cloud.define('pingppFuncTest', PingppFunc.pingppFuncTest)
 
 //订单
 AV.Cloud.define('orderFuncTest', orderFunc.orderFuncTest)

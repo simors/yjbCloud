@@ -151,6 +151,7 @@ function fetchStations(request, response) {
   var limit = request.params.limit || 100
   var status = request.params.status
   var addr = request.params.addr
+  var mobilePhoneNumber = request.params.mobilePhoneNumber
   var lastCreatedAt = request.params.lastCreatedAt
   var query = new AV.Query('Station')
   if (province) {
@@ -177,17 +178,35 @@ function fetchStations(request, response) {
   query.limit(limit)
   query.include(['admin'])
   query.descending('createdDate')
-
-  query.find().then((stationList)=> {
-    var stations = []
-    stationList.forEach((record)=> {
-      var station = constructStationInfo(record, true)
-      stations.push(station)
+  if(mobilePhoneNumber){
+    var queryUser = new AV.Query('_User')
+    queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+    queryUser.first().then((user)=>{
+      var userInfo = AV.Object.createWithoutData('_User', user.id)
+      query.equalTo('admin', userInfo)
+      query.find().then((stationList)=> {
+        var stations = []
+        stationList.forEach((record)=> {
+          var station = constructStationInfo(record, true)
+          stations.push(station)
+        })
+        response.success(stations)
+      }, (err)=> {
+        response.error(err)
+      })
     })
-    response.success(stations)
-  }, (err)=> {
-    response.error(err)
-  })
+  }else{
+    query.find().then((stationList)=> {
+      var stations = []
+      stationList.forEach((record)=> {
+        var station = constructStationInfo(record, true)
+        stations.push(station)
+      })
+      response.success(stations)
+    }, (err)=> {
+      response.error(err)
+    })
+  }
 }
 
 /**
@@ -481,7 +500,7 @@ async function createPartner(request, response) {
     let queryNew = new AV.Query('ProfitSharing')
     queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
-    OperationLog.recordOperation(currentUser, '创建分成方' + finPartner.attributes.shareholder.attributes.idName)
+    OperationLog.recordOperation(currentUser, '创建分成方' + finPartner.attributes.shareholder.attributes.nickname)
     response.success(constructProfitSharing(finPartner, true, false))
   } catch (err) {
     response.error(err)
@@ -516,7 +535,7 @@ async function updatePartner(request, response) {
     let queryNew = new AV.Query('ProfitSharing')
     queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
-    OperationLog.recordOperation(currentUser, '更新分成方' + finPartner.attributes.shareholder.attributes.idName)
+    OperationLog.recordOperation(currentUser, '更新分成方' + finPartner.attributes.shareholder.attributes.nickname)
     response.success(constructProfitSharing(finPartner, true, false))
   } catch (err) {
     response.error(err)
@@ -546,7 +565,7 @@ function createInvestor(request, response) {
   queryPre.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
   queryPre.first().then((item)=> {
     if (item) {
-      response.error({message:"该服务点已有该投资人!"})
+      response.error(new Error( "该服务点已有该投资人!"))
     } else {
       investor.set('shareholder', user)
       investor.set('station', station)
@@ -557,7 +576,7 @@ function createInvestor(request, response) {
       investor.save().then((item)=> {
         var queryStation = new AV.Query('Station')
         queryStation.get(stationId).then((stationInfo)=> {
-          var investmentSum = stationInfo.attributes.investment
+          var investmentSum = stationInfo.attributes.investment || 0
           investmentSum = investmentSum + investment
           station.set('investment', investmentSum)
           station.save().then(()=> {
@@ -715,7 +734,7 @@ function openPartner(request, response) {
     var query = new AV.Query('ProfitSharing')
     query.include(['station', 'shareholder'])
     query.get(item.id).then((result)=> {
-      OperationLog.recordOperation(currentUser, '启用分成方' + result.attributes.shareholder.attributes.idName)
+      OperationLog.recordOperation(currentUser, '启用分成方' + result.attributes.shareholder.attributes.nickname)
       response.success(constructProfitSharing(result))
     }, (err)=> {
       response.error(err)
@@ -740,7 +759,7 @@ function closePartner(request, response) {
     var query = new AV.Query('ProfitSharing')
     query.include(['station', 'shareholder'])
     query.get(item.id).then((result)=> {
-      OperationLog.recordOperation(currentUser, '禁用分成方' + result.attributes.shareholder.attributes.idName)
+      OperationLog.recordOperation(currentUser, '禁用分成方' + result.attributes.shareholder.attributes.nickname)
       response.success(constructProfitSharing(result))
     }, (err)=> {
       response.error(err)
@@ -1003,10 +1022,131 @@ async function changeDeviceNum(stationId, type) {
   }
 }
 
-function stationFuncTest(request, response) {
-  let stationId = request.params.stationId
+/**判断用户是否仍管理服务点云函数接口
+ *
+ * @param request {currentUser, params {userId}}
+ * return Bool
+ */
+async function adminHaveStation(request){
+  let {params , currentUser} = request
+  if(!currentUser){
+    throw new AV.Cloud.Error('未登录', {code: errno.EPERM})
+  }
+  let {userId} = params
+  return await adminHaveStationFunc(userId)
+}
 
-  response.success(changeDeviceNum(stationId, 'sub'))
+/**判断用户是否仍管理了服务点
+ *
+ * @param userId
+ * return Bool
+ */
+async function adminHaveStationFunc(userId){
+  if(!userId){
+    throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
+  }
+  let user = AV.Object.createWithoutData('_User',userId)
+  let query = new AV.Query('Station')
+  query.equalTo('admin', user)
+  query.include(['admin'])
+  try{
+    let stationList = await query.find()
+    if(stationList&&stationList.length>0){
+      throw new AV.Cloud.Error('该用户仍拥有管理中的服务点', {code: errno.ERROR_STATION_HAVESTATION})
+    }else{
+      return true
+    }
+  }catch(err){
+    throw err
+  }
+
+}
+
+/**判断用户是否仍分成服务点云函数接口
+ *
+ * @param request {currentUser, params {userId}}
+ * return Bool
+ */
+async function partnerHaveStation(request){
+  let {params , currentUser} = request
+  if(!currentUser){
+    throw new AV.Cloud.Error('未登录', {code: errno.EPERM})
+  }
+  let {userId} = params
+  return await partnerHaveStationFunc(userId)
+}
+
+/**判断用户是否仍分成了服务点
+ *
+ * @param userId
+ * return Bool
+ */
+async function partnerHaveStationFunc(userId){
+  if(!userId){
+    throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
+  }
+  let user = AV.Object.createWithoutData('_User',userId)
+  let query = new AV.Query('ProfitSharing')
+  query.equalTo('shareholder', user)
+  query.equalTo('type', 'partner')
+  query.equalTo('status', 1)
+  query.include(['shareholder'])
+  try{
+    let stationList = await query.find()
+    if(stationList&&stationList.length>0){
+      throw new AV.Cloud.Error('该用户仍拥有分成的服务点', {code: errno.ERROR_STATION_HAVESTATION})
+    }else{
+      return true
+    }
+  }catch(err){
+    throw err
+  }
+
+}
+
+/**判断用户是否仍投资了服务点云函数接口
+ *
+ * @param request {currentUser, params {userId}}
+ * return Bool
+ */
+async function investorHaveStation(request){
+ let {params , currentUser} = request
+  if(!currentUser){
+    throw new AV.Cloud.Error('未登录', {code: errno.EPERM})
+  }
+  let {userId} = params
+  return await investorHaveStationFunc(userId)
+}
+
+async function investorHaveStationFunc(userId) {
+  if(!userId){
+    throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
+  }
+  let user = AV.Object.createWithoutData('_User',userId)
+  let query = new AV.Query('ProfitSharing')
+  query.equalTo('shareholder', user)
+  query.equalTo('type', 'investor')
+  query.equalTo('status', 1)
+  query.include(['shareholder'])
+  try{
+    let stationList = await query.find()
+    if(stationList&&stationList.length>0){
+      throw new AV.Cloud.Error('该用户仍拥有投资的服务点', {code: errno.ERROR_STATION_HAVESTATION})
+    }else{
+      return true
+    }
+  }catch(err){
+    throw err
+  }
+
+
+
+}
+
+function stationFuncTest(request, response) {
+  let userId = request.params.userId
+
+  response.success(partnerHaveStation(userId))
 }
 
 var stationFunc = {
@@ -1035,6 +1175,9 @@ var stationFunc = {
   changeDeviceNum: changeDeviceNum,
   stationFuncTest: stationFuncTest,
   reqFetchProfitSharebyUser,
+  investorHaveStation,
+  partnerHaveStation,
+  adminHaveStation,
 }
 
 module.exports = stationFunc

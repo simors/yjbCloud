@@ -127,6 +127,33 @@ function getWalletInfo(userId) {
   })
 }
 
+async function createUserWallet(userId) {
+  if(!userId) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let mysqlConn = undefined
+  try {
+    mysqlConn = await mysqlUtil.getConnection()
+    let sql = "SELECT * FROM `Wallet` WHERE `userId` = ?"
+    let queryRes = await mysqlUtil.query(mysqlConn, sql, [userId])
+    if(queryRes.results.length === 0) {
+      sql = "INSERT INTO `Wallet` (`userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `process`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      await mysqlUtil.query(mysqlConn, sql, [userId, 0, 0, '', '', '', 0, WALLET_PROCESS_TYPE.NORMAL_PROCESS])
+      return true
+    } else {
+      throw new AV.Cloud.Error('用户钱包信息已存在', {code: errno.EEXIST})
+    }
+  } catch (error) {
+    console.error("createUserWallet", error)
+    throw error
+  } finally {
+    if (mysqlConn) {
+      await mysqlUtil.release(mysqlConn)
+    }
+  }
+
+}
+
 function judgeWalletProcess(wallet) {
   return WALLET_PROCESS_TYPE.NORMAL_PROCESS == wallet.process
 }
@@ -217,7 +244,7 @@ function updateWalletInfo(conn, deal) {
   var debt = 0
   var password = ''
 
-  var sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt` FROM `Wallet` WHERE `userId` = ? LIMIT 1"
+  var sql = "SELECT `userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `process` FROM `Wallet` WHERE `userId` = ? LIMIT 1"
   return mysqlUtil.query(conn, sql, [userId]).then((queryRes) => {
     if (queryRes.results.length == 1) {
       var currentBalance = mathjs.number(queryRes.results[0].balance)
@@ -287,8 +314,8 @@ function updateWalletInfo(conn, deal) {
           return Promise.resolve()
           break
       }
-      sql = "INSERT INTO `Wallet` (`userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      return mysqlUtil.query(conn, sql, [userId, balance, deposit, password, openid, user_name, debt])
+      sql = "INSERT INTO `Wallet` (`userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `process`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      return mysqlUtil.query(conn, sql, [userId, balance, deposit, password, openid, user_name, debt, WALLET_PROCESS_TYPE.NORMAL_PROCESS])
     }
   }).catch((error) => {
     console.log("updateWalletInfo", error)
@@ -757,7 +784,13 @@ async function fetchRecharges(request, response) {
   }
 }
 
+async function pingppFuncTest(request) {
+  const {currentUser, params} = request
+  return await createUserWallet(currentUser.id)
+}
+
 var PingppFunc = {
+  WALLET_PROCESS_TYPE: WALLET_PROCESS_TYPE,
   DEAL_TYPE_DEPOSIT: DEAL_TYPE_DEPOSIT,
   DEAL_TYPE_RECHARGE: DEAL_TYPE_RECHARGE,
   DEAL_TYPE_SERVICE: DEAL_TYPE_SERVICE,
@@ -772,6 +805,8 @@ var PingppFunc = {
   getUserDealRecords: getUserDealRecords,
   fetchRecharges: fetchRecharges,
   handleRedEnvelopeDeal: handleRedEnvelopeDeal,
+  createUserWallet: createUserWallet,
+  pingppFuncTest: pingppFuncTest,
 }
 
 module.exports = PingppFunc

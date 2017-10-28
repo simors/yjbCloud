@@ -38,6 +38,10 @@ async function createUserByAuthData(authData, phone, clientIp) {
     user.set('subscribe', userWechatInfo.subscribe)
     user.set('type', AUTH_USER_TYPE.END)
     user.set('score', 0)
+
+    //创建钱包信息
+    let createUserWallet = require('../cloudFuncs/Pingpp').createUserWallet
+    createUserWallet(user.id)
     return await AV.User.associateWithAuthData(user, platform, authData)
   }
   return authApi.authFetchUserByOpenId(openid)

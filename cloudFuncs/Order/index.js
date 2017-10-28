@@ -128,16 +128,13 @@ async function fetchOwnsOrders(request, response) {
   }
 }
 
-function updateOrderStatus(orderId, status, endTime, amount) {
-  var updateTime = Date.now()
-
+function updateOrderStatus(orderId, status, amount) {
   var order = AV.Object.createWithoutData('Order', orderId)
 
   order.set('status', status)
-  order.set('end', new Date(endTime))
   order.set('amount', amount)
   if(status === ORDER_STATUS_PAID) {
-    order.set('payTime', new Date(updateTime))
+    order.set('payTime', new Date())
   }
   return order.save().then((leanOrder) => {
     let query = new AV.Query('Order')
@@ -150,65 +147,50 @@ function updateOrderStatus(orderId, status, endTime, amount) {
   })
 }
 
-function  orderPayment(request, response) {
-  var amount = Number(request.params.amount)
-  var userId = request.params.userId
-  var orderId = request.params.orderId
-  var endTime = request.params.endTime
-
-  var mysqlConn = undefined
-  var orderInfo = undefined
-
-  if(!userId || !orderId || !amount || !endTime) {
-    response.error(new Error("参数错误"))
+async function  orderPayment(request) {
+  const {currentUser, params} = request
+  const {amount, orderId} = params
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  if(!amount || !orderId) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
-  PingppFunc.getWalletInfo(userId).then((walletInfo) => {
-    if(!walletInfo || amount > walletInfo.balance) {
-      response.success(new Error("余额不足"))
-    } else {
-      return updateOrderStatus(orderId, ORDER_STATUS_PAID, endTime, amount).then((order) => {
-        orderInfo = order
-        return mysqlUtil.getConnection()
-      }).then((conn) => {
-        mysqlConn = conn
-        return mysqlUtil.beginTransaction(conn)
-      }).then(() => {
-        var deal = {
-          to: 'platform',
-          from: userId,
-          cost: amount,
-          deal_type: PingppFunc.DEAL_TYPE_SERVICE,
-        }
-        return PingppFunc.updateWalletInfo(mysqlConn, deal)
-      }).then(() => {
-        return mysqlUtil.commit(mysqlConn)
-      }).then(() => {
-        response.success(orderInfo)
-        if(orderInfo.status === ORDER_STATUS_PAID) {
-          return mpMsgFuncs.sendOrderPaymentTmpMsg(walletInfo.openid, amount, orderInfo.id, orderInfo.deviceAddr)
-        }
-      }).then(() => {
-        let updateUserScore = require('../Score').updateUserScore
-        let SCORE_OP_TYPE_SERVICE = require('../Score').SCORE_OP_TYPE_SERVICE
-        return updateUserScore(userId, SCORE_OP_TYPE_SERVICE, {})
-      }).catch((error) => {
-        throw error
-      })
-    }
-  }).catch((error) => {
-    console.log("orderPayment", error)
-    if (mysqlConn) {
-      console.log('transaction rollback')
-      mysqlUtil.rollback(mysqlConn)
-    }
-    response.error(error)
-  }).finally(() => {
-    if(mysqlConn) {
-      mysqlUtil.release(mysqlConn)
-    }
-  })
+  let walletInfo = await PingppFunc.getWalletInfo(currentUser.id)
+  if(!walletInfo || Number(amount) > walletInfo.balance) {
+    throw new AV.Cloud.Error('余额不足', {code: errno.ERROR_NO_ENOUGH_BALANCE})
+  }
 
+  let mysqlConn = undefined
+  try {
+    mysqlConn = await mysqlUtil.getConnection()
+    await mysqlUtil.beginTransaction(mysqlConn)
+    let deal = {
+      to: 'platform',
+      from: userId,
+      cost: Number(amount),
+      deal_type: PingppFunc.DEAL_TYPE_SERVICE,
+    }
+    await PingppFunc.updateWalletInfo(mysqlConn, deal)
+    await mysqlUtil.commit(mysqlConn)
+  } catch (error) {
+    if(mysqlConn) {
+      await mysqlUtil.rollback(mysqlConn)
+    }
+    throw error
+  } finally {
+    if(mysqlConn) {
+      await mysqlUtil.release(mysqlConn)
+    }
+  }
+  let orderInfo = await updateOrderStatus(orderId, ORDER_STATUS_PAID, endTime, Number(amount))
+  mpMsgFuncs.sendOrderPaymentTmpMsg(walletInfo.openid, Number(amount), orderInfo.id, orderInfo.deviceAddr)
+
+  let updateUserScore = require('../Score').updateUserScore
+  let SCORE_OP_TYPE_SERVICE = require('../Score').SCORE_OP_TYPE_SERVICE
+  updateUserScore(userId, SCORE_OP_TYPE_SERVICE, {})
+  return orderInfo
 }
 
 async function finishOrder(deviceNo, finishTime) {
@@ -372,6 +354,25 @@ async function getOrders(deviceId, start, end) {
   }
 }
 
+/**
+ * 获取用户正在使用订单
+ * @param {String} userId
+ */
+async function getOccupiedOrder(userId) {
+  if(!userId) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let user = AV.Object.createWithoutData('_User', userId)
+  let query = new AV.Query('Order')
+  query.equalTo('user', user)
+  query.equalTo('status', ORDER_STATUS_OCCUPIED)
+  let order = await query.first()
+  if(!order) {
+    return undefined
+  }
+  return constructOrderInfo(order, false, false)
+}
+
 async function orderFuncTest(request) {
   const {currentUser, params} = request
   const {deviceId, start, end} = params
@@ -386,12 +387,12 @@ var orderFunc = {
   orderFuncTest: orderFuncTest,
   createOrder: createOrder,
   fetchOwnsOrders: fetchOwnsOrders,
-  updateOrderStatus: updateOrderStatus,
   orderPayment: orderPayment,
   finishOrder: finishOrder,
   fetchOrders: fetchOrders,
   fetchOrderInfo: fetchOrderInfo,
   getOrders: getOrders,
+  getOccupiedOrder: getOccupiedOrder,
 }
 
 module.exports = orderFunc
