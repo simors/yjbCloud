@@ -889,7 +889,7 @@ function closeStation(request, response) {
   if (!currentUser) {
     response.error('not login')
   }
-  authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_EDIT_WHOLE, PERMISSION_CODE.STATION_EDIT_PART]).then((isValid)=> {
+  authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_EDIT]).then((isValid)=> {
     if (!isValid) {
       response.error('no permission')
     }
