@@ -1022,12 +1022,26 @@ async function changeDeviceNum(stationId, type) {
   }
 }
 
+/**判断用户是否仍管理服务点云函数接口
+ *
+ * @param request {currentUser, params {userId}}
+ * return Bool
+ */
+async function adminHaveStation(request){
+  let {params , currentUser} = request
+  if(!currentUser){
+    throw new AV.Cloud.Error('未登录', {code: errno.EPERM})
+  }
+  let {userId} = params
+  return await adminHaveStationFunc(userId)
+}
+
 /**判断用户是否仍管理了服务点
  *
  * @param userId
  * return Bool
  */
-async function adminHaveStation(userId){
+async function adminHaveStationFunc(userId){
   if(!userId){
     throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
   }
@@ -1035,12 +1049,31 @@ async function adminHaveStation(userId){
   let query = new AV.Query('Station')
   query.equalTo('admin', user)
   query.include(['admin'])
-  let stationList = await query.find()
-  if(stationList&&stationList.length>0){
-    throw new AV.Cloud.Error('该用户仍拥有管理中的服务点', {code: errno.ERROR_STATION_HAVESTATION})
-  }else{
-    return true
+  try{
+    let stationList = await query.find()
+    if(stationList&&stationList.length>0){
+      throw new AV.Cloud.Error('该用户仍拥有管理中的服务点', {code: errno.ERROR_STATION_HAVESTATION})
+    }else{
+      return true
+    }
+  }catch(err){
+    throw err
   }
+
+}
+
+/**判断用户是否仍分成服务点云函数接口
+ *
+ * @param request {currentUser, params {userId}}
+ * return Bool
+ */
+async function partnerHaveStation(request){
+  let {params , currentUser} = request
+  if(!currentUser){
+    throw new AV.Cloud.Error('未登录', {code: errno.EPERM})
+  }
+  let {userId} = params
+  return await partnerHaveStationFunc(userId)
 }
 
 /**判断用户是否仍分成了服务点
@@ -1048,7 +1081,7 @@ async function adminHaveStation(userId){
  * @param userId
  * return Bool
  */
-async function partnerHaveStation(userId){
+async function partnerHaveStationFunc(userId){
   if(!userId){
     throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
   }
@@ -1058,20 +1091,34 @@ async function partnerHaveStation(userId){
   query.equalTo('type', 'partner')
   query.equalTo('status', 1)
   query.include(['shareholder'])
-  let stationList = await query.find()
-  if(stationList&&stationList.length>0){
-    throw new AV.Cloud.Error('该用户仍拥有分成的服务点', {code: errno.ERROR_STATION_HAVESTATION})
-  }else{
-    return true
+  try{
+    let stationList = await query.find()
+    if(stationList&&stationList.length>0){
+      throw new AV.Cloud.Error('该用户仍拥有分成的服务点', {code: errno.ERROR_STATION_HAVESTATION})
+    }else{
+      return true
+    }
+  }catch(err){
+    throw err
   }
+
 }
 
-/**判断用户是否仍投资了服务点
+/**判断用户是否仍投资了服务点云函数接口
  *
- * @param userId
+ * @param request {currentUser, params {userId}}
  * return Bool
  */
-async function investorHaveStation(userId){
+async function investorHaveStation(request){
+ let {params , currentUser} = request
+  if(!currentUser){
+    throw new AV.Cloud.Error('未登录', {code: errno.EPERM})
+  }
+  let {userId} = params
+  return await investorHaveStationFunc(userId)
+}
+
+async function investorHaveStationFunc(userId) {
   if(!userId){
     throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
   }
@@ -1081,14 +1128,20 @@ async function investorHaveStation(userId){
   query.equalTo('type', 'investor')
   query.equalTo('status', 1)
   query.include(['shareholder'])
-  let stationList = await query.find()
-  if(stationList&&stationList.length>0){
-    throw new AV.Cloud.Error('该用户仍拥有投资的服务点', {code: errno.ERROR_STATION_HAVESTATION})
-  }else{
-    return true
+  try{
+    let stationList = await query.find()
+    if(stationList&&stationList.length>0){
+      throw new AV.Cloud.Error('该用户仍拥有投资的服务点', {code: errno.ERROR_STATION_HAVESTATION})
+    }else{
+      return true
+    }
+  }catch(err){
+    throw err
   }
-}
 
+
+
+}
 
 function stationFuncTest(request, response) {
   let userId = request.params.userId
