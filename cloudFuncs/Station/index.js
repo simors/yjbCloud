@@ -1022,10 +1022,78 @@ async function changeDeviceNum(stationId, type) {
   }
 }
 
-function stationFuncTest(request, response) {
-  let stationId = request.params.stationId
+/**判断用户是否仍管理了服务点
+ *
+ * @param userId
+ * return Bool
+ */
+async function adminHaveStation(userId){
+  if(!userId){
+    throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
+  }
+  let user = AV.Object.createWithoutData('_User',userId)
+  let query = new AV.Query('Station')
+  query.equalTo('admin', user)
+  query.include(['admin'])
+  let stationList = await query.find()
+  if(stationList&&stationList.length>0){
+    throw new AV.Cloud.Error('该用户仍拥有管理中的服务点', {code: errno.ERROR_STATION_HAVESTATION})
+  }else{
+    return true
+  }
+}
 
-  response.success(changeDeviceNum(stationId, 'sub'))
+/**判断用户是否仍分成了服务点
+ *
+ * @param userId
+ * return Bool
+ */
+async function partnerHaveStation(userId){
+  if(!userId){
+    throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
+  }
+  let user = AV.Object.createWithoutData('_User',userId)
+  let query = new AV.Query('ProfitSharing')
+  query.equalTo('shareholder', user)
+  query.equalTo('type', 'partner')
+  query.equalTo('status', 1)
+  query.include(['shareholder'])
+  let stationList = await query.find()
+  if(stationList&&stationList.length>0){
+    throw new AV.Cloud.Error('该用户仍拥有分成的服务点', {code: errno.ERROR_STATION_HAVESTATION})
+  }else{
+    return true
+  }
+}
+
+/**判断用户是否仍投资了服务点
+ *
+ * @param userId
+ * return Bool
+ */
+async function investorHaveStation(userId){
+  if(!userId){
+    throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
+  }
+  let user = AV.Object.createWithoutData('_User',userId)
+  let query = new AV.Query('ProfitSharing')
+  query.equalTo('shareholder', user)
+  query.equalTo('type', 'investor')
+  query.equalTo('status', 1)
+  query.include(['shareholder'])
+  let stationList = await query.find()
+  if(stationList&&stationList.length>0){
+    throw new AV.Cloud.Error('该用户仍拥有投资的服务点', {code: errno.ERROR_STATION_HAVESTATION})
+  }else{
+    return true
+  }
+}
+
+
+function stationFuncTest(request, response) {
+  let userId = request.params.userId
+
+  response.success(partnerHaveStation(userId))
 }
 
 var stationFunc = {
@@ -1054,6 +1122,9 @@ var stationFunc = {
   changeDeviceNum: changeDeviceNum,
   stationFuncTest: stationFuncTest,
   reqFetchProfitSharebyUser,
+  investorHaveStation,
+  partnerHaveStation,
+  adminHaveStation,
 }
 
 module.exports = stationFunc
