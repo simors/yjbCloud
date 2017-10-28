@@ -354,6 +354,25 @@ async function getOrders(deviceId, start, end) {
   }
 }
 
+/**
+ * 获取用户正在使用订单
+ * @param {String} userId
+ */
+async function getOccupiedOrder(userId) {
+  if(!userId) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let user = AV.Object.createWithoutData('_User', userId)
+  let query = new AV.Query('Order')
+  query.equalTo('user', user)
+  query.equalTo('status', ORDER_STATUS_OCCUPIED)
+  let order = await query.first()
+  if(!order) {
+    return undefined
+  }
+  return constructOrderInfo(order, false, false)
+}
+
 async function orderFuncTest(request) {
   const {currentUser, params} = request
   const {deviceId, start, end} = params
@@ -373,6 +392,7 @@ var orderFunc = {
   fetchOrders: fetchOrders,
   fetchOrderInfo: fetchOrderInfo,
   getOrders: getOrders,
+  getOccupiedOrder: getOccupiedOrder,
 }
 
 module.exports = orderFunc

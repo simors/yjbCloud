@@ -147,9 +147,17 @@ export const ERROR_BASE_PROFIT        =   -(ERROR_BASE + 6000);
 export const ERROR_BASE_DEAL          =   -(ERROR_BASE + 7000);
 
 /* Auth */
+export const ERROR_NO_WALLET                = (ERROR_BASE_AUTH - 1)         /* 用户钱包信息有误 */
+export const ERROR_NO_DEPOSIT               = (ERROR_BASE_AUTH - 2)         /* 用户未交押金 */
+export const ERROR_NO_ENOUGH_BALANCE        = (ERROR_BASE_AUTH - 3)         /* 用户钱包余额不足 */
+
+/* Device */
+export const ERROR_INVALID_STATUS           = (ERROR_BASE_DEVICE - 1)       /* 设备状态有误 */
+export const ERROR_TURNON_FAILED            = (ERROR_BASE_DEVICE - 1)       /* 设备开机请求失败*/
 
 /* Order */
-export const ERROR_NO_ENOUGH_BALANCE        = (ERROR_BASE_ORDER - 1)        /* 用户钱包余额不足 */
+export const ERROR_UNPAID_ORDER             = (ERROR_BASE_ORDER - 1)        /* 未支付订单 */
+export const ERROR_OCCUPIED_ORDER           = (ERROR_BASE_ORDER - 2)        /* 有正在使用中订单 */
 
 /* Profit */
 export const ERROR_IN_WITHDRAW_PROCESS      = (ERROR_BASE_PROFIT - 1)       /* 已经处于提现申请的状态中 */

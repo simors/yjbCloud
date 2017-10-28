@@ -4,6 +4,9 @@
 var AV = require('leanengine');
 var Promise = require('bluebird')
 var mpQrcodeFuncs = require('../../mpFuncs/Qrcode')
+import * as errno from '../errno'
+import PingppFunc from '../Pingpp'
+import orderFunc from '../Order'
 
 //设备状态
 const DEVICE_STATUS_IDLE = 0          //空闲
@@ -359,7 +362,42 @@ function updateDevice(request, response) {
     console.log("updateDevice", error)
     response.success(error)
   })
+}
 
+/**
+ * 检测设备状态和用户是否可以使用设备
+ * @param {String} deviceNo
+ * @param {String} userId
+ */
+async function turnOnDeviceCheck(deviceNo, userId) {
+  try {
+    if(!deviceNo || !userId) {
+      return errno.EINVAL
+    }
+    let status = await getDeviceStatus(deviceNo)
+    if(status != DEVICE_STATUS_IDLE) {
+      return errno.ERROR_INVALID_STATUS
+    }
+
+    let userWalletInfo = await PingppFunc.getWalletInfo(userId)
+    if(!userWalletInfo) {
+      return errno.ERROR_NO_WALLET
+    }
+    const {deposit, debt, process} = userWalletInfo
+    if(deposit ===0 || process === PingppFunc.WALLET_PROCESS_TYPE.REFUND_PROCESS) {
+      return errno.ERROR_NO_DEPOSIT
+    }
+    if(debt > 0) {
+      return errno.ERROR_UNPAID_ORDER
+    }
+    let occupiedOrder = await orderFunc.getOccupiedOrder(userId)
+    if(occupiedOrder) {
+      return errno.ERROR_OCCUPIED_ORDER
+    }
+    return 0
+  } catch (error) {
+    throw error
+  }
 }
 
 function deviceFuncTest(request, response) {
@@ -387,6 +425,7 @@ var deviceFunc = {
   associateWithStation: associateWithStation,
   updateDevice: updateDevice,
   getDevices: getDevices,
+  turnOnDeviceCheck: turnOnDeviceCheck,
   deviceFuncTest: deviceFuncTest,
 }
 

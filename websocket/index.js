@@ -7,6 +7,8 @@ var activityFunc = require('../cloudFuncs/Activity')
 var turnOnDevice = require('../mqtt').turnOnDevice
 var turnOffDevice = require('../mqtt').turnOffDevice
 import promotionFunc from '../cloudFuncs/Promotion'
+import deviceFunc from '../cloudFuncs/Device'
+import * as errno from '../cloudFuncs/errno'
 
 //websocket消息
 const TURN_ON_DEVICE = 'turn_on_device'         //设备开机请求&应答
@@ -36,7 +38,7 @@ function connectionEvent(socket) {
   })
 
   //接收到微信客户端的设备开机请求
-  socket.on(TURN_ON_DEVICE, (data, callback) => {
+  socket.on(TURN_ON_DEVICE, async (data, callback) => {
     console.log("收到设备开机请求：", data)
     var deviceNo = data.deviceNo
     var userId = data.userId
@@ -47,14 +49,18 @@ function connectionEvent(socket) {
       errorMessage: ""
     }
 
-    turnOnDevice(deviceNo, userId, socketId).then((result) => {
-      ackData.errorCode = result.errorCode
-      ackData.errorMessage = result.errorMessage
+    let errorCode = await deviceFunc.turnOnDeviceCheck(deviceNo, userId)
+    if(errorCode != 0) {
+      ackData.errorCode = errorCode
+      callback(ackData)
+      return
+    }
+    turnOnDevice(deviceNo, userId, socketId).then(() => {
       callback(ackData)
     }).catch((error) => {
       console.log("设备开机失败", error)
-      ackData.errorCode = 3
-      ackData.errorMessage = error
+      ackData.errorCode = errno.ERROR_TURNON_FAILED
+      ackData.errorMessage = "设备开机失败"
       callback(ackData)
     })
   })

@@ -135,40 +135,23 @@ function handleDeviceOffline(message) {
 
 //开启设备
 function turnOnDevice(deviceNo, userId, socketId) {
+  let turnOnMessage = {
+    socketId: socketId,
+    deviceNo: deviceNo,
+    userId: userId,
+    time: Date.now()
+  }
 
-  return deviceFunc.getDeviceStatus(deviceNo).then((status) => {
-    if(status === deviceFunc.DEVICE_STATUS_IDLE) {
-      var turnOnMessage = {
-        socketId: socketId,
-        deviceNo: deviceNo,
-        userId: userId,
-        time: Date.now()
+  return new Promise((resolve, reject) => {
+    client.publish('turnOn/' + deviceNo, JSON.stringify(turnOnMessage), function (error) {
+      if(error) {
+        console.log("publish turnOn error:", error)
+        reject()
+        return
       }
-
-      return new Promise((resolve, reject) => {
-        client.publish('turnOn/' + deviceNo, JSON.stringify(turnOnMessage), function (error) {
-          if(error) {
-            console.log("publish turnOn error:", error)
-            resolve({
-              errorCode: 1,
-              errorMessage: "设备请求失败"
-            })
-          } else {
-            console.log("publish success, topic:", 'turnOn/' + deviceNo)
-            resolve({
-              errorCode: 0,
-              errorMessage: ""
-            })
-          }
-        })
-      })
-    }
-    return {
-      errorCode: 2,
-      errorMessage: "没有该设备或设备状态有误"
-    }
-  }).catch((error) => {
-    throw error
+      console.log("publish success, topic:", 'turnOn/' + deviceNo)
+      resolve()
+    })
   })
 }
 
