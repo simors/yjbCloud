@@ -481,7 +481,7 @@ async function createPartner(request, response) {
     let queryNew = new AV.Query('ProfitSharing')
     queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
-    OperationLog.recordOperation(currentUser, '创建分成方' + finPartner.attributes.shareholder.attributes.idName)
+    OperationLog.recordOperation(currentUser, '创建分成方' + finPartner.attributes.shareholder.attributes.nickname)
     response.success(constructProfitSharing(finPartner, true, false))
   } catch (err) {
     response.error(err)
@@ -516,7 +516,7 @@ async function updatePartner(request, response) {
     let queryNew = new AV.Query('ProfitSharing')
     queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
-    OperationLog.recordOperation(currentUser, '更新分成方' + finPartner.attributes.shareholder.attributes.idName)
+    OperationLog.recordOperation(currentUser, '更新分成方' + finPartner.attributes.shareholder.attributes.nickname)
     response.success(constructProfitSharing(finPartner, true, false))
   } catch (err) {
     response.error(err)
@@ -715,7 +715,7 @@ function openPartner(request, response) {
     var query = new AV.Query('ProfitSharing')
     query.include(['station', 'shareholder'])
     query.get(item.id).then((result)=> {
-      OperationLog.recordOperation(currentUser, '启用分成方' + result.attributes.shareholder.attributes.idName)
+      OperationLog.recordOperation(currentUser, '启用分成方' + result.attributes.shareholder.attributes.nickname)
       response.success(constructProfitSharing(result))
     }, (err)=> {
       response.error(err)
@@ -740,7 +740,7 @@ function closePartner(request, response) {
     var query = new AV.Query('ProfitSharing')
     query.include(['station', 'shareholder'])
     query.get(item.id).then((result)=> {
-      OperationLog.recordOperation(currentUser, '禁用分成方' + result.attributes.shareholder.attributes.idName)
+      OperationLog.recordOperation(currentUser, '禁用分成方' + result.attributes.shareholder.attributes.nickname)
       response.success(constructProfitSharing(result))
     }, (err)=> {
       response.error(err)
