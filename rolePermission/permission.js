@@ -5,14 +5,22 @@
 export const PERMISSION_CODE = {
   /* 干衣柜综合管理 */
   DEVICE_QUERY_INFO:                          1000,         // 干衣柜综合管理/干衣柜信息管理/查看
+  DEVICE_ASSOCIATE:                           1001,         // 干衣柜综合管理/干衣柜信息管理/关联
+  DEVICE_EDIT_STATION_ADDR:                   1002,         // 干衣柜综合管理/干衣柜信息管理/编辑干衣柜位置
+  DEVICE_CHANGE_STATUS:                       1003,         // 干衣柜综合管理/干衣柜信息管理/修改干衣柜状态
+  DEVICE_CHANGE_STATION:                      1004,         // 干衣柜综合管理/干衣柜信息管理/改变所属服务点
+
   /* 服务点综合管理 */
-  STATION_QUERY_WHOLE:                        2000,         // 服务点综合管理/服务点信息管理/全局查看
-  STATION_QUERY_PART:                         2001,         // 服务点综合管理/服务点信息管理/局部查看
+  STATION_BASE_QUERY:                         2000,         // 服务点综合管理/服务点信息管理/查看基本信息
+  STATION_QUERY_PARTNER:                      2001,         // 服务点综合管理/服务点信息管理/查看分成方
   STATION_EDIT:                               2002,         // 服务点综合管理/服务点信息管理/编辑
   STATION_ADD:                                2003,         // 服务点综合管理/服务点信息管理/添加
+  STATION_CHANGE_STATUS:                      2004,         // 服务点综合管理/服务点信息管理/修改服务点状态
 
-  STATION_INVESTOR_QUERY_WHOLE:               2100,         // 服务点综合管理/投资人信息管理/全局查看
-  STATION_INVESTOR_QUERY_PART:                2101,         // 服务点综合管理/投资人信息管理/局部查看
+  STATION_INVESTOR_BASE_QUERY:                2100,         // 服务点综合管理/投资人信息管理/查看基本信息
+  STATION_INVESTOR_ADD:                       2101,         // 服务点综合管理/投资人信息管理/添加投资人
+  STATION_INVESTOR_EDIT:                      2102,         // 服务点综合管理/投资人信息管理/编辑投资人
+  STATION_INVESTOR_CHANGE_STATUS:             2103,         // 服务点综合管理/投资人信息管理/修改投资人可用状态
 
   /* 充值与订单管理 */
   RECHARGE_ORDER_QUERY:                       3000,         // 充值与订单管理/订单信息管理/查看
