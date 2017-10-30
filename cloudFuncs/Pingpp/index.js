@@ -556,46 +556,45 @@ async function createTransfer(request) {
     if (0 != errcode) {
       throw new AV.Cloud.Error('cann\'t refund', {code: errcode})
     }
-    try {
-      await updateWalletProcess(toUser, WALLET_PROCESS_TYPE.REFUND_PROCESS)
-    } catch (e) {
-      throw e
-    }
   } else if(dealType === DEAL_TYPE_WITHDRAW) {
     description = "账户提现"
     errcode = await profitFunc.isWithdrawAllowed(toUser, originalAmount)
     if (0 != errcode) {
       throw new AV.Cloud.Error('cann\'t withdraw', {code: errcode})
     }
-    try {
-      await profitFunc.updateAdminProfitProcess(toUser, profitFunc.PROCESS_TYPE.WITHDRAW_PROCESS)
-    } catch (e) {
-      throw e
-    }
   }
-  return await new Promise((resolve, reject) => {
-    pingpp.transfers.create({
-      order_no: order_no,
-      app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
-      channel: "wx_pub",
-      amount: amount,
-      currency: "cny",
-      type: "b2c",
-      recipient: openid, //微信openId
-      extra: {
-        // user_name: username,
-        // force_check: true,
-      },
-      description: description ,
-      metadata: metadata,
-    }, function (err, transfer) {
-      if (err != null ) {
-        console.log('pingpp.transfers.create', err)
-        throw new AV.Cloud.Error('request transfer error' + err.message, {code: errno.ERROR_CREATE_TRANSFER})
-      }
-      resolve(transfer)
+  try {
+    let transfer = await Promise((resolve, reject) => {
+      pingpp.transfers.create({
+        order_no: order_no,
+        app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
+        channel: "wx_pub",
+        amount: amount,
+        currency: "cny",
+        type: "b2c",
+        recipient: openid, //微信openId
+        extra: {
+          // user_name: username,
+          // force_check: true,
+        },
+        description: description ,
+        metadata: metadata,
+      }, function (err, transfer) {
+        if (err != null ) {
+          reject(new AV.Cloud.Error('request transfer error' + err.message, {code: errno.ERROR_CREATE_TRANSFER}))
+        }
+        resolve(transfer)
+      })
     })
-  })
+    if(dealType === DEAL_TYPE_REFUND) {
+      await updateWalletProcess(toUser, WALLET_PROCESS_TYPE.REFUND_PROCESS)
+    } else if(dealType === DEAL_TYPE_WITHDRAW) {
+      await profitFunc.updateAdminProfitProcess(toUser, profitFunc.PROCESS_TYPE.WITHDRAW_PROCESS)
+    }
+    return transfer
+  } catch (e) {
+    throw e
+  }
 }
 
 async function transferEvent(request) {
