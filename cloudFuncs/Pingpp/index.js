@@ -257,7 +257,6 @@ function updateWalletInfo(conn, deal) {
   return mysqlUtil.query(conn, sql, [userId]).then((queryRes) => {
     if (queryRes.results.length == 1) {
       var currentBalance = mathjs.number(queryRes.results[0].balance)
-      var currentDebt = mathjs.number(queryRes.results[0].debt)
 
       switch (deal.deal_type) {
         case DEAL_TYPE_DEPOSIT:
@@ -265,18 +264,8 @@ function updateWalletInfo(conn, deal) {
           return mysqlUtil.query(conn, sql, [deal.cost, userId])
           break
         case DEAL_TYPE_RECHARGE:
-          if(currentDebt === 0) {
-            sql = "UPDATE `Wallet` SET `balance` = `balance` + ? WHERE `userId` = ?"
-            // return mysqlUtil.query(conn, sql, [deal.cost, userId])
-            return mysqlUtil.query(conn, sql, [mathjs.chain(deal.cost).add(deal.metadata.award).done(), userId])
-          } else if(mathjs.chain(deal.cost).add(deal.metadata.award).subtract(currentDebt).done() > 0) {
-            sql = "UPDATE `Wallet` SET `balance` = `balance` + ?, `debt` = ? WHERE `userId` = ?"
-            // return mysqlUtil.query(conn, sql, [deal.cost - currentDebt, 0, userId])
-            return mysqlUtil.query(conn, sql, [mathjs.chain(deal.cost).add(deal.metadata.award).subtract(currentDebt).done(), 0, userId])
-          } else {
-            sql = "UPDATE `Wallet` SET `balance` = ?, `debt` = `debt` - ? WHERE `userId` = ?"
-            return mysqlUtil.query(conn, sql, [0, mathjs.chain(currentDebt).subtract(deal.cost).subtract(deal.metadata.award).done(), userId])
-          }
+          sql = "UPDATE `Wallet` SET `balance` = `balance` + ? WHERE `userId` = ?"
+          return mysqlUtil.query(conn, sql, [mathjs.chain(deal.cost).add(deal.metadata.award).done(), userId])
           break
         case DEAL_TYPE_WITHDRAW:
           sql = "UPDATE `Wallet` SET `balance` = `balance` - ? WHERE `userId` = ?"
