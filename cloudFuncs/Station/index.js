@@ -7,6 +7,7 @@ import AV from 'leanengine'
 import * as errno from '../errno'
 import * as authFuncs from '../Auth'
 import {ROLE_CODE, PERMISSION_CODE} from '../../rolePermission'
+import moment from 'moment'
 
 const profitShareType = {
   PROFIT_SHARE_INVESTOR: 'investor',
@@ -1149,6 +1150,61 @@ function stationFuncTest(request, response) {
   response.success(partnerHaveStation(userId))
 }
 
+/**
+ * 统计处于运营状态的服务点数量
+ * @returns {*|Promise|Promise<T>}
+ */
+async function statStationCount() {
+  let query = new AV.Query('Station')
+  query.equalTo('status', 1)
+  return await query.count()
+}
+
+/**
+ * 统计在某段时期内新增的服务点数量
+ * @param startDate
+ * @param endDate
+ * @returns {*|Promise|Promise<T>}
+ */
+async function statStationByDate(startDate, endDate) {
+  let beginQuery = new AV.Query('Station')
+  beginQuery.greaterThanOrEqualTo('createdAt', new Date(startDate))
+
+  let endQuery = new AV.Query('Station')
+  endQuery.lessThanOrEqualTo('createdAt', new Date(endDate))
+
+  let query = AV.Query.and(beginQuery, endQuery)
+  query.equalTo('status', 1)
+  return await query.count()
+}
+
+/**
+ * 统计每日、每月、每年新增服务点数量
+ * @param request
+ * @returns {{deviceCount: (*|Promise|Promise.<T>), lastDayDeviceCount: (*|Promise|Promise.<T>), lastMonthDeviceCount: (*|Promise|Promise.<T>), lastYearDeviceCount: (*|Promise|Promise.<T>)}}
+ */
+async function statStation(request) {
+  let endDate = moment().format('YYYY-MM-DD')
+
+  let startDate = moment().subtract(1, 'days').format('YYYY-MM-DD')
+  let lastDayStationCount = await statStationByDate(startDate, endDate)
+
+  startDate = moment().subtract(1, 'months').format('YYYY-MM-DD')
+  let lastMonthStationCount = await statStationByDate(startDate, endDate)
+
+  startDate = moment().subtract(1, 'years').format('YYYY-MM-DD')
+  let lastYearStationCount = await statStationByDate(startDate, endDate)
+
+  let stationCount = await statStationCount()
+
+  return {
+    stationCount,
+    lastDayStationCount,
+    lastMonthStationCount,
+    lastYearStationCount,
+  }
+}
+
 var stationFunc = {
   constructStationInfo: constructStationInfo,
   constructProfitSharing: constructProfitSharing,
@@ -1178,6 +1234,7 @@ var stationFunc = {
   investorHaveStation,
   partnerHaveStation,
   adminHaveStation,
+  statStation,
 }
 
 module.exports = stationFunc

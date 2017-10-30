@@ -79,6 +79,7 @@ AV.Cloud.define('stationPartnerHaveStation', stationFunc.partnerHaveStation)
 
 AV.Cloud.define('userFuncTest', stationFunc.userFuncTest)
 AV.Cloud.define('stationFetchProfitSharebyUser', stationFunc.reqFetchProfitSharebyUser)
+AV.Cloud.define('stationFetchStationStat', stationFunc.statStation)
 
 //营销活动
 AV.Cloud.define('activityIncrActivityPageView', activityFunc.incrActivityPageView)
