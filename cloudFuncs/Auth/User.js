@@ -1,9 +1,7 @@
 import AV from 'leanengine';
 import * as errno from '../errno';
 import {constructUserInfo, constructRoleInfo, constructPermissionInfo, constructMpAuthData} from './index';
-import authFunc from './index'
-import utilFunc from '../Util'
-import mpAuthFuncs from '../../mpFuncs/Auth'
+import moment from 'moment'
 
 // --- enum
 
@@ -529,6 +527,57 @@ async function authListOpenIds(params) {
   };
 }
 
+/**
+ * 统计微信端用户人数
+ * @param request
+ * @returns {Promise<T>|*|Promise}
+ */
+async function authStatMpUserCount(request) {
+  let query = new AV.Query('_User')
+  query.notEqualTo('type', AUTH_USER_TYPE.ADMIN)
+  return await query.count()
+}
+
+/**
+ * 统计某段时间内新注册的微信端用户数
+ * @param startDate
+ * @param endDate
+ */
+async function authStatMpUserCountByDate(startDate, endDate) {
+  let beginQuery = new AV.Query('_User')
+  beginQuery.greaterThanOrEqualTo('createdAt', new Date(startDate))
+
+  let endQuery = new AV.Query('_User')
+  endQuery.lessThanOrEqualTo('createdAt', new Date(endDate))
+
+  let query = AV.Query.and(beginQuery, endQuery)
+  query.notEqualTo('type', AUTH_USER_TYPE.ADMIN)
+  return await query.count()
+}
+
+/**
+ * 统计每日、每月、每年新增用户数
+ * @param request
+ */
+async function authStatMpNewUser(request) {
+  let endDate = moment().format('YYYY-MM-DD')
+
+  let startDate = moment().subtract(1, 'days').format('YYYY-MM-DD')
+  let lastDayCount = await authStatMpUserCountByDate(startDate, endDate)
+
+  startDate = moment().subtract(1, 'months').format('YYYY-MM-DD')
+  let lastMonthCount = await authStatMpUserCountByDate(startDate, endDate)
+
+  startDate = moment().subtract(1, 'years').format('YYYY-MM-DD')
+  let lastYearCount = await authStatMpUserCountByDate(startDate, endDate)
+
+  return {
+    lastDayCount,
+    lastMonthCount,
+    lastYearCount,
+  }
+}
+
 const authApi = {
   AUTH_USER_TYPE,
   AUTH_USER_STATUS,
@@ -545,6 +594,8 @@ const authApi = {
   authFetchUserByOpenId,
   authListOpenIds,
   authListOpenIdsTest,
+  authStatMpUserCount,
+  authStatMpNewUser,
 };
 
 module.exports = authApi;
