@@ -185,7 +185,7 @@ async function  orderPayment(request) {
     }
   }
   let orderInfo = await updateOrderStatus(orderId, ORDER_STATUS_PAID, Number(amount))
-  mpMsgFuncs.sendOrderPaymentTmpMsg(walletInfo.openid, Number(amount), orderInfo.id)
+  mpMsgFuncs.sendOrderPaymentTmpMsg(walletInfo.openid, Number(amount), orderInfo.id, orderInfo.device.deviceAddr)
 
   let updateUserScore = require('../Score').updateUserScore
   let SCORE_OP_TYPE_SERVICE = require('../Score').SCORE_OP_TYPE_SERVICE
