@@ -532,7 +532,7 @@ async function authListOpenIds(params) {
  * @param request
  * @returns {Promise<T>|*|Promise}
  */
-async function authStatMpUserCount(request) {
+async function authMpUserCount() {
   let query = new AV.Query('_User')
   query.notEqualTo('type', AUTH_USER_TYPE.ADMIN)
   return await query.count()
@@ -559,22 +559,25 @@ async function authStatMpUserCountByDate(startDate, endDate) {
  * 统计每日、每月、每年新增用户数
  * @param request
  */
-async function authStatMpNewUser(request) {
+async function authStatMpUser(request) {
   let endDate = moment().format('YYYY-MM-DD')
 
   let startDate = moment().subtract(1, 'days').format('YYYY-MM-DD')
-  let lastDayCount = await authStatMpUserCountByDate(startDate, endDate)
+  let lastDayMpCount = await authStatMpUserCountByDate(startDate, endDate)
 
   startDate = moment().subtract(1, 'months').format('YYYY-MM-DD')
-  let lastMonthCount = await authStatMpUserCountByDate(startDate, endDate)
+  let lastMonthMpCount = await authStatMpUserCountByDate(startDate, endDate)
 
   startDate = moment().subtract(1, 'years').format('YYYY-MM-DD')
-  let lastYearCount = await authStatMpUserCountByDate(startDate, endDate)
+  let lastYearMpCount = await authStatMpUserCountByDate(startDate, endDate)
+
+  let mpUserCount = await authMpUserCount()
 
   return {
-    lastDayCount,
-    lastMonthCount,
-    lastYearCount,
+    mpUserCount,
+    lastDayMpCount,
+    lastMonthMpCount,
+    lastYearMpCount,
   }
 }
 
@@ -594,8 +597,7 @@ const authApi = {
   authFetchUserByOpenId,
   authListOpenIds,
   authListOpenIdsTest,
-  authStatMpUserCount,
-  authStatMpNewUser,
+  authStatMpUser,
 };
 
 module.exports = authApi;

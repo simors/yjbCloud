@@ -40,8 +40,7 @@ AV.Cloud.define('authUpdateUser', userFunc.authUpdateUser);
 AV.Cloud.define('authListOpenIdsTest', userFunc.authListOpenIdsTest);
 AV.Cloud.define('authFetchUserByPhone', userFunc.reqFetchUserByPhone);
 
-AV.Cloud.define('authStatMpUser', userFunc.authStatMpUserCount);
-AV.Cloud.define('authStatMpNewUser', userFunc.authStatMpNewUser);
+AV.Cloud.define('authStatMpUser', userFunc.authStatMpUser);
 
 //消息推送
 AV.Cloud.define('sendSystemNotification', notificationFunc.sendSystemNotification);
