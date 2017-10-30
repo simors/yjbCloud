@@ -269,7 +269,7 @@ function updateWalletInfo(conn, deal) {
             sql = "UPDATE `Wallet` SET `balance` = `balance` + ? WHERE `userId` = ?"
             // return mysqlUtil.query(conn, sql, [deal.cost, userId])
             return mysqlUtil.query(conn, sql, [mathjs.chain(deal.cost).add(deal.metadata.award).done(), userId])
-          } else if(mathjs(deal.cost).add(deal.metadata.award).subtract(currentDebt).done() > 0) {
+          } else if(mathjs.chain(deal.cost).add(deal.metadata.award).subtract(currentDebt).done() > 0) {
             sql = "UPDATE `Wallet` SET `balance` = `balance` + ?, `debt` = ? WHERE `userId` = ?"
             // return mysqlUtil.query(conn, sql, [deal.cost - currentDebt, 0, userId])
             return mysqlUtil.query(conn, sql, [mathjs.chain(deal.cost).add(deal.metadata.award).subtract(currentDebt).done(), 0, userId])
