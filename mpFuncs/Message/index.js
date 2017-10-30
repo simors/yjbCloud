@@ -18,7 +18,7 @@ import moment from 'moment'
  */
 function sendRechargeTmpMsg(openid, amount, balance, score, payTime, type) {
   var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_RECHARGE
-  var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine/wallet'
+  var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine'
   var title = ""
   if(type === PingppFunc.DEAL_TYPE_RECHARGE) {
     title = "尊敬的衣家宝用户，您已充值成功\n"
@@ -73,7 +73,7 @@ function sendRechargeTmpMsg(openid, amount, balance, score, payTime, type) {
  */
 function sendOrderPaymentTmpMsg(openid, amount, orderId, deviceAddr) {
   var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_PAYMENT
-  var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine/orders/:' + orderId
+  var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine'
 
   var data = {
     "first": {
@@ -114,7 +114,7 @@ function sendOrderPaymentTmpMsg(openid, amount, orderId, deviceAddr) {
  */
 function sendTurnOnTmpMsg(openid ) {
   var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_TURNON
-  var url = ""
+  var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine'
 
   var data = {
     "first": {
@@ -160,7 +160,7 @@ function sendTurnOnTmpMsg(openid ) {
  */
 function sendFinishTmpMsg(openid, orderId, orderNo, amount, deviceAddr) {
   var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_FINISH
-  var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine/orders/:' + orderId
+  var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine'
 
   var data = {
     "first": {
@@ -207,7 +207,7 @@ function sendFinishTmpMsg(openid, orderId, orderNo, amount, deviceAddr) {
  */
 function sendDeviceFaultTmpMsg(openid, deviceNo, deviceAddr, time, reason) {
   var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_FAULT
-  var url = ""
+  var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine'
 
   var data = {
     "first": {
