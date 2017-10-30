@@ -69,9 +69,8 @@ function sendRechargeTmpMsg(openid, amount, balance, score, payTime, type) {
  * @param {String} openid 用户openid
  * @param {Number} amount 扣款金额
  * @param {String} orderId 订单ObjectId
- * @param {String} deviceAddr 订单设备地址
  */
-function sendOrderPaymentTmpMsg(openid, amount, orderId, addr) {
+function sendOrderPaymentTmpMsg(openid, amount, orderId) {
   var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_PAYMENT
   var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine/orders/:' + orderId
 
