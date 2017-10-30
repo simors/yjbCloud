@@ -341,6 +341,13 @@ function createPayment(request, response) {
   var openid = request.params.openid
   var subject = request.params.subject
 
+  if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_DEV_APP_ID) {
+    amount = mathjs.chain(amount).multiply(0.01).done()
+  } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_STAGE_APP_ID) {
+    amount = mathjs.chain(amount).multiply(0.01).done()
+  } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_PRO_APP_ID) {
+  }
+
   pingpp.setPrivateKeyPath(__dirname + "/rsa_private_key.pem");
   pingpp.charges.create({
     order_no: order_no,// 推荐使用 8-20 位，要求数字或字母，不允许其他字符
