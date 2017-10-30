@@ -581,6 +581,7 @@ async function createTransfer(request) {
         metadata: metadata,
       }, function (err, transfer) {
         if (err != null ) {
+          console.error(err)
           reject(new AV.Cloud.Error('request transfer error' + err.message, {code: errno.ERROR_CREATE_TRANSFER}))
         }
         resolve(transfer)
