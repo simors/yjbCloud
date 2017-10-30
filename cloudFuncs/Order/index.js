@@ -168,9 +168,9 @@ async function  orderPayment(request) {
     await mysqlUtil.beginTransaction(mysqlConn)
     let deal = {
       to: 'platform',
-      from: userId,
+      from: currentUser.id,
       cost: Number(amount),
-      deal_type: PingppFunc.DEAL_TYPE_SERVICE,
+      deal_type: PingppFunc.DEAL_TYPE_ORDER_PAY,
     }
     await PingppFunc.updateWalletInfo(mysqlConn, deal)
     await mysqlUtil.commit(mysqlConn)
@@ -184,12 +184,12 @@ async function  orderPayment(request) {
       await mysqlUtil.release(mysqlConn)
     }
   }
-  let orderInfo = await updateOrderStatus(orderId, ORDER_STATUS_PAID, endTime, Number(amount))
-  mpMsgFuncs.sendOrderPaymentTmpMsg(walletInfo.openid, Number(amount), orderInfo.id, orderInfo.deviceAddr)
+  let orderInfo = await updateOrderStatus(orderId, ORDER_STATUS_PAID, Number(amount))
+  mpMsgFuncs.sendOrderPaymentTmpMsg(walletInfo.openid, Number(amount), orderInfo.id, orderInfo.device.deviceAddr)
 
   let updateUserScore = require('../Score').updateUserScore
   let SCORE_OP_TYPE_SERVICE = require('../Score').SCORE_OP_TYPE_SERVICE
-  updateUserScore(userId, SCORE_OP_TYPE_SERVICE, {})
+  updateUserScore(currentUser.id, SCORE_OP_TYPE_SERVICE, {})
   return orderInfo
 }
 
