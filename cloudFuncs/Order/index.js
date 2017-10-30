@@ -184,7 +184,7 @@ async function  orderPayment(request) {
       await mysqlUtil.release(mysqlConn)
     }
   }
-  let orderInfo = await updateOrderStatus(orderId, ORDER_STATUS_PAID, endTime, Number(amount))
+  let orderInfo = await updateOrderStatus(orderId, ORDER_STATUS_PAID, Number(amount))
   mpMsgFuncs.sendOrderPaymentTmpMsg(walletInfo.openid, Number(amount), orderInfo.id, orderInfo.deviceAddr)
 
   let updateUserScore = require('../Score').updateUserScore
