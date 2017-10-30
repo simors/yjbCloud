@@ -602,7 +602,7 @@ async function createTransfer(request) {
     } else if(dealType === DEAL_TYPE_WITHDRAW) {
       await profitFunc.updateAdminProfitProcess(toUser, profitFunc.PROCESS_TYPE.WITHDRAW_PROCESS)
     }
-    return transfer
+    return await getWalletInfo(toUser)
   } catch (e) {
     throw e
   }
