@@ -54,6 +54,7 @@ AV.Cloud.define('deviceFetchDevices', deviceFunc.fetchDevices)
 AV.Cloud.define('deviceChangeDeviceStatus', deviceFunc.changeDeviceStatus)
 AV.Cloud.define('deviceAssociateWithStation', deviceFunc.associateWithStation)
 AV.Cloud.define('deviceUpdateDevice', deviceFunc.updateDevice)
+AV.Cloud.define('deviceStatDevice', deviceFunc.statDevice)
 
 //服务网点
 AV.Cloud.define('stationCreateStation', stationFunc.createStation)

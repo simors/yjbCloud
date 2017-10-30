@@ -8,6 +8,7 @@ import * as errno from '../errno'
 import PingppFunc from '../Pingpp'
 import orderFunc from '../Order'
 import stationFunc from '../Station'
+import moment from 'moment'
 
 //设备状态
 const DEVICE_STATUS_IDLE = 0          //空闲
@@ -419,6 +420,61 @@ function deviceFuncTest(request, response) {
   response.success(getDevices(stationId))
 }
 
+/**
+ * 统计已与服务点绑定的设备数量
+ * @returns {*|Promise|Promise<T>}
+ */
+async function statDeviceCount() {
+  let query = new AV.Query('Device')
+  query.notEqualTo('status', DEVICE_STATUS_UNREGISTER)
+  return await query.count()
+}
+
+/**
+ * 统计某段时间内与服务点绑定的设备数量
+ * @param startDate
+ * @param endDate
+ * @returns {*|Promise|Promise<T>}
+ */
+async function statDeviceCountByDate(startDate, endDate) {
+  let beginQuery = new AV.Query('Device')
+  beginQuery.greaterThanOrEqualTo('createdAt', new Date(startDate))
+
+  let endQuery = new AV.Query('Device')
+  endQuery.lessThanOrEqualTo('createdAt', new Date(endDate))
+
+  let query = AV.Query.and(beginQuery, endQuery)
+  query.notEqualTo('status', DEVICE_STATUS_UNREGISTER)
+  return await query.count()
+}
+
+/**
+ * 统计每日、每月、每年新增设备数
+ * @param request
+ * @returns {{deviceCount: (*|Promise|Promise.<T>), lastDayDeviceCount: (*|Promise|Promise.<T>), lastMonthDeviceCount: (*|Promise|Promise.<T>), lastYearDeviceCount: (*|Promise|Promise.<T>)}}
+ */
+async function statDevice(request) {
+  let endDate = moment().format('YYYY-MM-DD')
+
+  let startDate = moment().subtract(1, 'days').format('YYYY-MM-DD')
+  let lastDayDeviceCount = await statDeviceCountByDate(startDate, endDate)
+
+  startDate = moment().subtract(1, 'months').format('YYYY-MM-DD')
+  let lastMonthDeviceCount = await statDeviceCountByDate(startDate, endDate)
+
+  startDate = moment().subtract(1, 'years').format('YYYY-MM-DD')
+  let lastYearDeviceCount = await statDeviceCountByDate(startDate, endDate)
+
+  let deviceCount = await statDeviceCount()
+
+  return {
+    deviceCount,
+    lastDayDeviceCount,
+    lastMonthDeviceCount,
+    lastYearDeviceCount,
+  }
+}
+
 var deviceFunc = {
   constructDeviceInfo: constructDeviceInfo,
   DEVICE_STATUS_IDLE: DEVICE_STATUS_IDLE,
@@ -440,6 +496,7 @@ var deviceFunc = {
   getDevices: getDevices,
   turnOnDeviceCheck: turnOnDeviceCheck,
   deviceFuncTest: deviceFuncTest,
+  statDevice,
 }
 
 module.exports = deviceFunc
