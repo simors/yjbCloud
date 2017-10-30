@@ -168,7 +168,7 @@ async function  orderPayment(request) {
     await mysqlUtil.beginTransaction(mysqlConn)
     let deal = {
       to: 'platform',
-      from: userId,
+      from: currentUser.id,
       cost: Number(amount),
       deal_type: PingppFunc.DEAL_TYPE_ORDER_PAY,
     }
@@ -189,7 +189,7 @@ async function  orderPayment(request) {
 
   let updateUserScore = require('../Score').updateUserScore
   let SCORE_OP_TYPE_SERVICE = require('../Score').SCORE_OP_TYPE_SERVICE
-  updateUserScore(userId, SCORE_OP_TYPE_SERVICE, {})
+  updateUserScore(currentUser.id, SCORE_OP_TYPE_SERVICE, {})
   return orderInfo
 }
 
