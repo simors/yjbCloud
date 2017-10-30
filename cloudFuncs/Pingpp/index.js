@@ -573,30 +573,29 @@ async function createTransfer(request) {
       throw e
     }
   }
-
-  let retTransfer = undefined
-  pingpp.transfers.create({
-    order_no: order_no,
-    app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
-    channel: "wx_pub",
-    amount: amount,
-    currency: "cny",
-    type: "b2c",
-    recipient: openid, //微信openId
-    extra: {
-      // user_name: username,
-      // force_check: true,
-    },
-    description: description ,
-    metadata: metadata,
-  }, function (err, transfer) {
-    if (err != null ) {
-      console.log('pingpp.transfers.create', err)
-      throw new AV.Cloud.Error('request transfer error' + err.message, {code: errno.ERROR_CREATE_TRANSFER})
-    }
-    retTransfer = transfer
+  return await new Promise((resolve, reject) => {
+    pingpp.transfers.create({
+      order_no: order_no,
+      app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
+      channel: "wx_pub",
+      amount: amount,
+      currency: "cny",
+      type: "b2c",
+      recipient: openid, //微信openId
+      extra: {
+        // user_name: username,
+        // force_check: true,
+      },
+      description: description ,
+      metadata: metadata,
+    }, function (err, transfer) {
+      if (err != null ) {
+        console.log('pingpp.transfers.create', err)
+        throw new AV.Cloud.Error('request transfer error' + err.message, {code: errno.ERROR_CREATE_TRANSFER})
+      }
+      resolve(transfer)
+    })
   })
-  return retTransfer
 }
 
 async function transferEvent(request) {

@@ -58,6 +58,7 @@ function connectEvent(conn) {
             namespace.to(socketId).emit(PROMOTION_RESPONSE, {errorCode: 0, amount: amount})
             ch.ack(msg)
           }).catch((error) => {
+            namespace.to(socketId).emit(PROMOTION_RESPONSE, {errorCode: error.code})
             console.log("处理活动请求失败", error)
           })
         }
