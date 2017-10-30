@@ -21,6 +21,7 @@ const DEAL_TYPE_SERVICE = 3                // 服务消费
 const DEAL_TYPE_REFUND = 4                 // 押金退款
 const DEAL_TYPE_WITHDRAW = 5               // 提现
 const DEAL_TYPE_SYS_PRESENT = 6            // 系统赠送
+const DEAL_TYPE_ORDER_PAY = 7              // 订单支付
 
 const WALLET_PROCESS_TYPE = {
   NORMAL_PROCESS: 0,    // 正常状态
@@ -232,6 +233,7 @@ function updateWalletInfo(conn, deal) {
   switch (deal.deal_type) {
     case DEAL_TYPE_DEPOSIT:
     case DEAL_TYPE_RECHARGE:
+    case DEAL_TYPE_ORDER_PAY:
     case DEAL_TYPE_SERVICE:
       userId = deal.from
       break
@@ -271,14 +273,16 @@ function updateWalletInfo(conn, deal) {
           sql = "UPDATE `Wallet` SET `balance` = `balance` - ? WHERE `userId` = ?"
           return mysqlUtil.query(conn, sql, [deal.cost, userId])
           break
-        case DEAL_TYPE_SERVICE:
-          if(currentBalance > deal.cost) {
-            sql = "UPDATE `Wallet` SET `balance` = `balance` - ? WHERE `userId` = ?"
-            return mysqlUtil.query(conn, sql, [deal.cost, userId])
-          } else {
-            sql = "UPDATE `Wallet` SET  `debt` = ? WHERE `userId` = ?"
-            return mysqlUtil.query(conn, sql, [deal.cost, userId])
+        case DEAL_TYPE_ORDER_PAY:
+          if(currentBalance < deal.cost) {
+            throw new AV.Cloud.Error('用户余额不足', {code: errno.ERROR_NO_ENOUGH_BALANCE})
           }
+          sql = "UPDATE `Wallet` SET `balance` = `balance` - ?, `debt` = ? WHERE `userId` = ?"
+          return mysqlUtil.query(conn, sql, [deal.cost, 0, userId])
+          break
+        case DEAL_TYPE_SERVICE:
+          sql = "UPDATE `Wallet` SET  `debt` = `debt` + ? WHERE `userId` = ?"
+          return mysqlUtil.query(conn, sql, [deal.cost, userId])
           break
         case DEAL_TYPE_REFUND:
           sql = "UPDATE `Wallet` SET `deposit` = `deposit` - ? WHERE `userId` = ?"
@@ -308,8 +312,9 @@ function updateWalletInfo(conn, deal) {
           break
         case DEAL_TYPE_WITHDRAW:
         case DEAL_TYPE_REFUND:
+        case DEAL_TYPE_ORDER_PAY:
         default:
-          return Promise.resolve()
+          throw new AV.Cloud.Error('钱包信息有误', {code: errno.ERROR_NO_WALLET})
           break
       }
       sql = "INSERT INTO `Wallet` (`userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `process`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
@@ -800,6 +805,7 @@ var PingppFunc = {
   DEAL_TYPE_SERVICE: DEAL_TYPE_SERVICE,
   DEAL_TYPE_REFUND: DEAL_TYPE_REFUND,
   DEAL_TYPE_WITHDRAW: DEAL_TYPE_WITHDRAW,
+  DEAL_TYPE_ORDER_PAY: DEAL_TYPE_ORDER_PAY,
   createPayment: createPayment,
   paymentEvent: paymentEvent,
   createTransfer: createTransfer,
