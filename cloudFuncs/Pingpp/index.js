@@ -564,7 +564,7 @@ async function createTransfer(request) {
     }
   }
   try {
-    let transfer = await Promise((resolve, reject) => {
+    let transfer = await new Promise((resolve, reject) => {
       pingpp.transfers.create({
         order_no: order_no,
         app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
