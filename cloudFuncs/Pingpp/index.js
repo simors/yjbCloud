@@ -548,9 +548,9 @@ async function createTransfer(request) {
   let toUser = metadata.toUser
 
   if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_DEV_APP_ID) {
-    amount = mathjs.chain(amount).multiply(0.01).done()
+    amount = mathjs.chain(amount).multiply(0.1).done()
   } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_STAGE_APP_ID) {
-    amount = mathjs.chain(amount).multiply(0.01).done()
+    amount = mathjs.chain(amount).multiply(0.1).done()
   } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_PRO_APP_ID) {
   }
 
@@ -616,9 +616,9 @@ async function transferEvent(request) {
   var dealType = transfer.metadata.dealType
 
   if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_DEV_APP_ID) {
-    amount = mathjs.chain(amount).multiply(100).done()
+    amount = mathjs.chain(amount).multiply(10).done()
   } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_STAGE_APP_ID) {
-    amount = mathjs.chain(amount).multiply(100).done()
+    amount = mathjs.chain(amount).multiply(10).done()
   } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_PRO_APP_ID) {
   }
 
