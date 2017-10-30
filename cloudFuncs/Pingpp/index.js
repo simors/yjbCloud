@@ -115,8 +115,9 @@ function getWalletInfo(userId) {
       walletInfo.user_name = queryRes.results[0].user_name || ""
       walletInfo.process = queryRes.results[0].process || WALLET_PROCESS_TYPE.NORMAL_PROCESS
       return walletInfo
+    } else {
+      return createUserWallet(userId)
     }
-    return undefined
   }).catch((error) => {
     console.log('getWalletInfo', error)
     throw error
@@ -139,7 +140,15 @@ async function createUserWallet(userId) {
     if(queryRes.results.length === 0) {
       sql = "INSERT INTO `Wallet` (`userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `process`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
       await mysqlUtil.query(mysqlConn, sql, [userId, 0, 0, '', '', '', 0, WALLET_PROCESS_TYPE.NORMAL_PROCESS])
-      return true
+      return {
+        userId: userId,
+        balance: 0,
+        deposit: 0,
+        openid: '',
+        debt: 0,
+        user_name: '',
+        process: WALLET_PROCESS_TYPE.NORMAL_PROCESS,
+      }
     } else {
       throw new AV.Cloud.Error('用户钱包信息已存在', {code: errno.EEXIST})
     }
