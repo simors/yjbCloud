@@ -7,6 +7,7 @@ var mpQrcodeFuncs = require('../../mpFuncs/Qrcode')
 import * as errno from '../errno'
 import PingppFunc from '../Pingpp'
 import orderFunc from '../Order'
+import stationFunc from '../Station'
 
 //设备状态
 const DEVICE_STATUS_IDLE = 0          //空闲
@@ -183,6 +184,7 @@ async function associateWithStation(request, response) {
     device.set('status', DEVICE_STATUS_MAINTAIN)
     return device.save()
   }).then((device) => {
+    stationFunc.changeDeviceNum(stationId, 'add')
     return query.get(device.id)
   }).then((device) => {
     response.success(constructDeviceInfo(device, true))
@@ -344,17 +346,28 @@ function updateDevice(request, response) {
   let stationId = request.params.stationId
   let deviceAddr = request.params.deviceAddr
   let status = Number(request.params.status)
+  let currentStationId = undefined
 
   let station = AV.Object.createWithoutData('Station', stationId)
   var query = new AV.Query('Device')
   query.include('station')
   query.equalTo('deviceNo', deviceNo)
   query.first().then((device) => {
-    device.set('station', station)
+    currentStationId = device.attributes.stationId
+    if(!currentStationId) {
+      throw new AV.Cloud.Error('服务点信息有误', {code: errno.ERROR_STATION})
+    }
+    if(currentStationId != stationId) {
+      device.set('station', station)
+    }
     device.set('deviceAddr', deviceAddr)
     device.set('status', status)
     return device.save()
   }).then((device) => {
+    if(currentStationId != stationId) {
+      stationFunc.changeDeviceNum(currentStationId, 'sub')
+      stationFunc.changeDeviceNum(stationId, 'add')
+    }
     return query.get(device.id)
   }).then((device) => {
     response.success(constructDeviceInfo(device, true))

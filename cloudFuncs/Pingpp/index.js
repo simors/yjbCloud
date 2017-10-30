@@ -115,8 +115,9 @@ function getWalletInfo(userId) {
       walletInfo.user_name = queryRes.results[0].user_name || ""
       walletInfo.process = queryRes.results[0].process || WALLET_PROCESS_TYPE.NORMAL_PROCESS
       return walletInfo
+    } else {
+      return createUserWallet(userId)
     }
-    return undefined
   }).catch((error) => {
     console.log('getWalletInfo', error)
     throw error
@@ -139,7 +140,15 @@ async function createUserWallet(userId) {
     if(queryRes.results.length === 0) {
       sql = "INSERT INTO `Wallet` (`userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `process`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
       await mysqlUtil.query(mysqlConn, sql, [userId, 0, 0, '', '', '', 0, WALLET_PROCESS_TYPE.NORMAL_PROCESS])
-      return true
+      return {
+        userId: userId,
+        balance: 0,
+        deposit: 0,
+        openid: '',
+        debt: 0,
+        user_name: '',
+        process: WALLET_PROCESS_TYPE.NORMAL_PROCESS,
+      }
     } else {
       throw new AV.Cloud.Error('用户钱包信息已存在', {code: errno.EEXIST})
     }
@@ -331,6 +340,13 @@ function createPayment(request, response) {
   var metadata = request.params.metadata
   var openid = request.params.openid
   var subject = request.params.subject
+
+  if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_DEV_APP_ID) {
+    amount = mathjs.chain(amount).multiply(0.01).done()
+  } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_STAGE_APP_ID) {
+    amount = mathjs.chain(amount).multiply(0.01).done()
+  } else if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_PRO_APP_ID) {
+  }
 
   pingpp.setPrivateKeyPath(__dirname + "/rsa_private_key.pem");
   pingpp.charges.create({
@@ -556,47 +572,46 @@ async function createTransfer(request) {
     if (0 != errcode) {
       throw new AV.Cloud.Error('cann\'t refund', {code: errcode})
     }
-    try {
-      await updateWalletProcess(toUser, WALLET_PROCESS_TYPE.REFUND_PROCESS)
-    } catch (e) {
-      throw e
-    }
   } else if(dealType === DEAL_TYPE_WITHDRAW) {
     description = "账户提现"
     errcode = await profitFunc.isWithdrawAllowed(toUser, originalAmount)
     if (0 != errcode) {
       throw new AV.Cloud.Error('cann\'t withdraw', {code: errcode})
     }
-    try {
-      await profitFunc.updateAdminProfitProcess(toUser, profitFunc.PROCESS_TYPE.WITHDRAW_PROCESS)
-    } catch (e) {
-      throw e
-    }
   }
-
-  let retTransfer = undefined
-  pingpp.transfers.create({
-    order_no: order_no,
-    app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
-    channel: "wx_pub",
-    amount: amount,
-    currency: "cny",
-    type: "b2c",
-    recipient: openid, //微信openId
-    extra: {
-      // user_name: username,
-      // force_check: true,
-    },
-    description: description ,
-    metadata: metadata,
-  }, function (err, transfer) {
-    if (err != null ) {
-      console.log('pingpp.transfers.create', err)
-      throw new AV.Cloud.Error('request transfer error' + err.message, {code: errno.ERROR_CREATE_TRANSFER})
+  try {
+    let transfer = await new Promise((resolve, reject) => {
+      pingpp.transfers.create({
+        order_no: order_no,
+        app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
+        channel: "wx_pub",
+        amount: amount,
+        currency: "cny",
+        type: "b2c",
+        recipient: openid, //微信openId
+        extra: {
+          // user_name: username,
+          // force_check: true,
+        },
+        description: description ,
+        metadata: metadata,
+      }, function (err, transfer) {
+        if (err != null ) {
+          console.error(err)
+          reject(new AV.Cloud.Error('request transfer error' + err.message, {code: errno.ERROR_CREATE_TRANSFER}))
+        }
+        resolve(transfer)
+      })
+    })
+    if(dealType === DEAL_TYPE_REFUND) {
+      await updateWalletProcess(toUser, WALLET_PROCESS_TYPE.REFUND_PROCESS)
+    } else if(dealType === DEAL_TYPE_WITHDRAW) {
+      await profitFunc.updateAdminProfitProcess(toUser, profitFunc.PROCESS_TYPE.WITHDRAW_PROCESS)
     }
-    retTransfer = transfer
-  })
-  return retTransfer
+    return transfer
+  } catch (e) {
+    throw e
+  }
 }
 
 async function transferEvent(request) {

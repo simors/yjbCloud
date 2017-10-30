@@ -153,7 +153,8 @@ export const ERROR_NO_ENOUGH_BALANCE        = (ERROR_BASE_AUTH - 3)         /* �
 
 /* Device */
 export const ERROR_INVALID_STATUS           = (ERROR_BASE_DEVICE - 1)       /* 设备状态有误 */
-export const ERROR_TURNON_FAILED            = (ERROR_BASE_DEVICE - 1)       /* 设备开机请求失败*/
+export const ERROR_TURNON_FAILED            = (ERROR_BASE_DEVICE - 2)       /* 设备开机请求失败*/
+export const ERROR_STATION                  = (ERROR_BASE_DEVICE - 3)       /* 服务点信息有误 */
 
 /* Order */
 export const ERROR_UNPAID_ORDER             = (ERROR_BASE_ORDER - 1)        /* 未支付订单 */
@@ -173,6 +174,7 @@ export const ERROR_PROM_REGION  = (ERROR_BASE_PROMOTION - 5)       /* 活动范�
 export const ERROR_PROM_INVALID = (ERROR_BASE_PROMOTION - 6)       /* 活动已失效 */
 export const ERROR_PROM_LIMIT   = (ERROR_BASE_PROMOTION - 6)       /* 活动参与次数超限 */
 export const ERROR_PROM_NOSCORE = (ERROR_BASE_PROMOTION - 7)       /* 积分不足 */
+export const ERROT_PROM_LIMIT   = (ERROR_BASE_PROMOTION - 8)       /* 用户参数次数限制 */
 
 /* Deal */
 export const ERROR_UNSUPPORT_CHANNEL        = (ERROR_BASE_DEAL - 1)         /* 不支持的支付渠道 */

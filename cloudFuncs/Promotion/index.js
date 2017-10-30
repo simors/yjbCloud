@@ -656,6 +656,26 @@ async function fetchPromotionRecord(request) {
 }
 
 /**
+ * 获取用户参与活动记录
+ * @param {String} promotionId
+ * @param {String} userId
+ */
+async function getPromotionRecord(promotionId, userId) {
+  if(!userId || promotionId) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let promotion = AV.Object.createWithoutData('Promotion', promotionId)
+  let query = new AV.Query('PromotionRecord')
+  query.equalTo('promotion', promotion)
+  let results = await query.find()
+  let recordList = []
+  results.forEach((record) => {
+    recordList.push(constructPromotionRecordInfo(record, false, false))
+  })
+  return recordList
+}
+
+/**
  * 获取营销活动类型
  * @param {String} promotionId  活动id
  */
@@ -728,6 +748,10 @@ async function checkPromotionRequest(promotionId, userId) {
         throw new AV.Cloud.Error('活动已失效', {code: errno.ERROR_PROM_INVALID})
       }
       //TODO 检测用户参与次数
+      let userRecordlist = await getPromotionRecord(promotionId, userId)
+      if(userRecordlist.length >= awards.userLimit) {
+        throw new AV.Cloud.Error('用户参数次数限制', {code: errno.ERROT_PROM_LIMIT})
+      }
       break
     }
     case PROMOTION_CATEGORY_TYPE_LOTTERY:
