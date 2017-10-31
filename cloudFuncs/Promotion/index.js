@@ -408,9 +408,14 @@ async function getValidPromotionList(request) {
   let results = await query.find()
   let promotionList = []
   if(results.length > 0) {
-    results.forEach((promotion) => {
-      promotionList.push(constructPromotionInfo(promotion, true, true))
-    })
+    for (let promotion of results) {
+      let awards = promotion.attributes.awards
+      let userLimit =awards? awards.userLimit : undefined
+      let records = await getPromotionRecord(promotion.id, currentUser.id)
+      if(!userLimit || records.length < userLimit) {
+        promotionList.push(constructPromotionInfo(promotion, true, true))
+      }
+    }
   }
   return promotionList
 }
@@ -661,7 +666,7 @@ async function fetchPromotionRecord(request) {
  * @param {String} userId
  */
 async function getPromotionRecord(promotionId, userId) {
-  if(!userId || promotionId) {
+  if(!userId || !promotionId) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
   let promotion = AV.Object.createWithoutData('Promotion', promotionId)
@@ -747,7 +752,6 @@ async function checkPromotionRequest(promotionId, userId) {
       if(mathjs.chain(stat.winCount).subtract(awards.count).done() >= 0) {
         throw new AV.Cloud.Error('活动已失效', {code: errno.ERROR_PROM_INVALID})
       }
-      //TODO 检测用户参与次数
       let userRecordlist = await getPromotionRecord(promotionId, userId)
       if(userRecordlist.length >= awards.userLimit) {
         throw new AV.Cloud.Error('用户参数次数限制', {code: errno.ERROT_PROM_LIMIT})
@@ -850,8 +854,9 @@ async function handleRedEnvelopeMessage(promotionId, userId) {
   let promotionAttr = promotion.attributes
   let awards = promotionAttr.awards
   let amount = mathjs.round(mathjs.random(Number(awards.awardMax)), 2)  //随机生成红包金额
-
-  await handleRedEnvelopeDeal(promotionId, userId, amount)
+  if(amount > 0) {
+    await handleRedEnvelopeDeal(promotionId, userId, amount)
+  }
   await updateRedEnvelopePromStat(promotionId, amount)
   await addPromotionRecord(promotionId, userId, {amount: amount})
   return amount
