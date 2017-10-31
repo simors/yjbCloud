@@ -994,11 +994,12 @@ async function getUsersByRoles(roles, lastCreatedAt) {
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
-  query.equalTo('type', 2)
+  query.equalTo('type', 3)
   try {
     let userList = await query.find()
     let users = []
     userList.forEach((item)=> {
+      console.log('item111111',item.id)
       users.push(AuthFuncs.constructUserInfo(item))
     })
     return users
