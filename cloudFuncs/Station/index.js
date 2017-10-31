@@ -145,6 +145,7 @@ function createStation(request, response) {
  */
 
 function fetchStations(request, response) {
+  var currentUser = request.currentUser
   var province = request.params.province
   var city = request.params.city
   var area = request.params.area

@@ -160,7 +160,7 @@ async function createStationAccount(station, dayInfo) {
     let stationInfo = AV.Object.createWithoutData('Station', station.id)
     let Account = AV.Object.extend('StationAccount')
     let account = new Account()
-    cost = mathjs.round(mathjs.chain(station.powerUnitPrice).multiply(powerSum).done(), 2)
+    cost = mathjs.round(mathjs.chain(station.powerUnitPrice).multiply(powerSum).multiply(1/1000).done(), 2)
     profit = mathjs.round(mathjs.chain(amountSum).subtract(cost).done(), 2)
     account.set('incoming', amountSum)
     account.set('station', stationInfo)
