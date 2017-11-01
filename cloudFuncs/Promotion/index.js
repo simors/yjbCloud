@@ -654,10 +654,11 @@ async function fetchPromotionRecord(request) {
   query.descending('createdAt')
 
   let results = await query.find()
+  let total = await query.count()
   results.forEach((promotionRecord) => {
     promotionRecordList.push(constructPromotionRecordInfo(promotionRecord, false, true))
   })
-  return promotionRecordList
+  return {total: total, promotionRecordList: promotionRecordList}
 }
 
 /**

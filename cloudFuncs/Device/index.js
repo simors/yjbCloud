@@ -29,6 +29,8 @@ function constructDeviceInfo(device, includeStation) {
   deviceInfo.updateTime = device.attributes.updateTime
   deviceInfo.standbyPower = device.attributes.standbyPower
   deviceInfo.usePower = device.attributes.usePower
+  deviceInfo.createdAt = device.createdAt
+  deviceInfo.updatedAt = device.updatedAt
 
   let station = device.attributes.station
   deviceInfo.stationId = station? station.id : undefined
@@ -89,15 +91,13 @@ function generateDeviceQrcode(request, response) {
  * @param {Object}  request
  * @param {Object}  response
  */
-function fetchDevices(request, response) {
-  var currentUser = request.currentUser
-  var status = request.params.status                  //设备状态
-  var deviceNo = request.params.deviceNo              //设备编号
-  var stationId = request.params.stationId            //服务网点id
-  var limit = request.params.limit || 10              //分页查询限制
-  var isRefresh = request.params.isRefresh    //分页查询刷新
-  var lastUpdateTime = request.params.lastUpdateTime  //分页查询历史查询最后一条记录的设备更新时间
+async function fetchDevices(request) {
+  const {currentUser, params} = request
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
 
+  const {status, deviceNo, stationId, limit, isRefresh, lastUpdatedAt} = params
 
   var query = new AV.Query('Device')
   query.include('station')
@@ -111,22 +111,21 @@ function fetchDevices(request, response) {
   if(status != undefined) {
     query.equalTo('status', status)
   }
-  query.limit(limit)
-  if(!isRefresh && lastUpdateTime) {
-    query.lessThan('updateTime', new Date(lastUpdateTime))
+  query.limit(limit || 10)
+  if(!isRefresh && lastUpdatedAt) {
+    query.lessThan('updatedAt', new Date(lastUpdatedAt))
   }
-  query.descending('updateTime')
+  query.descending('updatedAt')
 
-  query.find().then((results) => {
-    var deviceList = []
-    results.forEach((leanDevice) => {
-      deviceList.push(constructDeviceInfo(leanDevice, true))
-    })
-    response.success(deviceList)
-  }).catch((error) => {
-    console.log('fetchDevices', error)
-    response.error(error)
+  let results = await query.find()
+  let total = await query.count()
+  let deviceList = []
+
+  results.forEach((device) => {
+    deviceList.push(constructDeviceInfo(device, true))
   })
+
+  return {total: total, deviceList: deviceList}
 }
 
 /**

@@ -32,6 +32,7 @@ function constructOrderInfo(order, includeDevice, includeUser) {
   var device = order.attributes.device
   orderInfo.userId = user? user.id : undefined
   orderInfo.deviceId = device? device.id : undefined
+  orderInfo.createdAt = order.createdAt
   if(includeDevice && device) {
     orderInfo.device = constructDeviceInfo(device, true)
   }
@@ -277,6 +278,7 @@ async function fetchOrders(request) {
   query.descending('createdAt')
 
   let results = await query.find()
+  let total = await query.count()
   let orderList = []
   results.forEach((order) => {
     let device = order.attributes.device
@@ -289,7 +291,7 @@ async function fetchOrders(request) {
     }
     orderList.push(constructOrderInfo(order, true, true))
   })
-  return orderList
+  return {total: total, orderList: orderList}
 }
 
 /**
@@ -375,10 +377,11 @@ async function getOccupiedOrder(userId) {
 
 async function orderFuncTest(request) {
   const {currentUser, params} = request
-  const {deviceId, start, end} = params
-
-  let results = await getOrders(deviceId, start, end)
-  return results
+  let query = new AV.Query('_User')
+  query.limit(5)
+  let total = await query.count()
+  let results = await query.find()
+  return {total: total, length: results.length}
 }
 
 
