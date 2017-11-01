@@ -440,6 +440,7 @@ async function getPartnerAccounts(request, response) {
   let startDate = request.params.startDate
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
+  let limit = request.params.limit
   let partners = []
   try {
     if (userId) {
@@ -452,7 +453,7 @@ async function getPartnerAccounts(request, response) {
     }else{
       let roles = []
       roles.push(ROLE_CODE.STATION_PROVIDER)
-      partners = await getUsersByRoles(roles,lastCreatedAt)
+      partners = await getUsersByRoles(roles,lastCreatedAt,limit)
     }
     let accountList = []
     for (let i = 0; i < partners.length; i++) {
@@ -550,7 +551,7 @@ async function getInvestorAccounts(request, response) {
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
   let partners = []
-
+  let limit = request.params.limit
   try {
     if (userId) {
       partners.push({id:userId})
@@ -562,7 +563,7 @@ async function getInvestorAccounts(request, response) {
     }else{
       let roles = []
       roles.push(ROLE_CODE.STATION_INVESTOR)
-      partners = await getUsersByRoles(roles,lastCreatedAt)
+      partners = await getUsersByRoles(roles,lastCreatedAt, limit)
     }
     let accountList = []
     for (let i = 0; i < partners.length; i++) {
@@ -658,7 +659,7 @@ async function getStationAccountsDetail(request, response) {
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
   let query = undefined
-
+  let limit = request.params.limit
   if (startDate && !endDate) {
     query = new AV.Query('StationAccount')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
@@ -680,6 +681,9 @@ async function getStationAccountsDetail(request, response) {
   }
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+  if (limit){
+    query.limit(limit)
   }
   query.descending('createdAt')
   query.include(['station,station.admin'])
@@ -709,6 +713,7 @@ async function getPartnerAccountsDetail(request, response) {
   let startDate = request.params.startDate
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
+  let limit = request.params.limit
   let query = undefined
   if (startDate && !endDate) {
     query = new AV.Query('AccountProfit')
@@ -732,6 +737,9 @@ async function getPartnerAccountsDetail(request, response) {
   if (stationId) {
     let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
+  }
+  if(limit){
+    query.limit(limit)
   }
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
@@ -766,6 +774,7 @@ async function getInvestorAccountsDetail(request, response) {
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
   let query = undefined
+  let limit = request.params.limit
   if (startDate && !endDate) {
     query = new AV.Query('AccountProfit')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
@@ -788,6 +797,9 @@ async function getInvestorAccountsDetail(request, response) {
   if (stationId) {
     let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
+  }
+  if(limit){
+    query.limit(limit)
   }
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
@@ -995,7 +1007,7 @@ async function recordAccountError(dayInfo, errorInfo) {
  * @param lastCreatedAt
  * @returns {*}
  */
-async function getUsersByRoles(roles, lastCreatedAt) {
+async function getUsersByRoles(roles, lastCreatedAt ,limit) {
   if (!roles) {
     return undefined
   }
@@ -1003,6 +1015,9 @@ async function getUsersByRoles(roles, lastCreatedAt) {
   query.containsAll('roles', roles)
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+  if(limit){
+    query.limit(limit)
   }
   query.descending('createdAt')
   query.equalTo('type', 3)
