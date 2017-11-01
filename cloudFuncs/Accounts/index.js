@@ -327,10 +327,16 @@ async function getStationAccounts(request, response) {
   let stationId = request.params.stationId
   let startDate = request.params.startDate
   let endDate = request.params.endDate
+  let lastCreatedAt = request.params.lastCreatedAt
   let query = new AV.Query('Station')
   if (stationId) {
     query.equalTo('objectId', stationId)
   }
+  if (lastCreatedAt) {
+    query.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+  query.descending('createdAt')
+
   try {
     let stations = await query.find()
     let accountList = []
@@ -994,12 +1000,12 @@ async function getUsersByRoles(roles, lastCreatedAt) {
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
+  query.descending('createdAt')
   query.equalTo('type', 3)
   try {
     let userList = await query.find()
     let users = []
     userList.forEach((item)=> {
-      console.log('item111111',item.id)
       users.push(AuthFuncs.constructUserInfo(item))
     })
     return users
