@@ -324,12 +324,13 @@ function verifyIdName(request, response) {
 }
 
 async function getUserId(mobilePhoneNumber) {
-  let userId = undefined
   let query = new AV.Query('_User')
   query.equalTo('mobilePhoneNumber', mobilePhoneNumber)
   let user = await query.first()
-  userId = user? user.id: undefined
-  return userId
+  if(!user) {
+    throw new AV.Cloud.Error('用户不存在', {code: errno.ERROR_NO_USER})
+  }
+  return user.id
 }
 
 async function getUserInfoById(userId) {

@@ -715,82 +715,89 @@ async function handleWithdrawDeal(deal) {
 }
 
 
-async function fetchRecharges(request, response) {
+async function fetchRecharges(request) {
   let authFunc = require('../Auth')
-  let currentUser = request.currentUser
-  let start = request.params.start
-  let end = request.params.end
-  let mobilePhoneNumber = request.params.mobilePhoneNumber
-  let isRefresh = request.params.isRefresh        //分页查询刷新
-  let lastDealTime = request.params.lastDealTime  //分页查询历史查询最后一条记录的设备更新时间
-  let limit = request.params.limit || 10
+  const {currentUser, params} = request
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  const {start, end, mobilePhoneNumber, isRefresh, lastDealTime, limit} = params
+
   let userId = undefined
+  if(mobilePhoneNumber) {
+    userId = await authFunc.getUserId(mobilePhoneNumber)
+  }
   let rechargeList = []
 
-  try {
-    let sql = ""
-    let queryParams = undefined
-    let mysqlConn = await mysqlUtil.getConnection()
+  let lmt = limit || 10
+  let sql = ""
+  let countSql = ""
+  let queryParams = undefined
+  let countQueryParams = undefined
+  let mysqlConn = await mysqlUtil.getConnection()
 
-    if(mobilePhoneNumber && start && end) {
-      userId = await authFunc.getUserId(mobilePhoneNumber)
-      sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`>? AND `deal_time`<? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
-      if(isRefresh) {
-        queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), userId, limit]
-      } else {
-        queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(lastDealTime), 'isoDateTime'), userId, limit]
-      }
-    } else if (!mobilePhoneNumber && start && end) {
-      sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`>? AND `deal_time`<? ORDER BY `deal_time` DESC LIMIT ?"
-      if(isRefresh) {
-        queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), limit]
-      } else {
-        queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(lastDealTime), 'isoDateTime'), limit]
-      }
-    } else if (mobilePhoneNumber && !start && !end) {
-      userId = await authFunc.getUserId(mobilePhoneNumber)
-      if(isRefresh) {
-        sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
-        queryParams = [DEAL_TYPE_RECHARGE, userId, limit]
-      } else {
-        sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`<? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
-        queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(lastDealTime), 'isoDateTime'), userId, limit]
-      }
-    } else if (!mobilePhoneNumber && !start && !end) {
-      if(isRefresh) {
-        sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? ORDER BY `deal_time` DESC LIMIT ?"
-        queryParams = [DEAL_TYPE_RECHARGE, limit]
-      } else {
-        sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`<?  ORDER BY `deal_time` DESC LIMIT ?"
-        queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(lastDealTime), 'isoDateTime'), limit]
-      }
+  if(userId && start && end) {
+    sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`>? AND `deal_time`<? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
+    if(isRefresh) {
+      queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), userId, lmt]
     } else {
-      response.error(new Error("参数错误"))
-      return
+      queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(lastDealTime), 'isoDateTime'), userId, lmt]
     }
-
-    let queryRes = await mysqlUtil.query(mysqlConn, sql, queryParams)
-    if(queryRes.results.length > 0) {
-      for (let deal of queryRes.results) {
-        let record = {}
-        record.id = deal.charge_id
-        record.order_no = deal.order_no
-        record.userId = deal.from
-        record.user = await authFunc.getUserInfoById(deal.from)
-        record.cost = deal.cost
-        record.dealTime = deal.deal_time
-        rechargeList.push(record)
-      }
+    countSql = "SELECT COUNT(*) AS count FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`>? AND `deal_time`<? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
+    countQueryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), userId, lmt]
+  } else if (!userId && start && end) {
+    sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`>? AND `deal_time`<? ORDER BY `deal_time` DESC LIMIT ?"
+    if(isRefresh) {
+      queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), lmt]
+    } else {
+      queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(lastDealTime), 'isoDateTime'), lmt]
     }
-
-    response.success(rechargeList)
-    if(mysqlConn) {
-      mysqlUtil.release(mysqlConn)
+    countSql = "SELECT COUNT(*) AS count FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`>? AND `deal_time`<? ORDER BY `deal_time` DESC LIMIT ?"
+    countQueryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(start), 'isoDateTime'), dateFormat(new Date(end), 'isoDateTime'), lmt]
+  } else if (userId && !start && !end) {
+    if(isRefresh) {
+      sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
+      queryParams = [DEAL_TYPE_RECHARGE, userId, lmt]
+    } else {
+      sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`<? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
+      queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(lastDealTime), 'isoDateTime'), userId, lmt]
     }
-  } catch (error) {
-    console.error(error)
-    response.error(error)
+    countSql = "SELECT COUNT(*) AS count FROM `DealRecords` WHERE `deal_type`=? AND `from`=?  ORDER BY `deal_time` DESC LIMIT ?"
+    countQueryParams = [DEAL_TYPE_RECHARGE, userId, lmt]
+  } else if (!userId && !start && !end) {
+    if(isRefresh) {
+      sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? ORDER BY `deal_time` DESC LIMIT ?"
+      queryParams = [DEAL_TYPE_RECHARGE, lmt]
+    } else {
+      sql = "SELECT * FROM `DealRecords` WHERE `deal_type`=? AND `deal_time`<?  ORDER BY `deal_time` DESC LIMIT ?"
+      queryParams = [DEAL_TYPE_RECHARGE, dateFormat(new Date(lastDealTime), 'isoDateTime'), lmt]
+    }
+    countSql = "SELECT COUNT(*) AS count FROM `DealRecords` WHERE `deal_type`=? ORDER BY `deal_time` DESC LIMIT ?"
+    countQueryParams = [DEAL_TYPE_RECHARGE, lmt]
+  } else {
+    return rechargeList
   }
+
+  let queryRes = await mysqlUtil.query(mysqlConn, sql, queryParams)
+  let countQueryRes = await mysqlUtil.query(mysqlConn, countSql, countQueryParams)
+  let total = countQueryRes.results[0].count
+  if(queryRes.results.length > 0) {
+    for (let deal of queryRes.results) {
+      let record = {}
+      record.id = deal.charge_id
+      record.order_no = deal.order_no
+      record.userId = deal.from
+      record.user = await authFunc.getUserInfoById(deal.from)
+      record.cost = deal.cost
+      record.dealTime = deal.deal_time
+      rechargeList.push(record)
+    }
+  }
+
+  if(mysqlConn) {
+    await mysqlUtil.release(mysqlConn)
+  }
+  return {total: total, rechargeList: rechargeList}
 }
 
 async function pingppFuncTest(request) {
