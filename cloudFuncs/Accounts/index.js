@@ -327,6 +327,7 @@ async function getStationAccounts(request, response) {
   let stationId = request.params.stationId
   let startDate = request.params.startDate
   let endDate = request.params.endDate
+  let limit = request.params.limit
   let lastCreatedAt = request.params.lastCreatedAt
   let query = new AV.Query('Station')
   if (stationId) {
@@ -334,6 +335,9 @@ async function getStationAccounts(request, response) {
   }
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+  if(limit){
+    query.limit(limit)
   }
   query.descending('createdAt')
 
