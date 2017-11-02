@@ -340,41 +340,41 @@ async function getDevices(stationId) {
  * @param {Object}  request
  * @param {Object}  response
  */
-function updateDevice(request, response) {
-  var currentUser = request.currentUser
-  let deviceNo = request.params.deviceNo
-  let stationId = request.params.stationId
-  let deviceAddr = request.params.deviceAddr
-  let status = Number(request.params.status)
-  let currentStationId = undefined
+async function updateDevice(request) {
+  const {currentUser, params} = request
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  const {deviceNo, stationId, deviceAddr, status} = params
+
+  if(!stationId || !deviceNo || !deviceAddr || status === undefined) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
 
   let station = AV.Object.createWithoutData('Station', stationId)
-  var query = new AV.Query('Device')
+  let query = new AV.Query('Device')
   query.include('station')
   query.equalTo('deviceNo', deviceNo)
-  query.first().then((device) => {
-    currentStationId = device.attributes.stationId
-    if(!currentStationId) {
-      throw new AV.Cloud.Error('服务点信息有误', {code: errno.ERROR_STATION})
-    }
-    if(currentStationId != stationId) {
-      device.set('station', station)
-    }
-    device.set('deviceAddr', deviceAddr)
-    device.set('status', status)
-    return device.save()
-  }).then((device) => {
-    if(currentStationId != stationId) {
-      stationFunc.changeDeviceNum(currentStationId, 'sub')
-      stationFunc.changeDeviceNum(stationId, 'add')
-    }
-    return query.get(device.id)
-  }).then((device) => {
-    response.success(constructDeviceInfo(device, true))
-  }).catch((error) => {
-    console.log("updateDevice", error)
-    response.success(error)
-  })
+
+  let device = await query.first()
+  let currentStation = device.attributes.station
+  console.log('device', device)
+  if(!currentStation) {
+    throw new AV.Cloud.Error('无服务点信息', {code: errno.ERROR_NO_STATION})
+  }
+  if(currentStation.id != stationId) {
+    device.set('station', station)
+  }
+  device.set('deviceAddr', deviceAddr)
+  device.set('status', status)
+
+  await device.save()
+  if(currentStation.id != stationId) {
+    stationFunc.changeDeviceNum(currentStation.id, 'sub')
+    stationFunc.changeDeviceNum(stationId, 'add')
+  }
+  let deviceInfo =  await query.fetch(device.id)
+  return constructDeviceInfo(deviceInfo, true)
 }
 
 /**

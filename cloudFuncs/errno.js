@@ -155,7 +155,7 @@ export const ERROR_NO_USER                  = (ERROR_BASE_AUTH - 4)         /* �
 /* Device */
 export const ERROR_INVALID_STATUS           = (ERROR_BASE_DEVICE - 1)       /* 设备状态有误 */
 export const ERROR_TURNON_FAILED            = (ERROR_BASE_DEVICE - 2)       /* 设备开机请求失败*/
-export const ERROR_STATION                  = (ERROR_BASE_DEVICE - 3)       /* 服务点信息有误 */
+export const ERROR_NO_STATION                  = (ERROR_BASE_DEVICE - 3)       /* 无服务点信息 */
 
 /* Order */
 export const ERROR_UNPAID_ORDER             = (ERROR_BASE_ORDER - 1)        /* 未支付订单 */
