@@ -108,7 +108,12 @@ async function reqSendAuthCode(request) {
     throw new AV.Cloud.Error('there is no system admin user', {code: errno.ENOKEY})
   }
   let openid = sysUser.authData.weixin.openid
-  let code = uuidv4().replace(/-/g, '').substr(0, 6)
+  let code = ""
+  if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_DEV_APP_ID) {
+    code = '654321'
+  } else {
+    code = uuidv4().replace(/-/g, '').substr(0, 6)
+  }
   try {
     let operatorUser = await authFunc.getUserInfoById(operator)
     await saveCode(operator, code)
