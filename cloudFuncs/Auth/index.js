@@ -337,12 +337,13 @@ async function getUserInfoById(userId) {
   if(!userId) {
     return undefined
   }
-  let user = AV.Object.createWithoutData('_User', userId)
+  let query = new AV.Query('_User')
+  query.equalTo('objectId', userId)
+  let user = await query.first()
   if(!user) {
     return undefined
   }
-  let userInfo = await user.fetch()
-  return constructUserInfo(userInfo)
+  return constructUserInfo(user)
 }
 
 async function setUserMobilePhone(request) {

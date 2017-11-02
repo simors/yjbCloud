@@ -358,7 +358,6 @@ async function updateDevice(request) {
 
   let device = await query.first()
   let currentStation = device.attributes.station
-  console.log('device', device)
   if(!currentStation) {
     throw new AV.Cloud.Error('无服务点信息', {code: errno.ERROR_NO_STATION})
   }
