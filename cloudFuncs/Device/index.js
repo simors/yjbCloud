@@ -373,7 +373,7 @@ async function updateDevice(request) {
     stationFunc.changeDeviceNum(currentStation.id, 'sub')
     stationFunc.changeDeviceNum(stationId, 'add')
   }
-  let deviceInfo =  await query.fetch(device.id)
+  let deviceInfo =  await query.get(device.id)
   return constructDeviceInfo(deviceInfo, true)
 }
 
