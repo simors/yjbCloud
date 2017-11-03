@@ -464,7 +464,12 @@ async function getPartnerAccounts(request, response) {
       let queryUser = new AV.Query('_User')
       queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
       let user = await queryUser.find()
-      partners.push({id: user[0].id})
+      if(user&&user.length>0){
+        partners.push({id: user[0].id})
+      }else{
+        response.error('没有找到该用户')
+      }
+
     } else if (stationId) {
       let partnerList = await StationFuncs.getPartnerByStationId(stationId)
       partnerList.forEach((item)=> {
@@ -577,7 +582,11 @@ async function getInvestorAccounts(request, response) {
       let queryUser = new AV.Query('_User')
       queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
       let user = await queryUser.find()
-      partners.push({id: user[0].id})
+      if(user&&user.length>0){
+        partners.push({id: user[0].id})
+      }else{
+        response.error('没有找到该用户')
+      }
     } else if (stationId) {
       let partnerList = await StationFuncs.getInvestorByStationId(stationId)
       partnerList.forEach((item)=> {
@@ -766,6 +775,8 @@ async function getPartnerAccountsDetail(request, response) {
     if (userInfo && userInfo.length > 0) {
       let user = AV.Object.createWithoutData('_User', userInfo[0].id)
       query.equalTo('user', user)
+    }else{
+      response.error('没有找到该用户')
     }
   }
   if (stationId) {
@@ -837,6 +848,8 @@ async function getInvestorAccountsDetail(request, response) {
     if (userInfo && userInfo.length > 0) {
       let user = AV.Object.createWithoutData('_User', userInfo[0].id)
       query.equalTo('user', user)
+    }else{
+      response.error('没有找到该用户')
     }
   }
   if (stationId) {
