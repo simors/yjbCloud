@@ -1179,6 +1179,31 @@ async function reqStatPlatformAccount(request) {
   }
 }
 
+/**
+ * 获取某天所有服务点营业额排行
+ * @param rankDate
+ * @returns {Array}
+ */
+async function getStationAccountRank(rankDate) {
+  let query = new AV.Query('StationAccount')
+  query.equalTo('accountDay', new Date(rankDate))
+  query.include('station')
+  query.descending('incoming')
+  query.limit(30)
+  let result = await query.find()
+  let rank = []
+  result.forEach((stationAccount) => {
+    rank.push(constructStationAccount(stationAccount, true))
+  })
+  return rank
+}
+
+async function reqFetchStationAccountRank(request) {
+  let rankDate = request.params.rankDate
+  let result = await getStationAccountRank(rankDate)
+  return result
+}
+
 var accountFunc = {
   getYesterday: getYesterday,
   createStationDayAccount: createStationDayAccount,
@@ -1197,6 +1222,7 @@ var accountFunc = {
   reqStatLastHalfYearAccountProfit,
   reqStatLast1YearAccountProfit,
   reqStatPlatformAccount,
+  reqFetchStationAccountRank,
 }
 
 module.exports = accountFunc
