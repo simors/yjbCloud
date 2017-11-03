@@ -562,15 +562,18 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
  */
 async function getInvestorAccounts(request, response) {
   let stationId = request.params.stationId
-  let userId = request.params.userId
+  let mobilePhoneNumber = request.params.mobilePhoneNumber
   let startDate = request.params.startDate
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
   let partners = []
   let limit = request.params.limit
   try {
-    if (userId) {
-      partners.push({id:userId})
+    if (mobilePhoneNumber) {
+      let queryUser = new AV.Query('_User')
+      queryUser.equalTo('mobilePhoneNumber',mobilePhoneNumber)
+      let user = await queryUser.find()
+      partners.push({id:user.id})
     }else if(stationId){
       let partnerList = await StationFuncs.getInvestorByStationId(stationId)
       partnerList.forEach((item)=>{
@@ -788,6 +791,7 @@ async function getInvestorAccountsDetail(request, response) {
   let startDate = request.params.startDate
   let userId = request.params.userId
   let endDate = request.params.endDate
+  let mobilePhoneNumber = request.params.mobilePhoneNumber
   let lastCreatedAt = request.params.lastCreatedAt
   let query = undefined
   let limit = request.params.limit
@@ -809,6 +813,16 @@ async function getInvestorAccountsDetail(request, response) {
   if (userId) {
     let user = AV.Object.createWithoutData('_User', userId)
     query.equalTo('user', user)
+  }
+  if (mobilePhoneNumber) {
+    let queryUser = new AV.Query('_User')
+    queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+    let userInfo = await queryUser.find()
+    // console.log('userInfo=====>',userInfo[0])
+    if(userInfo&&userInfo.length>0){
+      let user = AV.Object.createWithoutData('_User',userInfo[0].id)
+      query.equalTo('user', user)
+    }
   }
   if (stationId) {
     let station = AV.Object.createWithoutData('Station', stationId)
