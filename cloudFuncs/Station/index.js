@@ -984,6 +984,7 @@ function userFuncTest(request, response) {
  */
 async function getStations(lastCreatdAt) {
   let query = new AV.Query('Station')
+  query.equalTo('status',1)
   query.descending('createdAt')
   let stationList = []
 
@@ -1012,7 +1013,12 @@ async function changeDeviceNum(stationId, type) {
   if (type == 'add') {
     station.increment('deviceNo', 1)
   } else if (type == 'sub') {
-    station.increment('deviceNo', -1)
+    let query = new AV.Query('Station')
+    let stationInfo = await query.get(stationId)
+    let deviceNo = stationInfo.attributes.deviceNo
+    if(deviceNo>0){
+      station.increment('deviceNo', -1)
+    }
   } else {
     throw error
   }
@@ -1146,9 +1152,9 @@ async function investorHaveStationFunc(userId) {
 }
 
 function stationFuncTest(request, response) {
-  let userId = request.params.userId
-
-  response.success(partnerHaveStation(userId))
+  let stationId = request.params.stationId
+  let type = request.params.type
+  response.success(changeDeviceNum(stationId,type))
 }
 
 /**
