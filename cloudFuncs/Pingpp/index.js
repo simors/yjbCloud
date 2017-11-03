@@ -870,7 +870,7 @@ async function fetchDealRecord(request) {
     let countQueryRes = await mysqlUtil.query(mysqlConn, countSql, countQueryParams)
     total = countQueryRes.results[0].count
   }
-  let depositList = []
+  let dealList = []
   if(queryRes.results.length > 0) {
     for (let deal of queryRes.results) {
       let record = {}
@@ -896,13 +896,13 @@ async function fetchDealRecord(request) {
       record.cost = deal.cost
       record.dealTime = deal.deal_time
       record.dealType = deal.deal_type
-      depositList.push(record)
+      dealList.push(record)
     }
   }
   if(mysqlConn) {
     await mysqlUtil.release(mysqlConn)
   }
-  return {total: total, depositList: depositList}
+  return {total: total, dealList: dealList}
 }
 
 async function pingppFuncTest(request) {
