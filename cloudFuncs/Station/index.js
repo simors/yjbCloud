@@ -180,10 +180,10 @@ function fetchStations(request, response) {
   query.limit(limit)
   query.include(['admin'])
   query.descending('createdDate')
-  if(mobilePhoneNumber){
+  if (mobilePhoneNumber) {
     var queryUser = new AV.Query('_User')
     queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
-    queryUser.first().then((user)=>{
+    queryUser.first().then((user)=> {
       var userInfo = AV.Object.createWithoutData('_User', user.id)
       query.equalTo('admin', userInfo)
       query.find().then((stationList)=> {
@@ -197,7 +197,7 @@ function fetchStations(request, response) {
         response.error(err)
       })
     })
-  }else{
+  } else {
     query.find().then((stationList)=> {
       var stations = []
       stationList.forEach((record)=> {
@@ -364,7 +364,7 @@ function fetchInvestorByStationId(request, response) {
     queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
     queryUser.first().then((user)=> {
 
-      if(!user){
+      if (!user) {
         response.error('没有查到该用户')
       }
       query.equalTo('shareholder', user)
@@ -567,7 +567,7 @@ function createInvestor(request, response) {
   queryPre.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
   queryPre.first().then((item)=> {
     if (item) {
-      response.error(new Error( "该服务点已有该投资人!"))
+      response.error(new Error("该服务点已有该投资人!"))
     } else {
       investor.set('shareholder', user)
       investor.set('station', station)
@@ -979,26 +979,37 @@ function userFuncTest(request, response) {
 
 
 /**
- * 查询服务点列表
- * @param {String}  stationId
+ *
+ * @param params
+ * lastCreatedAt: string
+ * userId: string
+ * status: num
+ * @returns {Array}
  */
-async function getStations(lastCreatdAt) {
+async function getStations(params) {
+  let {lastCreatedAt, userId, status} = params
   let query = new AV.Query('Station')
-  query.equalTo('status',1)
-  query.descending('createdAt')
   let stationList = []
 
   try {
-    if (lastCreatdAt) {
-      query.lessThan('createdAt', new Date(lastCreatdAt))
+    if (lastCreatedAt) {
+      query.lessThan('createdAt', new Date(lastCreatedAt))
     }
+    if (userId) {
+      let user = AV.Object.createWithoutData('_User', userId)
+      query.equalTo('admin', user)
+    }
+    if(status!=undefined){
+      query.equalTo('status', status)
+    }
+    query.include(['admin'])
+    query.descending('createdAt')
     let devices = await query.find()
     devices.forEach((device) => {
-      stationList.push(constructStationInfo(device, false))
+      stationList.push(constructStationInfo(device, true))
     })
     return stationList
   } catch (error) {
-    console.log("getDevices", error)
     throw error
   }
 }
@@ -1016,7 +1027,7 @@ async function changeDeviceNum(stationId, type) {
     let query = new AV.Query('Station')
     let stationInfo = await query.get(stationId)
     let deviceNo = stationInfo.attributes.deviceNo
-    if(deviceNo>0){
+    if (deviceNo > 0) {
       station.increment('deviceNo', -1)
     }
   } else {
@@ -1035,9 +1046,9 @@ async function changeDeviceNum(stationId, type) {
  * @param request {currentUser, params {userId}}
  * return Bool
  */
-async function adminHaveStation(request){
-  let {params , currentUser} = request
-  if(!currentUser){
+async function adminHaveStation(request) {
+  let {params, currentUser} = request
+  if (!currentUser) {
     throw new AV.Cloud.Error('未登录', {code: errno.EPERM})
   }
   let {userId} = params
@@ -1049,22 +1060,22 @@ async function adminHaveStation(request){
  * @param userId
  * return Bool
  */
-async function adminHaveStationFunc(userId){
-  if(!userId){
+async function adminHaveStationFunc(userId) {
+  if (!userId) {
     throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
   }
-  let user = AV.Object.createWithoutData('_User',userId)
+  let user = AV.Object.createWithoutData('_User', userId)
   let query = new AV.Query('Station')
   query.equalTo('admin', user)
   query.include(['admin'])
-  try{
+  try {
     let stationList = await query.find()
-    if(stationList&&stationList.length>0){
+    if (stationList && stationList.length > 0) {
       throw new AV.Cloud.Error('该用户仍拥有管理中的服务点', {code: errno.ERROR_STATION_HAVESTATION})
-    }else{
+    } else {
       return true
     }
-  }catch(err){
+  } catch (err) {
     throw err
   }
 
@@ -1075,9 +1086,9 @@ async function adminHaveStationFunc(userId){
  * @param request {currentUser, params {userId}}
  * return Bool
  */
-async function partnerHaveStation(request){
-  let {params , currentUser} = request
-  if(!currentUser){
+async function partnerHaveStation(request) {
+  let {params, currentUser} = request
+  if (!currentUser) {
     throw new AV.Cloud.Error('未登录', {code: errno.EPERM})
   }
   let {userId} = params
@@ -1089,24 +1100,24 @@ async function partnerHaveStation(request){
  * @param userId
  * return Bool
  */
-async function partnerHaveStationFunc(userId){
-  if(!userId){
+async function partnerHaveStationFunc(userId) {
+  if (!userId) {
     throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
   }
-  let user = AV.Object.createWithoutData('_User',userId)
+  let user = AV.Object.createWithoutData('_User', userId)
   let query = new AV.Query('ProfitSharing')
   query.equalTo('shareholder', user)
   query.equalTo('type', 'partner')
   query.equalTo('status', 1)
   query.include(['shareholder'])
-  try{
+  try {
     let stationList = await query.find()
-    if(stationList&&stationList.length>0){
+    if (stationList && stationList.length > 0) {
       throw new AV.Cloud.Error('该用户仍拥有分成的服务点', {code: errno.ERROR_STATION_HAVESTATION})
-    }else{
+    } else {
       return true
     }
-  }catch(err){
+  } catch (err) {
     throw err
   }
 
@@ -1117,9 +1128,9 @@ async function partnerHaveStationFunc(userId){
  * @param request {currentUser, params {userId}}
  * return Bool
  */
-async function investorHaveStation(request){
- let {params , currentUser} = request
-  if(!currentUser){
+async function investorHaveStation(request) {
+  let {params, currentUser} = request
+  if (!currentUser) {
     throw new AV.Cloud.Error('未登录', {code: errno.EPERM})
   }
   let {userId} = params
@@ -1127,34 +1138,31 @@ async function investorHaveStation(request){
 }
 
 async function investorHaveStationFunc(userId) {
-  if(!userId){
+  if (!userId) {
     throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
   }
-  let user = AV.Object.createWithoutData('_User',userId)
+  let user = AV.Object.createWithoutData('_User', userId)
   let query = new AV.Query('ProfitSharing')
   query.equalTo('shareholder', user)
   query.equalTo('type', 'investor')
   query.equalTo('status', 1)
   query.include(['shareholder'])
-  try{
+  try {
     let stationList = await query.find()
-    if(stationList&&stationList.length>0){
+    if (stationList && stationList.length > 0) {
       throw new AV.Cloud.Error('该用户仍拥有投资的服务点', {code: errno.ERROR_STATION_HAVESTATION})
-    }else{
+    } else {
       return true
     }
-  }catch(err){
+  } catch (err) {
     throw err
   }
-
-
-
 }
 
+
 function stationFuncTest(request, response) {
-  let stationId = request.params.stationId
-  let type = request.params.type
-  response.success(changeDeviceNum(stationId,type))
+  let params = request.params || {}
+  response.success(getStations(params))
 }
 
 /**
