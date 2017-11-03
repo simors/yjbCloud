@@ -464,7 +464,7 @@ async function getPartnerAccounts(request, response) {
       let queryUser = new AV.Query('_User')
       queryUser.equalTo('mobilePhoneNumber',mobilePhoneNumber)
       let user = await queryUser.find()
-      partners.push({id:user.id})
+      partners.push({id:user[0].id})
     }else if(stationId){
       let partnerList = await StationFuncs.getPartnerByStationId(stationId)
       partnerList.forEach((item)=>{
@@ -577,7 +577,7 @@ async function getInvestorAccounts(request, response) {
       let queryUser = new AV.Query('_User')
       queryUser.equalTo('mobilePhoneNumber',mobilePhoneNumber)
       let user = await queryUser.find()
-      partners.push({id:user.id})
+      partners.push({id:user[0].id})
     }else if(stationId){
       let partnerList = await StationFuncs.getInvestorByStationId(stationId)
       partnerList.forEach((item)=>{
