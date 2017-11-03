@@ -894,12 +894,14 @@ async function fetchDeposit(request) {
       let record = {}
       record.id = deal.charge_id
       record.order_no = deal.order_no
-      record.from = deal.from
-      record.to = deal.to
       if(deal.deal_type === DEAL_TYPE_DEPOSIT) {
+        record.userId = deal.from
         record.user = await getUserInfoById(deal.from)
       } else if(deal.deal_type === DEAL_TYPE_REFUND) {
+        record.userId = deal.to
         record.user = await getUserInfoById(deal.to)
+      } else {
+        record.userId = undefined
       }
       record.cost = deal.cost
       record.dealTime = deal.deal_time
