@@ -26,8 +26,27 @@ const ERR_LOG_TYPE = {
   UNTREAT: 2
 }
 
+function constructPlatformAccount(account) {
+  if (!account) {
+    return undefined
+  }
+
+  let accountInfo = {}
+
+  accountInfo.id = account.id
+  accountInfo.accountDay = account.attributes.accountDay
+  accountInfo.profit = account.attributes.profit
+  accountInfo.cost = account.attributes.cost
+  accountInfo.incoming = account.attributes.incoming
+  accountInfo.platformProfit = account.attributes.platformProfit
+  accountInfo.partnerProfit = account.attributes.partnerProfit
+  accountInfo.investorProfit = account.attributes.investorProfit
+  accountInfo.createdAt = account.createdAt
+  return accountInfo
+}
+
 //服务点日结数据构造方法
-function constructStationAccountnInfo(account, includeStation) {
+function constructStationAccount(account, includeStation) {
   if (!account) {
     return undefined
   }
@@ -43,7 +62,6 @@ function constructStationAccountnInfo(account, includeStation) {
   accountInfo.platformProfit = account.attributes.platformProfit
   accountInfo.partnerProfit = account.attributes.partnerProfit
   accountInfo.investorProfit = account.attributes.investorProfit
-  accountInfo.powerUnitPrice = account.attributes.powerUnitPrice
   accountInfo.stationId = station ? station.id : undefined
   if (includeStation && station) {
     accountInfo.station = constructStationInfo(station)
@@ -92,7 +110,7 @@ function constructAccountProfit(lcProfitAccount, includeStation, includeUser, in
   }
 
   if (includeStationAccount) {
-    profitAccount.stationAccount = constructStationAccountnInfo(accountAttr.stationAccount, false)
+    profitAccount.stationAccount = constructStationAccount(accountAttr.stationAccount, false)
   }
 
   if (includeProfitSharing) {
@@ -108,10 +126,8 @@ function constructAccountProfit(lcProfitAccount, includeStation, includeUser, in
 
 //查询昨天日期
 function getYesterday() {
-  var today = new Date().toLocaleDateString();
-  today = new Date(today)
-  var oneday = 1000 * 60 * 60 * 24;
-  var yesterday = new Date(today - oneday);
+  let today = new Date(moment().format('YYYY-MM-DD'))
+  let yesterday = new Date(moment().subtract(1, 'days').format('YYYY-MM-DD'))
   return {today: today, yesterday: yesterday}
 }
 
@@ -184,7 +200,7 @@ async function createPartnerAccount(accountId, dayInfo) {
     let queryAccount = new AV.Query('StationAccount')
     queryAccount.include(['station'])
     let stationAccount = await queryAccount.get(accountId)
-    let stationAccountInfo = constructStationAccountnInfo(stationAccount, true)
+    let stationAccountInfo = constructStationAccount(stationAccount, true)
     if(stationAccountInfo.profit>0){
       platfomProfit  = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(stationAccountInfo.station.platformProp).done(), 2)
     }else{
@@ -286,7 +302,7 @@ async function createStationDayAccount() {
       lastTime = stationList[stationList.length - 1].createdAt
     }
 
-    let DayAccount = AV.Object.extend('DayAccountSum')
+    let DayAccount = AV.Object.extend('PlatformAccount')
     let dayAccount = new DayAccount()
     dayAccount.set('cost', cost)
     dayAccount.set('profit', profit)
@@ -407,7 +423,7 @@ async function getAccountByStationId(stationId, startDate, endDate) {
           partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(account.attributes.partnerProfit).done(), 2)
           investorProfit = mathjs.round(mathjs.chain(investorProfit).add(account.attributes.investorProfit).done(), 2)
         }
-        accountInfo = constructStationAccountnInfo(account, true)
+        accountInfo = constructStationAccount(account, true)
       })
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
     }
@@ -691,7 +707,7 @@ async function getStationAccountsDetail(request, response) {
     let accounts = await query.find()
     let accountList = []
     accounts.forEach((account)=> {
-      let accountInfo = constructStationAccountnInfo(account, true)
+      let accountInfo = constructStationAccount(account, true)
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
       accountList.push(accountInfo)
@@ -826,7 +842,7 @@ async function getInvestorAccountsDetail(request, response) {
  * 获取总和日结信息
  * @ params {}
  */
-async function getDayAccountsSum(request, response) {
+async function getPlatformAccount(request, response) {
   let startDate = request.params.startDate
   let endDate = request.params.endDate
   let limit = request.params.limit || 30
@@ -834,19 +850,19 @@ async function getDayAccountsSum(request, response) {
   let query = undefined
 
   if (startDate && !endDate) {
-    query = new AV.Query('DayAccountSum')
+    query = new AV.Query('PlatformAccount')
     query.greaterThanOrEqualTo('accountDay', new Date(startDate))
   } else if (endDate && !startDate) {
-    query = new AV.Query('DayAccountSum')
+    query = new AV.Query('PlatformAccount')
     query.lessThan('accountDay', new Date(endDate))
   } else if (startDate && endDate) {
-    let startQuery = new AV.Query('DayAccountSum')
-    let endQuery = new AV.Query('DayAccountSum')
+    let startQuery = new AV.Query('PlatformAccount')
+    let endQuery = new AV.Query('PlatformAccount')
     startQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
     endQuery.lessThan('accountDay', new Date(endDate))
     query = AV.Query.and(startQuery, endQuery)
   } else {
-    query = new AV.Query('DayAccountSum')
+    query = new AV.Query('PlatformAccount')
   }
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
@@ -857,11 +873,10 @@ async function getDayAccountsSum(request, response) {
     let accounts = await query.find()
     let accountList = []
     accounts.forEach((item)=>{
-      let accountInfo = constructStationAccountnInfo(item,true)
+      let accountInfo = constructPlatformAccount(item)
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
       accountList.push(accountInfo)
-
   })
     response.success(accountList)
   } catch (error) {
@@ -1043,6 +1058,85 @@ async function accountTestFunc(req) {
 
 }
 
+/**
+ * 统计平台所有收益成本信息
+ * @param startDate
+ * @param endDate
+ * @returns {{profit: number, partnerProfit: number, investorProfit: number, platformProfit: number, cost: number, incoming: number}}
+ */
+async function statPlatformAccountByDate(startDate, endDate) {
+  let query = undefined
+
+  if (startDate && endDate) {
+    let beginQuery = new AV.Query('DayAccountSum')
+    beginQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
+
+    let endQuery = new AV.Query('DayAccountSum')
+    endQuery.lessThanOrEqualTo('accountDay', new Date(endDate))
+
+    query = AV.Query.and(beginQuery, endQuery)
+  } else {
+    query = new AV.Query('DayAccountSum')
+  }
+  query.limit(1000)
+  query.descending('accountDay')
+  let result = await query.find()
+  let profit = 0
+  let partnerProfit = 0
+  let investorProfit = 0
+  let platformProfit = 0
+  let cost = 0
+  let incoming = 0
+  let lastDate = undefined
+  while (1) {
+    if (result.length == 0) {
+      break
+    }
+    for (let account of result) {
+      let platformAccount = constructPlatformAccount(account)
+      profit = mathjs.chain(profit).add(platformAccount.profit).done()
+      partnerProfit = mathjs.chain(partnerProfit).add(platformAccount.partnerProfit).done()
+      investorProfit = mathjs.chain(investorProfit).add(platformAccount.investorProfit).done()
+      platformProfit = mathjs.chain(platformProfit).add(platformAccount.platformProfit).done()
+      cost = mathjs.chain(cost).add(platformAccount.cost).done()
+      incoming = mathjs.chain(incoming).add(platformAccount.incoming).done()
+      lastDate = platformAccount.accountDay
+    }
+    query.lessThan('accountDay', lastDate)
+    result = await query.find()
+  }
+  return {
+    profit: mathjs.round(profit, 2),
+    partnerProfit: mathjs.round(partnerProfit, 2),
+    investorProfit: mathjs.round(investorProfit, 2),
+    platformProfit: mathjs.round(platformProfit, 2),
+    cost: mathjs.round(cost, 2),
+    incoming: mathjs.round(incoming, 2),
+  }
+}
+
+async function reqStatPlatformAccount(request) {
+  let endDate = moment().format('YYYY-MM-DD')
+
+  let startDate = moment().subtract(1, 'days').format('YYYY-MM-DD')
+  let lastDayPlatformAccount = await statPlatformAccountByDate(startDate, endDate)
+
+  startDate = moment().subtract(1, 'months').format('YYYY-MM-DD')
+  let lastMonthPlatformAccount = await statPlatformAccountByDate(startDate, endDate)
+
+  startDate = moment().subtract(1, 'years').format('YYYY-MM-DD')
+  let lastYearPlatformAccount = await statPlatformAccountByDate(startDate, endDate)
+
+  let platformAccount = await statPlatformAccountByDate()
+
+  return {
+    platformAccount,
+    lastDayPlatformAccount,
+    lastMonthPlatformAccount,
+    lastYearPlatformAccount,
+  }
+}
+
 var accountFunc = {
   getYesterday: getYesterday,
   createStationDayAccount: createStationDayAccount,
@@ -1053,13 +1147,14 @@ var accountFunc = {
   getStationAccountsDetail: getStationAccountsDetail,
   getPartnerAccountsDetail: getPartnerAccountsDetail,
   getInvestorAccountsDetail: getInvestorAccountsDetail,
-  getDayAccountsSum: getDayAccountsSum,
+  getPlatformAccount: getPlatformAccount,
   accountTestFunc: accountTestFunc,
   reqStatAccountProfit,
   reqStatLast30DaysAccountProfit,
   reqStatLast3MonthsAccountProfit,
   reqStatLastHalfYearAccountProfit,
   reqStatLast1YearAccountProfit,
+  reqStatPlatformAccount,
 }
 
 module.exports = accountFunc
