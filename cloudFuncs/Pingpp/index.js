@@ -805,10 +805,10 @@ async function fetchRecharges(request) {
 }
 
 /**
- * 分页查询用户押金记录
+ * 分页查询交易记录
  * @param request
  */
-async function fetchDeposit(request) {
+async function fetchDealRecord(request) {
   let getUserId = require('../Auth').getUserId
   let getUserInfoById = require('../Auth').getUserInfoById
   const {currentUser, params} = request
@@ -823,36 +823,23 @@ async function fetchDeposit(request) {
   if(mobilePhoneNumber) {
     userId = await getUserId(mobilePhoneNumber)
   }
+  let total = undefined
   let lmt = limit || 10
   let sql = "SELECT * FROM `DealRecords` "
   let countSql = "SELECT COUNT(*) AS count FROM `DealRecords` "
   let queryParams = []
   let countQueryParams = []
   let mysqlConn = await mysqlUtil.getConnection()
-  if(dealType === undefined) {
-    sql = sql + "WHERE `deal_type` in (?, ?) "
-    countSql = countSql + "WHERE `deal_type` in (?, ?) "
-    queryParams.push(DEAL_TYPE_DEPOSIT)
-    queryParams.push(DEAL_TYPE_REFUND)
-    countQueryParams.push(DEAL_TYPE_DEPOSIT)
-    countQueryParams.push(DEAL_TYPE_REFUND)
-  } else if(dealType === DEAL_TYPE_DEPOSIT) {
+  if(dealType) {
     sql = sql + "WHERE `deal_type`=? "
     countSql = countSql + "WHERE `deal_type`=? "
-    queryParams.push(DEAL_TYPE_DEPOSIT)
-    countQueryParams.push(DEAL_TYPE_DEPOSIT)
-  } else if(dealType === DEAL_TYPE_REFUND) {
-    sql = sql + "WHERE `deal_type`=? "
-    countSql = countSql + "WHERE `deal_type`=? "
-    queryParams.push(DEAL_TYPE_REFUND)
-    countQueryParams.push(DEAL_TYPE_REFUND)
-  } else {
-    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+    queryParams.push(Number(dealType))
+    countQueryParams.push(Number(dealType))
   }
 
   if(start && end) {
-    sql = sql + "AND `deal_time`>? "
-    countSql = countSql + "AND `deal_time`>? "
+    sql = sql + (dealType? "AND `deal_time`>? " : "WHERE `deal_time`>? ")
+    countSql = countSql + (dealType? "AND `deal_time`>? " : "WHERE `deal_time`>? ")
     queryParams.push(dateFormat(new Date(start), 'isoDateTime'))
     countQueryParams.push(dateFormat(new Date(start), 'isoDateTime'))
     if(isRefresh === false) {
@@ -860,48 +847,51 @@ async function fetchDeposit(request) {
       queryParams.push(dateFormat(new Date(lastDealTime), 'isoDateTime'))
     } else {
       sql = sql + "AND `deal_time`<? "
-      countSql = countSql + "AND `deal_time`<? "
       queryParams.push(dateFormat(new Date(end), 'isoDateTime'))
     }
     countSql = countSql + "AND `deal_time`<? "
     countQueryParams.push(dateFormat(new Date(end), 'isoDateTime'))
   } else if(!start && !end) {
-    if(isRefresh === false) {
-      sql = sql + "AND `deal_time`<? "
-      queryParams.push(dateFormat(new Date(lastDealTime), 'isoDateTime'))
-    }
   } else {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
   if(userId) {
-    sql = sql + "AND `from`=?  "
-    countSql = countSql + "AND `from`=?  "
+    sql = sql + (dealType || start? "AND `from`=?  " : "WHERE `from`=?  ")
+    countSql = countSql + (dealType || start? "AND `from`=?  " : "WHERE `from`=?  ")
     queryParams.push(userId)
     countQueryParams.push(userId)
   }
   sql = sql + "ORDER BY `deal_time` DESC LIMIT ?"
-  countSql = countSql + "ORDER BY `deal_time` DESC LIMIT ?"
   queryParams.push(lmt)
-  countQueryParams.push(lmt)
 
   let queryRes = await mysqlUtil.query(mysqlConn, sql, queryParams)
-  let countQueryRes = await mysqlUtil.query(mysqlConn, countSql, countQueryParams)
-  let total = countQueryRes.results[0].count
+  if(isRefresh === true) {
+    let countQueryRes = await mysqlUtil.query(mysqlConn, countSql, countQueryParams)
+    total = countQueryRes.results[0].count
+  }
   let depositList = []
   if(queryRes.results.length > 0) {
     for (let deal of queryRes.results) {
       let record = {}
       record.id = deal.charge_id
       record.order_no = deal.order_no
-      if(deal.deal_type === DEAL_TYPE_DEPOSIT) {
-        record.userId = deal.from
-        record.user = await getUserInfoById(deal.from)
-      } else if(deal.deal_type === DEAL_TYPE_REFUND) {
-        record.userId = deal.to
-        record.user = await getUserInfoById(deal.to)
-      } else {
-        record.userId = undefined
+      switch (deal.deal_type) {
+        case DEAL_TYPE_DEPOSIT:
+        case DEAL_TYPE_RECHARGE:
+        case DEAL_TYPE_SERVICE:
+        case DEAL_TYPE_ORDER_PAY:
+          record.userId = deal.from
+          record.user = await getUserInfoById(deal.from)
+          break
+        case DEAL_TYPE_REFUND:
+        case DEAL_TYPE_WITHDRAW:
+        case DEAL_TYPE_SYS_PRESENT:
+          record.userId = deal.to
+          record.user = await getUserInfoById(deal.to)
+          break
+        default:
+          break
       }
       record.cost = deal.cost
       record.dealTime = deal.deal_time
@@ -938,7 +928,7 @@ var PingppFunc = {
   fetchRecharges: fetchRecharges,
   handleRedEnvelopeDeal: handleRedEnvelopeDeal,
   createUserWallet: createUserWallet,
-  fetchDeposit: fetchDeposit,
+  fetchDealRecord: fetchDealRecord,
   pingppFuncTest: pingppFuncTest,
 }
 
