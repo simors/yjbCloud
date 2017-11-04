@@ -162,5 +162,6 @@ AV.Cloud.define('sysauthVerifyAuthCode', sysAuthFunc.reqVerifyAuthCode)
 
 // 取现与退押金
 AV.Cloud.define('withdrawCreateApply', withdrawFunc.createWithdrawApply)
+AV.Cloud.define('withdrawFetchApply', withdrawFunc.fetchWithdrawRecords)
 
 module.exports = AV.Cloud;
