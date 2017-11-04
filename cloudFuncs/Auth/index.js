@@ -121,7 +121,7 @@ async function authValidRoles(userId, roleCodes) {
  */
 async function authValidPermissions(userId, permissionCodes) {
   const validPermissionCodes = await authGetPermissionsByUser(userId);
-  console.log('validPermissionCodes======>',validPermissionCodes)
+  // console.log('validPermissionCodes======>',validPermissionCodes)
   const intersect = new Set([...validPermissionCodes].filter(i => new Set(permissionCodes).has(i)));
   return intersect.size > 0;
 }

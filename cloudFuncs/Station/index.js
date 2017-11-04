@@ -149,13 +149,33 @@ function createStation(request, response) {
  * @param {Object}  response
  */
 
-function fetchStations(request, response) {
+async function fetchStations(request, response) {
   let params = request.params
-  getStations(params).then((results)=>{
+  let currentUser = request.currentUser
+  // console.log('currentUser==>',currentUser)
+  if(!currentUser){
+    response.error('User didn\'t login')
+  }
+  let queryAll = await authFuncs.authValidPermissions(currentUser.id,[PERMISSION_CODE.STATION_FETCH_ALL_STATION])
+  let queryRelate = await authFuncs.authValidPermissions(currentUser.id,[PERMISSION_CODE.STATION_FETCH_RELATED_STATION])
+  console.log('queryAll=====>', queryAll)
+  console.log('queryRelate=====>', queryRelate)
+
+  if(queryRelate){
+    params.userId = currentUser.id
+  }
+  if(queryAll){
+    params.userId = undefined
+  }
+  try{
+    let results = await getStations(params)
     response.success(results)
-  },(err)=>{
-    throw err
-  })
+
+  }catch(err){
+    response.error(err)
+  }
+
+
 }
 
 /**
@@ -941,6 +961,7 @@ function userFuncTest(request, response) {
  */
 async function getStations(params) {
   let {lastCreatedAt, userId, status, province, city, area, name, addr, limit} = params
+  console.log('params=========>',params)
   let query = new AV.Query('Station')
   let stationList = []
   if (province) {
