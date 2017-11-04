@@ -73,7 +73,6 @@ function constructPromotionInfo(promotion, includeCategory, includeUser) {
   if(!promotionAttr) {
     return undefined
   }
-  console.log("promotionAttr:", promotionAttr)
   promotionInfo.id = promotion.id
   promotionInfo.title = promotionAttr.title
   promotionInfo.description = promotionAttr.description

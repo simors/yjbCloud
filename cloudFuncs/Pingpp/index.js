@@ -172,6 +172,10 @@ function judgeWalletRefund(wallet, deposit) {
   return wallet.deposit == deposit
 }
 
+function judgeWalletDebt(wallet) {
+  return wallet.debt > 0
+}
+
 /**
  * 判断用户是否可以做提取押金的操作
  * @param userId
@@ -186,6 +190,14 @@ async function isRefundAllowed(userId, deposit) {
     }
     if (!judgeWalletRefund(wallet, deposit)) {
       return errno.ERROR_NOT_MATCH_DEPOSIT
+    }
+    if(!judgeWalletDebt(wallet)) {
+      return errno.ERROR_UNPAID_ORDER
+    }
+    let getOccupiedOrder = require('../Order').getOccupiedOrder
+    let occupiedOrder = await getOccupiedOrder(userId)
+    if(occupiedOrder) {
+      return errno.ERROR_OCCUPIED_ORDER
     }
     return 0
   } catch (e) {
