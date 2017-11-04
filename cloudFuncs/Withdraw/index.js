@@ -7,17 +7,22 @@ import mysqlUtil from '../Util/mysqlUtil'
 import moment from 'moment'
 
 const WITHDRAW_STATUS = {
-  APPLYING: 0,
-  DONE: 1,
+  APPLYING: 0,      // 提交申请
+  DONE: 1,          // 处理完成
+}
+
+const WITHDRAW_APPLY_TYPE = {
+  REFUND: 1,        // 微信端用户申请退还押金
+  PROFIT: 2,        // 服务单位和投资人申请收益取现
 }
 
 async function createWithdrawApply(request) {
   let conn = undefined
-  let {userId, amount} = request.params
+  let {userId, openid, amount, applyType} = request.params
   try {
     conn = await mysqlUtil.getConnection()
-    let iSql = 'INSERT INTO `WithdrawApply` (`userId`, `amount`, `applyDate`, `status`) VALUES(?, ?, ?, ?)'
-    let insertRes = await mysqlUtil.query(conn, iSql, [userId, amount, moment().format('YYYY-MM-DD'), WITHDRAW_STATUS.APPLYING])
+    let iSql = 'INSERT INTO `WithdrawApply` (`userId`, `openid`, `amount`, `applyDate`, `status`, `applyType`) VALUES(?, ?, ?, ?, ?)'
+    let insertRes = await mysqlUtil.query(conn, iSql, [userId, openid, amount, moment().format('YYYY-MM-DD'), WITHDRAW_STATUS.APPLYING, applyType])
     if (!insertRes.results.insertId) {
       throw new AV.Cloud.Error('insert new admin profit record error', {code: errno.EIO})
     }
@@ -52,6 +57,7 @@ async function confirmWithdraw(operator, orderId) {
 
 const withdrawFunc = {
   WITHDRAW_STATUS,
+  WITHDRAW_APPLY_TYPE,
   createWithdrawApply,
   confirmWithdraw,
 }
