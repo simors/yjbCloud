@@ -936,7 +936,6 @@ function userFuncTest(request, response) {
  */
 async function getStations(params) {
   let {lastCreatedAt, userId, status, province, city, area, name, addr, limit} = params
-  console.log('params======>',params)
   let query = new AV.Query('Station')
   let stationList = []
   if (province) {
