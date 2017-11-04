@@ -131,6 +131,7 @@ AV.Cloud.define('accountStatLastHalfYearAccountProfit', accountsFunc.reqStatLast
 AV.Cloud.define('accountStatLast1YearAccountProfit', accountsFunc.reqStatLast1YearAccountProfit)
 AV.Cloud.define('accountStatAccountProfit', accountsFunc.reqStatAccountProfit)
 AV.Cloud.define('accountStatPlatformAccount', accountsFunc.reqStatPlatformAccount)
+AV.Cloud.define('accountFetchStationAccountRank', accountsFunc.reqFetchStationAccountRank)
 
 AV.Cloud.define('stationAccountToExcel', excelFunc.stationAccountToExcel)
 

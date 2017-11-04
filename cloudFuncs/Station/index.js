@@ -14,6 +14,11 @@ const profitShareType = {
   PROFIT_SHARE_PARTNER: 'partner',
 }
 
+export const StationStatus = {
+  STATION_STATUS_OPEN : 1,       //服务点为开启
+  STATION_STATUS_CLOSE : 0,          //服务点为关闭
+}
+
 //服务点
 function constructStationInfo(station, includeAdmin) {
   if (!station) {
@@ -122,7 +127,7 @@ function createStation(request, response) {
     station.set('platformProp', platformProp)
     station.set('stationProp', stationProp)
     station.set('admin', admin)
-    station.set('status', 1)
+    station.set('status', StationStatus.STATION_STATUS_OPEN)
 
     station.save().then((leanStation) => {
       var query = new AV.Query('Station')
@@ -145,70 +150,12 @@ function createStation(request, response) {
  */
 
 function fetchStations(request, response) {
-  var currentUser = request.currentUser
-  var province = request.params.province
-  var city = request.params.city
-  var area = request.params.area
-  var name = request.params.name
-  var limit = request.params.limit || 100
-  var status = request.params.status
-  var addr = request.params.addr
-  var mobilePhoneNumber = request.params.mobilePhoneNumber
-  var lastCreatedAt = request.params.lastCreatedAt
-  var query = new AV.Query('Station')
-  if (province) {
-    query.equalTo('province.value', province)
-  }
-  if (city) {
-    query.equalTo('city.value', city)
-  }
-  if (area) {
-    query.equalTo('area.value', area)
-  }
-  if (name) {
-    query.equalTo('name', name)
-  }
-  if (status != undefined) {
-    query.equalTo('status', status)
-  }
-  if (addr) {
-    query.equalTo('addr', addr)
-  }
-  if (lastCreatedAt) {
-    query.lessThan('createdAt', lastCreatedAt)
-  }
-  query.limit(limit)
-  query.include(['admin'])
-  query.descending('createdDate')
-  if(mobilePhoneNumber){
-    var queryUser = new AV.Query('_User')
-    queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
-    queryUser.first().then((user)=>{
-      var userInfo = AV.Object.createWithoutData('_User', user.id)
-      query.equalTo('admin', userInfo)
-      query.find().then((stationList)=> {
-        var stations = []
-        stationList.forEach((record)=> {
-          var station = constructStationInfo(record, true)
-          stations.push(station)
-        })
-        response.success(stations)
-      }, (err)=> {
-        response.error(err)
-      })
-    })
-  }else{
-    query.find().then((stationList)=> {
-      var stations = []
-      stationList.forEach((record)=> {
-        var station = constructStationInfo(record, true)
-        stations.push(station)
-      })
-      response.success(stations)
-    }, (err)=> {
-      response.error(err)
-    })
-  }
+  let params = request.params
+  getStations(params).then((results)=>{
+    response.success(results)
+  },(err)=>{
+    throw err
+  })
 }
 
 /**
@@ -309,7 +256,7 @@ function getPartnerByStationId(stationId) {
   var query = new AV.Query('ProfitSharing')
   query.equalTo('station', station)
   query.equalTo('type', profitShareType.PROFIT_SHARE_PARTNER)
-  query.equalTo('status', 1)
+  query.equalTo('status', StationStatus.STATION_STATUS_OPEN)
   query.include(['station', 'shareholder'])
   query.descending('createdDate')
   return query.find().then((sharings)=> {
@@ -364,7 +311,7 @@ function fetchInvestorByStationId(request, response) {
     queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
     queryUser.first().then((user)=> {
 
-      if(!user){
+      if (!user) {
         response.error('没有查到该用户')
       }
       query.equalTo('shareholder', user)
@@ -412,7 +359,7 @@ function getInvestorByStationId(stationId) {
   station = AV.Object.createWithoutData('Station', stationId)
   query.equalTo('station', station)
   query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
-  query.equalTo('status', 1)
+  query.equalTo('status', StationStatus.STATION_STATUS_OPEN)
   query.include(['station', 'shareholder'])
   query.descending('createdAt')
   return query.find().then((sharings)=> {
@@ -439,7 +386,7 @@ function getInvestorByStationId(stationId) {
 async function getProfitSharingByUser(user, type) {
   let query = new AV.Query('ProfitSharing')
   query.equalTo('shareholder', user)
-  query.equalTo('status', 1)
+  query.equalTo('status', StationStatus.STATION_STATUS_OPEN)
   query.equalTo('type', type)
   query.include('station')
   query.descending('createdAt')
@@ -567,14 +514,14 @@ function createInvestor(request, response) {
   queryPre.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
   queryPre.first().then((item)=> {
     if (item) {
-      response.error(new Error( "该服务点已有该投资人!"))
+      response.error(new Error("该服务点已有该投资人!"))
     } else {
       investor.set('shareholder', user)
       investor.set('station', station)
       // investor.set('royalty', royalty)
       investor.set('investment', investment)
       investor.set('type', profitShareType.PROFIT_SHARE_INVESTOR)
-      investor.set('status', 1)
+      investor.set('status', StationStatus.STATION_STATUS_OPEN)
       investor.save().then((item)=> {
         var queryStation = new AV.Query('Station')
         queryStation.get(stationId).then((stationInfo)=> {
@@ -585,7 +532,7 @@ function createInvestor(request, response) {
             var query = new AV.Query('ProfitSharing')
             query.include(['shareholder', 'station', 'station.admin'])
             query.equalTo('station', station)
-            query.equalTo('status', 1)
+            query.equalTo('status', StationStatus.STATION_STATUS_OPEN)
             query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
             query.find().then((sharings)=> {
               var shareList = []
@@ -653,7 +600,7 @@ function updateInvestor(request, response) {
       var queryStation = new AV.Query('Station')
       queryStation.get(stationId).then((stationInfo)=> {
         var investmentSum = stationInfo.attributes.investment
-        if (stationInfo.attributes.status == 1) {
+        if (stationInfo.attributes.status == StationStatus.STATION_STATUS_OPEN) {
           investmentSum = investmentSum + investment - preInvestment
           station.set('investment', investmentSum)
         }
@@ -661,7 +608,7 @@ function updateInvestor(request, response) {
           var query = new AV.Query('ProfitSharing')
           query.include(['shareholder', 'station', 'station.admin'])
           query.equalTo('station', station)
-          query.equalTo('status', 1)
+          query.equalTo('status', StationStatus.STATION_STATUS_OPEN)
           query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
           query.find().then((sharings)=> {
             var shareList = []
@@ -706,7 +653,7 @@ function openStation(request, response) {
   let currentUser = request.currentUser
   var stationId = request.params.stationId
   var station = AV.Object.createWithoutData('Station', stationId)
-  station.set('status', 1)
+  station.set('status', StationStatus.STATION_STATUS_OPEN)
   station.save().then((item)=> {
     var query = new AV.Query('Station')
     query.include(['admin'])
@@ -731,7 +678,7 @@ function openPartner(request, response) {
   let currentUser = request.currentUser
   var partnerId = request.params.partnerId
   var partner = AV.Object.createWithoutData('ProfitSharing', partnerId)
-  partner.set('status', 1)
+  partner.set('status', StationStatus.STATION_STATUS_OPEN)
   partner.save().then((item)=> {
     var query = new AV.Query('ProfitSharing')
     query.include(['station', 'shareholder'])
@@ -756,7 +703,7 @@ function closePartner(request, response) {
   let currentUser = request.currentUser
   var partnerId = request.params.partnerId
   var partner = AV.Object.createWithoutData('ProfitSharing', partnerId)
-  partner.set('status', 0)
+  partner.set('status', StationStatus.STATION_STATUS_CLOSE)
   partner.save().then((item)=> {
     var query = new AV.Query('ProfitSharing')
     query.include(['station', 'shareholder'])
@@ -786,11 +733,11 @@ function openInvestor(request, response) {
     var preInvestment = record.attributes.investment
     // console.log('record========>',record.attributes.station)
     var station = AV.Object.createWithoutData('Station', record.attributes.station.id)
-    if (record.attributes.status == 1) {
+    if (record.attributes.status == StationStatus.STATION_STATUS_OPEN) {
       response.error({message: '该投资人已经被启用'})
       return
     }
-    investor.set('status', 1)
+    investor.set('status', StationStatus.STATION_STATUS_OPEN)
     investor.save().then((item)=> {
       var queryStation = new AV.Query('Station')
       queryStation.get(record.attributes.station.id).then((stationInfo)=> {
@@ -801,7 +748,7 @@ function openInvestor(request, response) {
           var query = new AV.Query('ProfitSharing')
           query.include(['shareholder', 'station', 'station.admin'])
           query.equalTo('station', station)
-          query.equalTo('status', 1)
+          query.equalTo('status', StationStatus.STATION_STATUS_OPEN)
           query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
           query.find().then((sharings)=> {
             var shareList = []
@@ -853,11 +800,11 @@ function closeInvestor(request, response) {
     var preInvestment = record.attributes.investment
     // console.log('record========>',record.attributes.station)
     var station = AV.Object.createWithoutData('Station', record.attributes.station.id)
-    if (record.attributes.status == 0) {
+    if (record.attributes.status == StationStatus.STATION_STATUS_OPEN) {
       response.error({message: '该投资人已经被禁用'})
       return
     }
-    investor.set('status', 0)
+    investor.set('status', StationStatus.STATION_STATUS_CLOSE)
     investor.set('royalty', 0)
     investor.save().then((item)=> {
       var queryStation = new AV.Query('Station')
@@ -869,7 +816,7 @@ function closeInvestor(request, response) {
           var query = new AV.Query('ProfitSharing')
           query.include(['shareholder', 'station', 'station.admin'])
           query.equalTo('station', station)
-          query.equalTo('status', 1)
+          query.equalTo('status', StationStatus.STATION_STATUS_OPEN)
           query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
           query.find().then((sharings)=> {
             var shareList = []
@@ -916,7 +863,7 @@ function closeStation(request, response) {
     }
     var stationId = request.params.stationId
     var station = AV.Object.createWithoutData('Station', stationId)
-    station.set('status', 0)
+    station.set('status', StationStatus.STATION_STATUS_CLOSE)
     station.save().then((item)=> {
       var query = new AV.Query('Station')
       query.include(['admin'])
@@ -979,26 +926,60 @@ function userFuncTest(request, response) {
 
 
 /**
- * 查询服务点列表
- * @param {String}  stationId
+ *
+ * @param params
+ * lastCreatedAt: string
+ * userId: string
+ * status: num
+ * province: string
+ * city: string
+ * area: string
+ * name: string
+ * addr: string
+ * limit: num
+ * @returns {Array}
  */
-async function getStations(lastCreatdAt) {
+async function getStations(params) {
+  let {lastCreatedAt, userId, status, province, city, area, name, addr, limit} = params
   let query = new AV.Query('Station')
-  query.equalTo('status',1)
-  query.descending('createdAt')
   let stationList = []
-
+  if (province) {
+    query.equalTo('province.value', province)
+  }
+  if (city) {
+    query.equalTo('city.value', city)
+  }
+  if (area) {
+    query.equalTo('area.value', area)
+  }
+  if (name) {
+    query.equalTo('name', name)
+  }
+  if (addr) {
+    query.equalTo('addr', addr)
+  }
+  if(limit){
+    query.limit(limit)
+  }
+  if (lastCreatedAt) {
+    query.lessThan('createdAt', new Date(lastCreatedAt))
+  }
+  if (userId) {
+    let user = AV.Object.createWithoutData('_User', userId)
+    query.equalTo('admin', user)
+  }
+  if(status!=undefined){
+    query.equalTo('status', status)
+  }
+  query.include(['admin'])
+  query.descending('createdAt')
   try {
-    if (lastCreatdAt) {
-      query.lessThan('createdAt', new Date(lastCreatdAt))
-    }
-    let devices = await query.find()
-    devices.forEach((device) => {
-      stationList.push(constructStationInfo(device, false))
+    let stations = await query.find()
+    stations.forEach((station) => {
+      stationList.push(constructStationInfo(station, true))
     })
     return stationList
   } catch (error) {
-    console.log("getDevices", error)
     throw error
   }
 }
@@ -1016,7 +997,7 @@ async function changeDeviceNum(stationId, type) {
     let query = new AV.Query('Station')
     let stationInfo = await query.get(stationId)
     let deviceNo = stationInfo.attributes.deviceNo
-    if(deviceNo>0){
+    if (deviceNo > 0) {
       station.increment('deviceNo', -1)
     }
   } else {
@@ -1035,9 +1016,9 @@ async function changeDeviceNum(stationId, type) {
  * @param request {currentUser, params {userId}}
  * return Bool
  */
-async function adminHaveStation(request){
-  let {params , currentUser} = request
-  if(!currentUser){
+async function adminHaveStation(request) {
+  let {params, currentUser} = request
+  if (!currentUser) {
     throw new AV.Cloud.Error('未登录', {code: errno.EPERM})
   }
   let {userId} = params
@@ -1049,22 +1030,22 @@ async function adminHaveStation(request){
  * @param userId
  * return Bool
  */
-async function adminHaveStationFunc(userId){
-  if(!userId){
+async function adminHaveStationFunc(userId) {
+  if (!userId) {
     throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
   }
-  let user = AV.Object.createWithoutData('_User',userId)
+  let user = AV.Object.createWithoutData('_User', userId)
   let query = new AV.Query('Station')
   query.equalTo('admin', user)
   query.include(['admin'])
-  try{
+  try {
     let stationList = await query.find()
-    if(stationList&&stationList.length>0){
+    if (stationList && stationList.length > 0) {
       throw new AV.Cloud.Error('该用户仍拥有管理中的服务点', {code: errno.ERROR_STATION_HAVESTATION})
-    }else{
+    } else {
       return true
     }
-  }catch(err){
+  } catch (err) {
     throw err
   }
 
@@ -1075,9 +1056,9 @@ async function adminHaveStationFunc(userId){
  * @param request {currentUser, params {userId}}
  * return Bool
  */
-async function partnerHaveStation(request){
-  let {params , currentUser} = request
-  if(!currentUser){
+async function partnerHaveStation(request) {
+  let {params, currentUser} = request
+  if (!currentUser) {
     throw new AV.Cloud.Error('未登录', {code: errno.EPERM})
   }
   let {userId} = params
@@ -1089,24 +1070,24 @@ async function partnerHaveStation(request){
  * @param userId
  * return Bool
  */
-async function partnerHaveStationFunc(userId){
-  if(!userId){
+async function partnerHaveStationFunc(userId) {
+  if (!userId) {
     throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
   }
-  let user = AV.Object.createWithoutData('_User',userId)
+  let user = AV.Object.createWithoutData('_User', userId)
   let query = new AV.Query('ProfitSharing')
   query.equalTo('shareholder', user)
   query.equalTo('type', 'partner')
-  query.equalTo('status', 1)
+  query.equalTo('status', StationStatus.STATION_STATUS_OPEN)
   query.include(['shareholder'])
-  try{
+  try {
     let stationList = await query.find()
-    if(stationList&&stationList.length>0){
+    if (stationList && stationList.length > 0) {
       throw new AV.Cloud.Error('该用户仍拥有分成的服务点', {code: errno.ERROR_STATION_HAVESTATION})
-    }else{
+    } else {
       return true
     }
-  }catch(err){
+  } catch (err) {
     throw err
   }
 
@@ -1117,9 +1098,9 @@ async function partnerHaveStationFunc(userId){
  * @param request {currentUser, params {userId}}
  * return Bool
  */
-async function investorHaveStation(request){
- let {params , currentUser} = request
-  if(!currentUser){
+async function investorHaveStation(request) {
+  let {params, currentUser} = request
+  if (!currentUser) {
     throw new AV.Cloud.Error('未登录', {code: errno.EPERM})
   }
   let {userId} = params
@@ -1127,34 +1108,31 @@ async function investorHaveStation(request){
 }
 
 async function investorHaveStationFunc(userId) {
-  if(!userId){
+  if (!userId) {
     throw new AV.Cloud.Error('未选择用户', {code: errno.EPERM})
   }
-  let user = AV.Object.createWithoutData('_User',userId)
+  let user = AV.Object.createWithoutData('_User', userId)
   let query = new AV.Query('ProfitSharing')
   query.equalTo('shareholder', user)
   query.equalTo('type', 'investor')
-  query.equalTo('status', 1)
+  query.equalTo('status', StationStatus.STATION_STATUS_OPEN)
   query.include(['shareholder'])
-  try{
+  try {
     let stationList = await query.find()
-    if(stationList&&stationList.length>0){
+    if (stationList && stationList.length > 0) {
       throw new AV.Cloud.Error('该用户仍拥有投资的服务点', {code: errno.ERROR_STATION_HAVESTATION})
-    }else{
+    } else {
       return true
     }
-  }catch(err){
+  } catch (err) {
     throw err
   }
-
-
-
 }
 
+
 function stationFuncTest(request, response) {
-  let stationId = request.params.stationId
-  let type = request.params.type
-  response.success(changeDeviceNum(stationId,type))
+  let params = request.params || {}
+  response.success(getStations(params))
 }
 
 /**
@@ -1163,7 +1141,7 @@ function stationFuncTest(request, response) {
  */
 async function statStationCount() {
   let query = new AV.Query('Station')
-  query.equalTo('status', 1)
+  query.equalTo('status', StationStatus.STATION_STATUS_OPEN)
   return await query.count()
 }
 
@@ -1181,7 +1159,7 @@ async function statStationByDate(startDate, endDate) {
   endQuery.lessThanOrEqualTo('createdAt', new Date(endDate))
 
   let query = AV.Query.and(beginQuery, endQuery)
-  query.equalTo('status', 1)
+  query.equalTo('status', StationStatus.STATION_STATUS_OPEN)
   return await query.count()
 }
 

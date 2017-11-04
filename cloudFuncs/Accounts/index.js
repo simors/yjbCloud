@@ -176,7 +176,7 @@ async function createStationAccount(station, dayInfo) {
     let stationInfo = AV.Object.createWithoutData('Station', station.id)
     let Account = AV.Object.extend('StationAccount')
     let account = new Account()
-    cost = mathjs.round(mathjs.chain(station.powerUnitPrice).multiply(powerSum).multiply(1/1000).done(), 2)
+    cost = mathjs.round(mathjs.chain(station.powerUnitPrice).multiply(powerSum).multiply(1 / 1000).done(), 2)
     profit = mathjs.round(mathjs.chain(amountSum).subtract(cost).done(), 2)
     account.set('incoming', amountSum)
     account.set('station', stationInfo)
@@ -201,11 +201,7 @@ async function createPartnerAccount(accountId, dayInfo) {
     queryAccount.include(['station'])
     let stationAccount = await queryAccount.get(accountId)
     let stationAccountInfo = constructStationAccount(stationAccount, true)
-    if(stationAccountInfo.profit>0){
-      platfomProfit  = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(stationAccountInfo.station.platformProp).done(), 2)
-    }else{
-      platfomProfit = stationAccountInfo.profit
-    }
+    platfomProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(stationAccountInfo.station.platformProp).done(), 2)
 
 
     let station = AV.Object.createWithoutData('Station', stationAccountInfo.stationId)
@@ -220,9 +216,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         let partnerAccount = new PartnerAccount()
         let profit = 0
         partnerAccount.set('stationAccount', stationAccountObject)
-        if(stationAccountInfo.profit>0){
-          profit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(partner.royalty).done(), 2)
-        }
+        profit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(partner.royalty).done(), 2)
         partnerAccount.set('profit', profit)
         partnerAccount.set('accountDay', dayInfo.yesterday)
         partnerAccount.set('profitSharing', profitSharing)
@@ -235,9 +229,7 @@ async function createPartnerAccount(accountId, dayInfo) {
       }
     }
     let investorList = await StationFuncs.getInvestorByStationId(stationAccountInfo.stationId)
-    if(stationAccountInfo.profit>0){
-      investorProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).subtract(platfomProfit).subtract(partnerProfit).done(), 2)
-    }
+    investorProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).subtract(platfomProfit).subtract(partnerProfit).done(), 2)
     if (investorList && investorList.length > 0) {
       for (let i = 0; i < investorList.length; i++) {
         let investor = investorList[i]
@@ -285,7 +277,7 @@ async function createStationDayAccount() {
   let dayInfo = getYesterday()
   try {
     while (1) {
-      let stationList = await StationFuncs.getStations(lastTime)
+      let stationList = await StationFuncs.getStations({lastCreatedAt: lastTime, status: 1})
       if (stationList.length < 1) {
         break
       }
@@ -352,7 +344,7 @@ async function getStationAccounts(request, response) {
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
-  if(limit){
+  if (limit) {
     query.limit(limit)
   }
   query.descending('createdAt')
@@ -456,25 +448,34 @@ async function getPartnerAccounts(request, response) {
   let startDate = request.params.startDate
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
+  let mobilePhoneNumber = request.params.mobilePhoneNumber
   let limit = request.params.limit
   let partners = []
   try {
-    if (userId) {
-     partners.push({id:userId})
-    }else if(stationId){
+    if (mobilePhoneNumber) {
+      let queryUser = new AV.Query('_User')
+      queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+      let user = await queryUser.find()
+      if (user && user.length > 0) {
+        partners.push({id: user[0].id})
+      } else {
+        response.error('没有找到该用户')
+      }
+
+    } else if (stationId) {
       let partnerList = await StationFuncs.getPartnerByStationId(stationId)
-      partnerList.forEach((item)=>{
-        partners.push({id:item.shareholderId})
+      partnerList.forEach((item)=> {
+        partners.push({id: item.shareholderId})
       })
-    }else{
+    } else {
       let roles = []
       roles.push(ROLE_CODE.STATION_PROVIDER)
-      partners = await getUsersByRoles(roles,lastCreatedAt,limit)
+      partners = await getUsersByRoles(roles, lastCreatedAt, limit)
     }
     let accountList = []
     for (let i = 0; i < partners.length; i++) {
       let account = await getAccountsByPartnerId(partners[i].id, stationId, startDate, endDate)
-      if (account&& account.userId  ) {
+      if (account && account.userId) {
         accountList.push(account)
       }
     }
@@ -537,11 +538,11 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
       })
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
     }
-    if (accountInfo && accountInfo.userId ) {
+    if (accountInfo && accountInfo.userId) {
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
       accountInfo.profit = profit
-      if(!stationId){
+      if (!stationId) {
         accountInfo.station = undefined
         accountInfo.stationId = undefined
       }
@@ -562,24 +563,31 @@ async function getAccountsByPartnerId(partnerId, stationId, startDate, endDate) 
  */
 async function getInvestorAccounts(request, response) {
   let stationId = request.params.stationId
-  let userId = request.params.userId
+  let mobilePhoneNumber = request.params.mobilePhoneNumber
   let startDate = request.params.startDate
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
   let partners = []
   let limit = request.params.limit
   try {
-    if (userId) {
-      partners.push({id:userId})
-    }else if(stationId){
+    if (mobilePhoneNumber) {
+      let queryUser = new AV.Query('_User')
+      queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+      let user = await queryUser.find()
+      if (user && user.length > 0) {
+        partners.push({id: user[0].id})
+      } else {
+        response.error('没有找到该用户')
+      }
+    } else if (stationId) {
       let partnerList = await StationFuncs.getInvestorByStationId(stationId)
-      partnerList.forEach((item)=>{
-        partners.push({id:item.shareholderId})
+      partnerList.forEach((item)=> {
+        partners.push({id: item.shareholderId})
       })
-    }else{
+    } else {
       let roles = []
       roles.push(ROLE_CODE.STATION_INVESTOR)
-      partners = await getUsersByRoles(roles,lastCreatedAt, limit)
+      partners = await getUsersByRoles(roles, lastCreatedAt, limit)
     }
     let accountList = []
     for (let i = 0; i < partners.length; i++) {
@@ -647,11 +655,11 @@ async function getAccountsByInvestorId(investorId, stationId, startDate, endDate
       })
       lastCreatedAt = accounts[accounts.length - 1].createdAt.valueOf()
     }
-    if (accountInfo&& accountInfo.userId) {
+    if (accountInfo && accountInfo.userId) {
       accountInfo.profit = profit
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
-      if(!stationId){
+      if (!stationId) {
         accountInfo.stationId = undefined
         accountInfo.station = undefined
       }
@@ -698,7 +706,7 @@ async function getStationAccountsDetail(request, response) {
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
-  if (limit){
+  if (limit) {
     query.limit(limit)
   }
   query.descending('createdAt')
@@ -730,6 +738,7 @@ async function getPartnerAccountsDetail(request, response) {
   let endDate = request.params.endDate
   let lastCreatedAt = request.params.lastCreatedAt
   let limit = request.params.limit
+  let mobilePhoneNumber = request.params.mobilePhoneNumber
   let query = undefined
   if (startDate && !endDate) {
     query = new AV.Query('AccountProfit')
@@ -750,11 +759,23 @@ async function getPartnerAccountsDetail(request, response) {
     let user = AV.Object.createWithoutData('_User', userId)
     query.equalTo('user', user)
   }
+  if (mobilePhoneNumber) {
+    let queryUser = new AV.Query('_User')
+    queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+    let userInfo = await queryUser.find()
+    // console.log('userInfo=====>',userInfo[0])
+    if (userInfo && userInfo.length > 0) {
+      let user = AV.Object.createWithoutData('_User', userInfo[0].id)
+      query.equalTo('user', user)
+    } else {
+      response.error('没有找到该用户')
+    }
+  }
   if (stationId) {
     let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
   }
-  if(limit){
+  if (limit) {
     query.limit(limit)
   }
   if (lastCreatedAt) {
@@ -767,7 +788,7 @@ async function getPartnerAccountsDetail(request, response) {
     let accounts = await query.find()
     let accountList = []
     accounts.forEach((account)=> {
-      let accountInfo = constructAccountProfit(account, true,true)
+      let accountInfo = constructAccountProfit(account, true, true)
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
       accountList.push(accountInfo)
@@ -788,6 +809,7 @@ async function getInvestorAccountsDetail(request, response) {
   let startDate = request.params.startDate
   let userId = request.params.userId
   let endDate = request.params.endDate
+  let mobilePhoneNumber = request.params.mobilePhoneNumber
   let lastCreatedAt = request.params.lastCreatedAt
   let query = undefined
   let limit = request.params.limit
@@ -810,11 +832,23 @@ async function getInvestorAccountsDetail(request, response) {
     let user = AV.Object.createWithoutData('_User', userId)
     query.equalTo('user', user)
   }
+  if (mobilePhoneNumber) {
+    let queryUser = new AV.Query('_User')
+    queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+    let userInfo = await queryUser.find()
+    // console.log('userInfo=====>',userInfo[0])
+    if (userInfo && userInfo.length > 0) {
+      let user = AV.Object.createWithoutData('_User', userInfo[0].id)
+      query.equalTo('user', user)
+    } else {
+      response.error('没有找到该用户')
+    }
+  }
   if (stationId) {
     let station = AV.Object.createWithoutData('Station', stationId)
     query.equalTo('station', station)
   }
-  if(limit){
+  if (limit) {
     query.limit(limit)
   }
   if (lastCreatedAt) {
@@ -827,7 +861,7 @@ async function getInvestorAccountsDetail(request, response) {
     let accounts = await query.find()
     let accountList = []
     accounts.forEach((account)=> {
-      let accountInfo = constructAccountProfit(account, true,true)
+      let accountInfo = constructAccountProfit(account, true, true)
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
       accountList.push(accountInfo)
@@ -872,12 +906,12 @@ async function getPlatformAccount(request, response) {
   try {
     let accounts = await query.find()
     let accountList = []
-    accounts.forEach((item)=>{
+    accounts.forEach((item)=> {
       let accountInfo = constructPlatformAccount(item)
       accountInfo.startDate = startDate
       accountInfo.endDate = endDate
       accountList.push(accountInfo)
-  })
+    })
     response.success(accountList)
   } catch (error) {
     response.error(error)
@@ -1022,7 +1056,7 @@ async function recordAccountError(dayInfo, errorInfo) {
  * @param lastCreatedAt
  * @returns {*}
  */
-async function getUsersByRoles(roles, lastCreatedAt ,limit) {
+async function getUsersByRoles(roles, lastCreatedAt, limit) {
   if (!roles) {
     return undefined
   }
@@ -1031,7 +1065,7 @@ async function getUsersByRoles(roles, lastCreatedAt ,limit) {
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
-  if(limit){
+  if (limit) {
     query.limit(limit)
   }
   query.descending('createdAt')
@@ -1137,6 +1171,31 @@ async function reqStatPlatformAccount(request) {
   }
 }
 
+/**
+ * 获取某天所有服务点营业额排行
+ * @param rankDate
+ * @returns {Array}
+ */
+async function getStationAccountRank(rankDate) {
+  let query = new AV.Query('StationAccount')
+  query.equalTo('accountDay', new Date(rankDate))
+  query.include('station')
+  query.descending('incoming')
+  query.limit(30)
+  let result = await query.find()
+  let rank = []
+  result.forEach((stationAccount) => {
+    rank.push(constructStationAccount(stationAccount, true))
+  })
+  return rank
+}
+
+async function reqFetchStationAccountRank(request) {
+  let rankDate = request.params.rankDate
+  let result = await getStationAccountRank(rankDate)
+  return result
+}
+
 var accountFunc = {
   getYesterday: getYesterday,
   createStationDayAccount: createStationDayAccount,
@@ -1155,6 +1214,7 @@ var accountFunc = {
   reqStatLastHalfYearAccountProfit,
   reqStatLast1YearAccountProfit,
   reqStatPlatformAccount,
+  reqFetchStationAccountRank,
 }
 
 module.exports = accountFunc
