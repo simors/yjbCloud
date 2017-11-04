@@ -15,8 +15,8 @@ const profitShareType = {
 }
 
 export const StationStatus = {
-  STATION_STATUS_OPEN : 1,       //服务点为开启
-  STATION_STATUS_CLOSE : 0,          //服务点为关闭
+  STATION_STATUS_OPEN: 1,       //服务点为开启
+  STATION_STATUS_CLOSE: 0,          //服务点为关闭
 }
 
 //服务点
@@ -153,25 +153,23 @@ async function fetchStations(request, response) {
   let params = request.params
   let currentUser = request.currentUser
   // console.log('currentUser==>',currentUser)
-  if(!currentUser){
+  if (!currentUser) {
     response.error('User didn\'t login')
   }
-  let queryAll = await authFuncs.authValidPermissions(currentUser.id,[PERMISSION_CODE.STATION_FETCH_ALL_STATION])
-  let queryRelate = await authFuncs.authValidPermissions(currentUser.id,[PERMISSION_CODE.STATION_FETCH_RELATED_STATION])
-  console.log('queryAll=====>', queryAll)
-  console.log('queryRelate=====>', queryRelate)
+  let queryAll = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_ALL_STATION])
+  let queryRelate = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_RELATED_STATION])
 
-  if(queryRelate){
+  if (queryRelate) {
     params.userId = currentUser.id
   }
-  if(queryAll){
+  if (queryAll) {
     params.userId = undefined
   }
-  try{
+  try {
     let results = await getStations(params)
     response.success(results)
 
-  }catch(err){
+  } catch (err) {
     response.error(err)
   }
 
@@ -303,63 +301,77 @@ function getPartnerByStationId(stationId) {
  * @param {Object}  response
  */
 
-function fetchInvestorByStationId(request, response) {
+async function fetchInvestorByStationId(request, response) {
   var stationId = request.params.stationId
   var status = request.params.status
   var mobilePhoneNumber = request.params.mobilePhoneNumber
-  var station = undefined
   var limit = request.params.limit || 100
   var lastCreateTime = request.params.lastCreateTime
 
-  var query = new AV.Query('ProfitSharing')
-  query.limit(limit)
-  if (stationId) {
-    station = AV.Object.createWithoutData('Station', stationId)
-    query.equalTo('station', station)
+  let currentUser = request.currentUser
+  // console.log('currentUser==>',currentUser)
+  if (!currentUser) {
+    response.error('User didn\'t login')
   }
-  query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
-  if (status != undefined) {
-    query.equalTo('status', status)
-  }
-  if (lastCreateTime) {
-    query.lessThan('createdAt', lastCreateTime)
-  }
-  query.include(['station', 'shareholder'])
-  query.descending('createdDate')
-  if (mobilePhoneNumber) {
-    var queryUser = new AV.Query('_User')
-    queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
-    queryUser.first().then((user)=> {
+  try{
+    let queryAll = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_ALL_INVESTOR])
+    let queryRelate = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_RELATED_INVESTOR])
+
+    var query = new AV.Query('ProfitSharing')
+    if( limit){
+      query.limit(limit)
+    }
+    if(queryRelate&&!queryAll){
+      let queryInvestor = new AV.Query('ProfitSharing')
+      queryInvestor.equalTo('shareholder',currentUser)
+      queryInvestor.equalTo('type','investor')
+
+      let investors = await queryInvestor.find()
+      if(investors&&investors.length){
+        let stationList = []
+        investors.forEach((item)=>{
+          let station = AV.Object.createWithoutData('Station',item.attributes.station.id)
+          stationList.push(station)
+        })
+        query.containedIn('station',stationList)
+      }
+
+    }
+
+    if (stationId) {
+      let station = AV.Object.createWithoutData('Station', stationId)
+      query.equalTo('admin', station)
+    }
+    query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
+    if (status != undefined) {
+      query.equalTo('status', status)
+    }
+    if (lastCreateTime) {
+      query.lessThan('createdAt', lastCreateTime)
+    }
+    query.include(['station', 'shareholder'])
+    query.descending('createdDate')
+    if (mobilePhoneNumber) {
+      var queryUser = new AV.Query('_User')
+      queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+      let user = await queryUser.first()
 
       if (!user) {
         response.error('没有查到该用户')
       }
       query.equalTo('shareholder', user)
-      query.find().then((sharings)=> {
-        var sharingList = []
-        sharings.forEach((sharing)=> {
-          let sharingInfo = constructProfitSharing(sharing, true, true)
-          sharingList.push(sharingInfo)
-        })
-        response.success(sharingList)
-      }, (err)=> {
-        response.error(err)
-      })
+    }
+    let sharings = await query.find()
+    var sharingList = []
+    sharings.forEach((sharing)=> {
+      let sharingInfo = constructProfitSharing(sharing, true, true)
+      sharingList.push(sharingInfo)
     })
-  } else {
-    query.find().then((sharings)=> {
-      var sharingList = []
-      if (sharings && sharings.length > 0) {
-        sharings.forEach((sharing)=> {
-          let sharingInfo = constructProfitSharing(sharing, true, true)
-          sharingList.push(sharingInfo)
-        })
-      }
-      response.success(sharingList)
-    }, (err)=> {
-      response.error(err)
-    })
+    response.success(sharingList)
+  }catch(err){
+    response.error(err)
   }
+
 }
 
 /**
@@ -961,7 +973,6 @@ function userFuncTest(request, response) {
  */
 async function getStations(params) {
   let {lastCreatedAt, userId, status, province, city, area, name, addr, limit} = params
-  console.log('params=========>',params)
   let query = new AV.Query('Station')
   let stationList = []
   if (province) {
@@ -979,7 +990,7 @@ async function getStations(params) {
   if (addr) {
     query.equalTo('addr', addr)
   }
-  if(limit){
+  if (limit) {
     query.limit(limit)
   }
   if (lastCreatedAt) {
@@ -989,7 +1000,7 @@ async function getStations(params) {
     let user = AV.Object.createWithoutData('_User', userId)
     query.equalTo('admin', user)
   }
-  if(status!=undefined){
+  if (status != undefined) {
     query.equalTo('status', status)
   }
   query.include(['admin'])
