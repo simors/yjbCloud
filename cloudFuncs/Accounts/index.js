@@ -1102,15 +1102,15 @@ async function statPlatformAccountByDate(startDate, endDate) {
   let query = undefined
 
   if (startDate && endDate) {
-    let beginQuery = new AV.Query('DayAccountSum')
+    let beginQuery = new AV.Query('PlatformAccount')
     beginQuery.greaterThanOrEqualTo('accountDay', new Date(startDate))
 
-    let endQuery = new AV.Query('DayAccountSum')
+    let endQuery = new AV.Query('PlatformAccount')
     endQuery.lessThanOrEqualTo('accountDay', new Date(endDate))
 
     query = AV.Query.and(beginQuery, endQuery)
   } else {
-    query = new AV.Query('DayAccountSum')
+    query = new AV.Query('PlatformAccount')
   }
   query.limit(1000)
   query.descending('accountDay')
