@@ -172,6 +172,7 @@ async function authListEndUsers(req) {
  *   mobilePhoneNumber?: string,
  *   roles?: Array<number>, role codes
  *   status?: string, 'disabled'
+ *   skipMyself: boolean
  * }
  * @returns {Promise.<Array>} an Array of json representation User(s)
  */
@@ -183,7 +184,7 @@ async function authListAdminUsers(req) {
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
 
-  const {skip=0, limit=10, nickname, mobilePhoneNumber, roles, status} = params;
+  const {skip=0, limit=10, nickname, mobilePhoneNumber, roles, status, skipMyself=false} = params;
 
   const jsonUsers = [];
 
@@ -194,9 +195,11 @@ async function authListAdminUsers(req) {
   cql += ' where (type=? or type=?)';
   values.push(AUTH_USER_TYPE.ADMIN);
   values.push(AUTH_USER_TYPE.BOTH);
-  // exclude myself
-  cql += ' and mobilePhoneNumber!=?';
-  values.push(myMobilePhoneNumber);
+  if (skipMyself) {
+    // exclude myself
+    cql += ' and mobilePhoneNumber!=?';
+    values.push(myMobilePhoneNumber);
+  }
   if (nickname) {
     cql += ' and nickname=?';
     values.push(nickname);
