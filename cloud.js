@@ -17,6 +17,7 @@ var utilFunc = require('./cloudFuncs/Util')
 var operationFunc = require('./cloudFuncs/OperationLog')
 var mpQrcodeFuncs = require('./mpFuncs/Qrcode')
 var sysAuthFunc = require('./cloudFuncs/SysAuth')
+var withdrawFunc = require('./cloudFuncs/Withdraw')
 
 /**
  * 云函数
@@ -157,5 +158,8 @@ AV.Cloud.onLogin(authFunc.onLogin)
 // 系统管理员操作认证
 AV.Cloud.define('sysauthSendAuthCode', sysAuthFunc.reqSendAuthCode)
 AV.Cloud.define('sysauthVerifyAuthCode', sysAuthFunc.reqVerifyAuthCode)
+
+// 取现与退押金
+AV.Cloud.define('withdrawCreateApply', withdrawFunc.createWithdrawApply)
 
 module.exports = AV.Cloud;
