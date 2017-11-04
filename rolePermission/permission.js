@@ -33,6 +33,7 @@ export const PERMISSION_CODE = {
   RECHARGE_MAN_USER_PAID:                     3100,         // 资金与订单管理/用户充值管理/
   RECHARGE_REFUND_QUERY:                      3200,         // 资金与订单管理/用户退还押金管理
   RECHARGE_WITHDRAW_QUERY:                    3300,         // 资金与订单管理/收益取现管理
+  RECHARGE_WITHDRAW_APPLY:                    3400,         // 资金与订单管理/取现申请管理
 
   /* 结算报表 */
   ACCOUNT_STAT_STATION_DIVIDEND:              4000,         // 结算报表/服务点分成统计/
