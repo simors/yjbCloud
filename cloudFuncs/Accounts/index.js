@@ -201,11 +201,7 @@ async function createPartnerAccount(accountId, dayInfo) {
     queryAccount.include(['station'])
     let stationAccount = await queryAccount.get(accountId)
     let stationAccountInfo = constructStationAccount(stationAccount, true)
-    if (stationAccountInfo.profit > 0) {
-      platfomProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(stationAccountInfo.station.platformProp).done(), 2)
-    } else {
-      platfomProfit = stationAccountInfo.profit
-    }
+    platfomProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(stationAccountInfo.station.platformProp).done(), 2)
 
 
     let station = AV.Object.createWithoutData('Station', stationAccountInfo.stationId)
@@ -220,9 +216,7 @@ async function createPartnerAccount(accountId, dayInfo) {
         let partnerAccount = new PartnerAccount()
         let profit = 0
         partnerAccount.set('stationAccount', stationAccountObject)
-        if (stationAccountInfo.profit > 0) {
-          profit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(partner.royalty).done(), 2)
-        }
+        profit = mathjs.round(mathjs.chain(stationAccountInfo.profit).multiply(partner.royalty).done(), 2)
         partnerAccount.set('profit', profit)
         partnerAccount.set('accountDay', dayInfo.yesterday)
         partnerAccount.set('profitSharing', profitSharing)
@@ -235,9 +229,7 @@ async function createPartnerAccount(accountId, dayInfo) {
       }
     }
     let investorList = await StationFuncs.getInvestorByStationId(stationAccountInfo.stationId)
-    if (stationAccountInfo.profit > 0) {
-      investorProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).subtract(platfomProfit).subtract(partnerProfit).done(), 2)
-    }
+    investorProfit = mathjs.round(mathjs.chain(stationAccountInfo.profit).subtract(platfomProfit).subtract(partnerProfit).done(), 2)
     if (investorList && investorList.length > 0) {
       for (let i = 0; i < investorList.length; i++) {
         let investor = investorList[i]
@@ -464,9 +456,9 @@ async function getPartnerAccounts(request, response) {
       let queryUser = new AV.Query('_User')
       queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
       let user = await queryUser.find()
-      if(user&&user.length>0){
+      if (user && user.length > 0) {
         partners.push({id: user[0].id})
-      }else{
+      } else {
         response.error('没有找到该用户')
       }
 
@@ -582,9 +574,9 @@ async function getInvestorAccounts(request, response) {
       let queryUser = new AV.Query('_User')
       queryUser.equalTo('mobilePhoneNumber', mobilePhoneNumber)
       let user = await queryUser.find()
-      if(user&&user.length>0){
+      if (user && user.length > 0) {
         partners.push({id: user[0].id})
-      }else{
+      } else {
         response.error('没有找到该用户')
       }
     } else if (stationId) {
@@ -775,7 +767,7 @@ async function getPartnerAccountsDetail(request, response) {
     if (userInfo && userInfo.length > 0) {
       let user = AV.Object.createWithoutData('_User', userInfo[0].id)
       query.equalTo('user', user)
-    }else{
+    } else {
       response.error('没有找到该用户')
     }
   }
@@ -848,7 +840,7 @@ async function getInvestorAccountsDetail(request, response) {
     if (userInfo && userInfo.length > 0) {
       let user = AV.Object.createWithoutData('_User', userInfo[0].id)
       query.equalTo('user', user)
-    }else{
+    } else {
       response.error('没有找到该用户')
     }
   }
