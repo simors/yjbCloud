@@ -102,8 +102,9 @@ AV.Cloud.define('pingppCreatePayment', PingppFunc.createPayment)
 AV.Cloud.define('pingppPaymentEvent', PingppFunc.paymentEvent)
 AV.Cloud.define('pingppCreateTransfer', PingppFunc.createTransfer)
 AV.Cloud.define('pingppTransferEvent', PingppFunc.transferEvent)
-AV.Cloud.define('pingppFetchRecharges', PingppFunc.fetchRecharges)
 AV.Cloud.define('pingppFetchDealRecord', PingppFunc.fetchDealRecord)
+AV.Cloud.define('pingppFetchDepositAmount', PingppFunc.fetchDepositAmount)
+AV.Cloud.define('pingppFetchRechargeAmount', PingppFunc.fetchRechargeAmount)
 AV.Cloud.define('pingppFuncTest', PingppFunc.pingppFuncTest)
 
 //订单
