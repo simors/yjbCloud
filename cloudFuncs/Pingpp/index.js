@@ -173,7 +173,7 @@ function judgeWalletRefund(wallet, deposit) {
 }
 
 function judgeWalletDebt(wallet) {
-  return wallet.debt > 0
+  return wallet.debt === 0
 }
 
 /**
