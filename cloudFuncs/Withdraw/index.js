@@ -74,7 +74,7 @@ async function confirmWithdraw(operator, orderId) {
  */
 async function fetchWithdrawRecords(request) {
   let conn = undefined
-  let {startTime, endTime, phone, applyType, limit} = request.params
+  let {startTime, endTime, phone, applyType, status, limit} = request.params
   try {
     let sqlParams = []
     conn = await mysqlUtil.getConnection()
@@ -94,6 +94,10 @@ async function fetchWithdrawRecords(request) {
     if (startTime && endTime) {
       sql += 'AND `applyDate`>? AND `applyDate`<? '
       sqlParams.push(startTime, endTime)
+    }
+    if (status) {
+      sql += 'AND `status`=? '
+      sqlParams.push(status)
     }
     if (limit) {
       sql += 'ORDER BY `applyDate` LIMIT ?'
@@ -116,12 +120,44 @@ async function fetchWithdrawRecords(request) {
   }
 }
 
+/**
+ * 获取用户最后一次申请押金返还的信息
+ * @param request
+ * @returns {*}
+ */
+async function fetchUserLastRefund(request) {
+  let conn = undefined
+  let currentUser = request.currentUser
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+
+  try {
+    conn = await mysqlUtil.getConnection()
+    let sql = 'SELECT * FROM `WithdrawApply` WHERE `userId`=? AND `applyType`=? AND `status`=? ORDER BY `applyDate` LIMIT 1'
+
+    let queryRes = await mysqlUtil.query(conn, sql, [currentUser.id, WITHDRAW_APPLY_TYPE.REFUND, WITHDRAW_STATUS.APPLYING])
+    let result = queryRes.results
+    if (result.length == 0) {
+      return undefined
+    }
+    return result[0]
+  } catch (e) {
+    throw e
+  } finally {
+    if (conn) {
+      await mysqlUtil.release(conn)
+    }
+  }
+}
+
 const withdrawFunc = {
   WITHDRAW_STATUS,
   WITHDRAW_APPLY_TYPE,
   createWithdrawApply,
   confirmWithdraw,
   fetchWithdrawRecords,
+  fetchUserLastRefund,
 }
 
 module.exports = withdrawFunc;
