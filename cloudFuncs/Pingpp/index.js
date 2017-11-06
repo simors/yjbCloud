@@ -13,6 +13,7 @@ var mpMsgFuncs = require('../../mpFuncs/Message')
 import promotionFunc from '../Promotion'
 import profitFunc from '../Profit'
 import * as errno from '../errno'
+import withdrawFunc from '../Withdraw'
 
 // 交易类型定义
 const DEAL_TYPE_DEPOSIT = 1                // 押金
@@ -626,6 +627,8 @@ async function transferEvent(request) {
   var fromUser = transfer.metadata.fromUser
   var amount = mathjs.chain(transfer.amount).multiply(0.01).done()
   var dealType = transfer.metadata.dealType
+  var operator = transfer.metadata.operator
+  var withdrawId = transfer.metadata.withdrawId
 
   if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_DEV_APP_ID) {
     amount = mathjs.chain(amount).multiply(10).done()
@@ -654,7 +657,7 @@ async function transferEvent(request) {
       case DEAL_TYPE_REFUND:
       {
         try {
-          await handleRefundDeal(deal)
+          await handleRefundDeal(deal, operator, withdrawId)
           await updateWalletProcess(deal.to, WALLET_PROCESS_TYPE.NORMAL_PROCESS)
         } catch (e) {
           throw e
@@ -664,7 +667,7 @@ async function transferEvent(request) {
       case DEAL_TYPE_WITHDRAW:
       {
         try {
-          await handleWithdrawDeal(deal)
+          await handleWithdrawDeal(deal, operator, withdrawId)
           await profitFunc.updateAdminProfitProcess(deal.to, profitFunc.PROCESS_TYPE.NORMAL_PROCESS)
         } catch (e) {
           throw e
@@ -680,7 +683,7 @@ async function transferEvent(request) {
   }
 }
 
-async function handleRefundDeal(deal) {
+async function handleRefundDeal(deal, operator, withdrawId) {
   if(!deal) {
     return undefined
   }
@@ -690,6 +693,7 @@ async function handleRefundDeal(deal) {
     await mysqlUtil.beginTransaction(mysqlConn)
     await updateUserDealRecords(mysqlConn, deal)
     await updateWalletInfo(mysqlConn, deal)
+    await withdrawFunc.confirmWithdraw(mysqlConn, operator, withdrawId)
     await mysqlUtil.commit(mysqlConn)
   } catch (error) {
     if(mysqlConn) {
@@ -703,7 +707,7 @@ async function handleRefundDeal(deal) {
   }
 }
 
-async function handleWithdrawDeal(deal) {
+async function handleWithdrawDeal(deal, operator, withdrawId) {
   if(!deal) {
     return undefined
   }
@@ -713,6 +717,7 @@ async function handleWithdrawDeal(deal) {
     await mysqlUtil.beginTransaction(mysqlConn)
     await updateUserDealRecords(mysqlConn, deal)
     await profitFunc.decAdminProfit(mysqlConn, deal.to, deal.cost)
+    await withdrawFunc.confirmWithdraw(mysqlConn, operator, withdrawId)
     await mysqlUtil.commit(mysqlConn)
   } catch (error) {
     if(mysqlConn) {
