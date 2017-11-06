@@ -30,7 +30,7 @@ async function createWithdrawApply(request) {
     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
   }
   let userId = currentUser.id
-  let openid = currentUser.attributes.openid
+  let openid = currentUser.attributes.authData.weixin.openid
   if (!openid) {
     throw new AV.Cloud.Error('用户未绑定微信号', {code: errno.ERROR_NO_WECHAT})
   }
