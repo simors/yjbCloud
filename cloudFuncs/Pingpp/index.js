@@ -13,7 +13,6 @@ var mpMsgFuncs = require('../../mpFuncs/Message')
 import promotionFunc from '../Promotion'
 import profitFunc from '../Profit'
 import * as errno from '../errno'
-import withdrawFunc from '../Withdraw'
 
 // 交易类型定义
 const DEAL_TYPE_DEPOSIT = 1                // 押金
@@ -684,6 +683,7 @@ async function transferEvent(request) {
 }
 
 async function handleRefundDeal(deal, operator, withdrawId) {
+  let confirmWithdraw = require('../Withdraw').confirmWithdraw
   if(!deal) {
     return undefined
   }
@@ -693,7 +693,7 @@ async function handleRefundDeal(deal, operator, withdrawId) {
     await mysqlUtil.beginTransaction(mysqlConn)
     await updateUserDealRecords(mysqlConn, deal)
     await updateWalletInfo(mysqlConn, deal)
-    await withdrawFunc.confirmWithdraw(mysqlConn, operator, withdrawId)
+    await confirmWithdraw(mysqlConn, operator, withdrawId)
     await mysqlUtil.commit(mysqlConn)
   } catch (error) {
     if(mysqlConn) {
@@ -708,6 +708,7 @@ async function handleRefundDeal(deal, operator, withdrawId) {
 }
 
 async function handleWithdrawDeal(deal, operator, withdrawId) {
+  let confirmWithdraw = require('../Withdraw').confirmWithdraw
   if(!deal) {
     return undefined
   }
@@ -717,7 +718,7 @@ async function handleWithdrawDeal(deal, operator, withdrawId) {
     await mysqlUtil.beginTransaction(mysqlConn)
     await updateUserDealRecords(mysqlConn, deal)
     await profitFunc.decAdminProfit(mysqlConn, deal.to, deal.cost)
-    await withdrawFunc.confirmWithdraw(mysqlConn, operator, withdrawId)
+    await confirmWithdraw(mysqlConn, operator, withdrawId)
     await mysqlUtil.commit(mysqlConn)
   } catch (error) {
     if(mysqlConn) {
