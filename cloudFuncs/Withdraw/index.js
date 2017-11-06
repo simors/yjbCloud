@@ -6,6 +6,7 @@ import * as errno from '../errno'
 import mysqlUtil from '../Util/mysqlUtil'
 import moment from 'moment'
 import {authFetchUserByPhone} from '../Auth/User'
+import {getUserInfoById} from '../Auth'
 
 const WITHDRAW_STATUS = {
   APPLYING: 0,      // 提交申请
@@ -100,17 +101,28 @@ async function fetchWithdrawRecords(request) {
       sqlParams.push(status)
     }
     if (limit) {
-      sql += 'ORDER BY `applyDate` LIMIT ?'
+      sql += 'ORDER BY `applyDate` DESC LIMIT ?'
       sqlParams.push(limit)
     } else {
-      sql += 'ORDER BY `applyDate` LIMIT 100'
+      sql += 'ORDER BY `applyDate` DESC LIMIT 100'
     }
     let queryRes = await mysqlUtil.query(conn, sql, sqlParams)
     let result = queryRes.results
     if (result.length == 0) {
       return []
     }
-    return result
+    let withdrawList = []
+    result.forEach((apply) => {
+      let userInfo = getUserInfoById(apply.userId)
+      let withdrawInfo = {
+        ...apply,
+        nickname: userInfo.nickname,
+        mobilePhoneNumber: userInfo.mobilePhoneNumber,
+      }
+      withdrawList.push(withdrawInfo)
+    })
+
+    return withdrawList
   } catch (e) {
     throw e
   } finally {
