@@ -77,7 +77,7 @@ AV.Cloud.define('stationClosePartner', stationFunc.closePartner)
 AV.Cloud.define('stationAdminHaveStation', stationFunc.adminHaveStation)
 AV.Cloud.define('stationInvestorHaveStation', stationFunc.investorHaveStation)
 AV.Cloud.define('stationPartnerHaveStation', stationFunc.partnerHaveStation)
-AV.Cloud.define('stationvalidProfitSharing', stationFunc.validProfitSharing)
+AV.Cloud.define('stationValidProfitSharing', stationFunc.validProfitSharing)
 
 AV.Cloud.define('userFuncTest', stationFunc.userFuncTest)
 AV.Cloud.define('stationFetchProfitSharebyUser', stationFunc.reqFetchProfitSharebyUser)

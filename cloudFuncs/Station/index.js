@@ -1212,6 +1212,7 @@ async function validProfitSharing(req) {
   }
   try{
     let isExist = await validProfitSharingFunc(params)
+    return isExist
   }catch(err){
     return err
   }
