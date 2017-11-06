@@ -48,35 +48,6 @@ function unsubscribeEvent(req, res, next) {
   })
 }
 
-//扫码开柜事件处理
-function scanEvent(req, res, next) {
-  var message = req.weixin
-  // console.log("扫码开柜消息：", message)
-  var openid = message.FromUserName
-  var deviceNo = message.EventKey
-
-  authFunc.isUserSignIn(openid).then((result) => {
-    if(result) {
-      res.reply({
-        type: 'text',
-        content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/openDevice/" + deviceNo + "'>开柜使用</a>"
-      })
-    } else {
-      res.reply({
-        type: 'text',
-        content: "<a href='" + GLOBAL_CONFIG.MP_CLIENT_DOMAIN + "/bind?deviceNo=" + deviceNo + "'>绑定手机号码</a>" +"使用衣家宝干衣柜。"
-      })
-    }
-  }).catch((error) => {
-    console.log("scanEvent error", error)
-    res.reply({
-      type: 'text',
-      content: "服务器异常，请联系客服！"
-    })
-  })
-}
-
-
 function wechatServer(req, res, next) {
   var message = req.weixin;
   console.log("收到微信消息：", message)
@@ -95,11 +66,18 @@ function wechatServer(req, res, next) {
         subscribeEvent(req, res, next)
       } else if(message.Event === 'unsubscribe') {
         unsubscribeEvent(req,res, next)
-      } else if(message.Event === 'SCAN') {
-        scanEvent(req, res, next)
+      } else {
+        res.reply({
+          type: 'text',
+          content: ''
+        })
       }
       break
     default:
+      res.reply({
+        type: 'text',
+        content: ''
+      })
       break
   }
 }
