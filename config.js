@@ -45,49 +45,32 @@ const WECHAT_MP_AESKEY_PRO = "K65BlkT0U2lH1SntekBotsAhKX0VLo94bMTQDAZudIY"
 const WECHAT_MP_APPSECRET_PRO = "d9ebabc3e81cb6b0c6f4e48af40d6abb"
 
 //redis配置
-var REDIS_URL = "123.56.216.122"
-var REDIS_PORT = 6379
+var REDIS_URL = process.env.REDIS_URL
+var REDIS_PORT = process.env.REDIS_PORT
 var DEBUG_REDIS = 0
 var PRE_REDIS = 1
 var PROD_REDIS = 2
 var REDIS_DB = 0
-var REDIS_AUTH = "Simors2017"
+var REDIS_AUTH = process.env.REDIS_AUTH
 
 
 //rabbitMQ配置
-var RABBITMQ_URL = ''
-var RABBITMQ_URL_DEV ='amqp://yijiabao:yijiabao@123.56.216.122:5672'
-var RABBITMQ_URL_PRE ='amqp://lvyii:lvyii@139.196.84.116:5672'
-var RABBITMQ_URL_PRO =''
+var RABBITMQ_URL = process.env.RABBITMQ_URL
 
 //mqtt配置
-var MQTT_SERVER_URL = ''
-const MQTT_SERVER_URL_DEV = 'mqtt://123.56.216.122:1883'
-const MQTT_SERVER_URL_PRE = 'mqtt://139.196.84.116:1883'
-const MQTT_SERVER_URL_PRO = ''
+var MQTT_SERVER_URL = process.env.MQTT_SERVER_URL
 
 // mysql数据库配置
-const MYSQL_HOST = '123.56.216.122'
-var MYSQL_USER = ''
-var MYSQL_PWD = ''
-var MYSQL_DB = ''
-const MYSQL_DEV_USER = 'simors'
-const MYSQL_DEV_PWD = 'simors401a'
-const MYSQL_DEV_DB = 'yijiabao_dev'
-const MYSQL_PRE_USER = 'yjb'
-const MYSQL_PRE_PWD = 'simors401a'
-const MYSQL_PRE_DB = 'yijiabao_pre'
-const MYSQL_PROD_USER = ''
-const MYSQL_PROD_PWD = ''
-const MYSQL_PROD_DB = ''
+const MYSQL_HOST = process.env.MYSQL_HOST
+var MYSQL_USER = process.env.MYSQL_USER
+var MYSQL_PWD = process.env.MYSQL_PWD
+var MYSQL_DB = process.env.MYSQL_DB
 
 //Ping++应用配置
 var PINGPP_APP_ID = ""
-var PINGPP_API_KEY = ""
+var PINGPP_API_KEY = process.env.PINGPP_LIVE_API_KEY //Secret Key
 var PINGPP_TEST_API_KEY_DEV = "sk_test_fbTiHOOG0008r9Sq10GWXXnT" //注意：开发环境使用汇邻优店账户下的app
-var PINGPP_LIVE_API_KEY_DEV = "sk_live_P044i19GCS8SyT84eTvbHmbH" //注意：开发环境使用汇邻优店账户下的app
 var PINGPP_TEST_API_KEY = "sk_test_HKm9W904GqD0e9irLSLiv5eL" //Secret Key
-var PINGPP_LIVE_API_KEY = "sk_live_eTi9uHXPGWDOrnXP0SKS0yj5" //Secret Key
 var PINGPP_DEV_APP_ID = "app_a5KeT8HKCSCG1yLa" //衣家宝-DEV应用 Id
 var PINGPP_PRE_APP_ID = "app_qbzH8SmPqL48qLSu" //衣家宝-PRE应用 Id
 var PINGPP_PRO_APP_ID = "" //衣家宝-PRO应用 Id
@@ -111,15 +94,8 @@ if(process.env.LEANCLOUD_APP_ID === LC_DEV_APP_ID) {  //开发环境
   WECHAT_MSG_TMPID_AUTH_CODE = "YkwBfWO9jCbTf25y6c2Tf2mUx0Ok5zFcxEaHgIToksA"
 
   REDIS_DB = DEBUG_REDIS
-  RABBITMQ_URL = RABBITMQ_URL_DEV
-  MQTT_SERVER_URL = MQTT_SERVER_URL_DEV
-
-  MYSQL_USER = MYSQL_DEV_USER
-  MYSQL_PWD = MYSQL_DEV_PWD
-  MYSQL_DB = MYSQL_DEV_DB
 
   PINGPP_APP_ID = PINGPP_DEV_APP_ID
-  PINGPP_API_KEY = PINGPP_LIVE_API_KEY_DEV
 
 } else if(process.env.LEANCLOUD_APP_ID === LC_STAGE_APP_ID) {   //预上线环境
   MP_SERVER_DOMAIN = MP_SERVER_DOMAIN_PRE
@@ -138,15 +114,8 @@ if(process.env.LEANCLOUD_APP_ID === LC_DEV_APP_ID) {  //开发环境
 
 
   REDIS_DB = PRE_REDIS
-  RABBITMQ_URL = RABBITMQ_URL_PRE
-  MQTT_SERVER_URL = MQTT_SERVER_URL_PRE
-
-  MYSQL_USER = MYSQL_PRE_USER
-  MYSQL_PWD = MYSQL_PRE_PWD
-  MYSQL_DB = MYSQL_PRE_DB
 
   PINGPP_APP_ID = PINGPP_PRE_APP_ID
-  PINGPP_API_KEY = PINGPP_LIVE_API_KEY
 
 } else if(process.env.LEANCLOUD_APP_ID === LC_PRO_APP_ID) {   //生产环境
   MP_SERVER_DOMAIN = MP_SERVER_DOMAIN_PRO
@@ -165,15 +134,8 @@ if(process.env.LEANCLOUD_APP_ID === LC_DEV_APP_ID) {  //开发环境
 
 
   REDIS_DB = PROD_REDIS
-  RABBITMQ_URL = RABBITMQ_URL_PRO
-  MQTT_SERVER_URL = MQTT_SERVER_URL_PRO
-
-  MYSQL_USER = MYSQL_PROD_USER
-  MYSQL_PWD = MYSQL_PROD_PWD
-  MYSQL_DB = MYSQL_PROD_DB
 
   PINGPP_APP_ID = PINGPP_PRO_APP_ID
-  PINGPP_API_KEY = PINGPP_LIVE_API_KEY
 }
 
 var GLOBAL_CONFIG = {
