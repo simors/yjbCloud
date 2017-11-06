@@ -131,7 +131,7 @@ async function fetchWithdrawRecords(request) {
         ...apply,
         nickname: userInfo.nickname || undefined,
         mobilePhoneNumber: userInfo.mobilePhoneNumber || undefined,
-        operatorName: operatorInfo.nickname || undefined,
+        operatorName: operatorInfo && operatorInfo.nickname ? operatorInfo.nickname : undefined,
       }
       withdrawList.push(withdrawInfo)
     }
