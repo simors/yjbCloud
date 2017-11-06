@@ -61,8 +61,6 @@ async function sendSystemNotification(req) {
       break;
     }
 
-    console.log('iterator: ', iterator);
-
     // iterate followers
     let more = true;
     let begin = 0, end = 0;
@@ -77,7 +75,6 @@ async function sendSystemNotification(req) {
       const openIds = iterator.openIds.slice(begin, end);
       begin = end;
 
-      console.log('openids: ', openIds);
       await massSendText(content, openIds);
     }
   } while (!iterator.error && iterator.nextOpenId);
