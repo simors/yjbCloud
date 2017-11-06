@@ -114,10 +114,15 @@ async function fetchWithdrawRecords(request) {
     let withdrawList = []
     for (let apply of result) {
       let userInfo = await getUserInfoById(apply.userId)
+      let operatorInfo = undefined
+      if (apply.operator) {
+        operatorInfo = await getUserInfoById(apply.operator)
+      }
       let withdrawInfo = {
         ...apply,
         nickname: userInfo.nickname,
         mobilePhoneNumber: userInfo.mobilePhoneNumber,
+        operatorName: operatorInfo.nickname,
       }
       withdrawList.push(withdrawInfo)
     }
