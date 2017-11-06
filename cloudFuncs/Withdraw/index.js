@@ -25,7 +25,16 @@ const WITHDRAW_APPLY_TYPE = {
  */
 async function createWithdrawApply(request) {
   let conn = undefined
-  let {userId, openid, amount, applyType} = request.params
+  let currentUser = request.currentUser
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  let userId = currentUser.id
+  let openid = currentUser.attributes.openid
+  if (!openid) {
+    throw new AV.Cloud.Error('用户未绑定微信号', {code: errno.ERROR_NO_WECHAT})
+  }
+  let {amount, applyType} = request.params
   try {
     conn = await mysqlUtil.getConnection()
     let iSql = 'INSERT INTO `WithdrawApply` (`userId`, `openid`, `amount`, `applyDate`, `status`, `applyType`) VALUES(?, ?, ?, ?, ?, ?)'
