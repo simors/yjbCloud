@@ -54,26 +54,21 @@ async function createWithdrawApply(request) {
 
 /**
  * 确认用户可取现后，将数据库的记录更新
+ * @param conn          数据库连接
  * @param operator      操作员id
  * @param orderId       订单id
  * @returns {Function|results|Array}
  */
-async function confirmWithdraw(operator, orderId) {
-  let conn = undefined
+async function confirmWithdraw(conn, operator, orderId) {
   try {
-    conn = await mysqlUtil.getConnection()
     let sql = 'UPDATE `WithdrawApply` SET `status`=?, `operator`=?, `operateDate`=? WHERE `id`=?'
     let updateRes = await mysqlUtil.query(conn, sql, [WITHDRAW_STATUS.DONE, operator, moment().format('YYYY-MM-DD HH:mm:ss'), orderId])
     if (0 == updateRes.results.changedRows) {
-      throw new AV.Cloud.Error('increment admin profit error', {code: errno.EIO})
+      throw new AV.Cloud.Error('确认取现出现错误', {code: errno.EIO})
     }
     return updateRes.results
   } catch (e) {
     throw e
-  } finally {
-    if (conn) {
-      await mysqlUtil.release(conn)
-    }
   }
 }
 
