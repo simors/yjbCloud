@@ -570,6 +570,7 @@ async function createTransfer(request) {
     throw new AV.Cloud.Error('only support wx withdraw', {code: errno.ERROR_UNSUPPORT_CHANNEL})
   }
 
+  pingpp.setPrivateKeyPath(__dirname + "/rsa_private_key.pem");
   var description = ''
   let errcode = 0
   if(dealType === DEAL_TYPE_REFUND) {
