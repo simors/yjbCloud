@@ -40,7 +40,7 @@ async function createWithdrawApply(request) {
     let iSql = 'INSERT INTO `WithdrawApply` (`userId`, `openid`, `amount`, `applyDate`, `status`, `applyType`) VALUES(?, ?, ?, ?, ?, ?)'
     let insertRes = await mysqlUtil.query(conn, iSql, [userId, openid, amount, moment().format('YYYY-MM-DD HH:mm:ss'), WITHDRAW_STATUS.APPLYING, applyType])
     if (!insertRes.results.insertId) {
-      throw new AV.Cloud.Error('insert new admin profit record error', {code: errno.EIO})
+      throw new AV.Cloud.Error('生成取现申请失败', {code: errno.EIO})
     }
     return insertRes.results
   } catch (e) {
@@ -129,9 +129,9 @@ async function fetchWithdrawRecords(request) {
       }
       let withdrawInfo = {
         ...apply,
-        nickname: userInfo.nickname,
-        mobilePhoneNumber: userInfo.mobilePhoneNumber,
-        operatorName: operatorInfo.nickname,
+        nickname: userInfo.nickname || undefined,
+        mobilePhoneNumber: userInfo.mobilePhoneNumber || undefined,
+        operatorName: operatorInfo.nickname || undefined,
       }
       withdrawList.push(withdrawInfo)
     }
