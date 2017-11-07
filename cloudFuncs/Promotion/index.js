@@ -210,10 +210,6 @@ async function editPromotion(request) {
   if(!promotion) {
     throw new AV.Cloud.Error('没找到该活动对象', {code: errno.ENODATA})
   }
-  let leanPromotion = await promotion.fetch()
-  if(leanPromotion.attributes.user.id != currentUser.id) {
-    throw new AV.Cloud.Error('该用户没有操作权限', {code: errno.EPERM})
-  }
   if(title) {
     promotion.set('title', title)
   }
@@ -237,7 +233,7 @@ async function editPromotion(request) {
   }
 
   let result = await promotion.save()
-  leanPromotion = await result.fetch()
+  let leanPromotion = await result.fetch()
   return constructPromotionInfo(leanPromotion, false, false)
 }
 
