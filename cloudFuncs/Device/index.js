@@ -9,6 +9,9 @@ import PingppFunc from '../Pingpp'
 import orderFunc from '../Order'
 import stationFunc from '../Station'
 import moment from 'moment'
+import {PERMISSION_CODE} from '../../rolePermission'
+import * as authFuncs from '../Auth'
+
 
 //设备状态
 const DEVICE_STATUS_IDLE = 0          //空闲
@@ -93,14 +96,28 @@ function generateDeviceQrcode(request, response) {
  */
 async function fetchDevices(request) {
   const {currentUser, params} = request
+  let deviceList = []
+
   if(!currentUser) {
     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
   }
+  let permissionAll = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.DEVICE_FETCH_ALL_DEVICE])
+  let permissionRelate = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.DEVICE_FETCH_RELATED_DEVICE])
 
+  if(!permissionAll && !permissionRelate) {
+    return deviceList
+  }
   const {status, deviceNo, stationId, limit, isRefresh, lastUpdatedAt} = params
 
-  var query = new AV.Query('Device')
-  query.include('station')
+  let query = new AV.Query('Device')
+  let queryRelate = new AV.Query('Device')
+
+  if(permissionRelate && !permissionAll) {
+    let stationQuery = new AV.Query('Station')
+    stationQuery.equalTo('admin', currentUser)
+    let stations = await stationQuery.find()
+    queryRelate.containedIn('station', stations)
+  }
   if(deviceNo) {
     query.equalTo('deviceNo', deviceNo)
   }
@@ -111,15 +128,17 @@ async function fetchDevices(request) {
   if(status != undefined) {
     query.equalTo('status', status)
   }
-  query.limit(limit || 10)
   if(!isRefresh && lastUpdatedAt) {
     query.lessThan('updatedAt', new Date(lastUpdatedAt))
   }
-  query.descending('updatedAt')
 
-  let results = await query.find()
-  let total = await query.count()
-  let deviceList = []
+  let finallyQuery = AV.Query.and(query, queryRelate)
+  finallyQuery.include('station')
+  finallyQuery.limit(limit || 10)
+  finallyQuery.descending('updatedAt')
+
+  let results = await finallyQuery.find()
+  let total = await finallyQuery.count()
 
   results.forEach((device) => {
     deviceList.push(constructDeviceInfo(device, true))
