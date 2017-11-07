@@ -340,7 +340,7 @@ async function fetchInvestorByStationId(request, response) {
 
     if (stationId) {
       let station = AV.Object.createWithoutData('Station', stationId)
-      query.equalTo('admin', station)
+      query.equalTo('station', station)
     }
     query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
     if (status != undefined) {
