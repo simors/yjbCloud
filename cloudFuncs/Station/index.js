@@ -340,7 +340,7 @@ async function fetchInvestorByStationId(request, response) {
 
     if (stationId) {
       let station = AV.Object.createWithoutData('Station', stationId)
-      query.equalTo('admin', station)
+      query.equalTo('station', station)
     }
     query.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
     if (status != undefined) {
@@ -840,7 +840,7 @@ function closeInvestor(request, response) {
     var preInvestment = record.attributes.investment
     // console.log('record========>',record.attributes.station)
     var station = AV.Object.createWithoutData('Station', record.attributes.station.id)
-    if (record.attributes.status == StationStatus.STATION_STATUS_OPEN) {
+    if (record.attributes.status == StationStatus.STATION_STATUS_CLOSE) {
       response.error({message: '该投资人已经被禁用'})
       return
     }
