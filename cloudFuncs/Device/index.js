@@ -128,14 +128,14 @@ async function fetchDevices(request) {
   if(status != undefined) {
     query.equalTo('status', status)
   }
-  query.limit(limit || 10)
   if(!isRefresh && lastUpdatedAt) {
     query.lessThan('updatedAt', new Date(lastUpdatedAt))
   }
-  query.descending('updatedAt')
 
   let finallyQuery = AV.Query.and(query, queryRelate)
   finallyQuery.include('station')
+  finallyQuery.limit(limit || 10)
+  finallyQuery.descending('updatedAt')
 
   let results = await finallyQuery.find()
   let total = await finallyQuery.count()

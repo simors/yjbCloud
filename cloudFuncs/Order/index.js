@@ -257,6 +257,8 @@ async function fetchOrders(request) {
   let startQuery = new AV.Query('Order')
   let endQuery = new AV.Query('Order')
   let otherQuery = new AV.Query('Order')
+  let userQuery = new AV.Query('Order')
+  let deviceQuery = new AV.Query('Order')
   if(start) {
     startQuery.greaterThanOrEqualTo('createdAt', new Date(start))
   }
@@ -269,8 +271,21 @@ async function fetchOrders(request) {
   if(!isRefresh && lastCreatedAt) {
     otherQuery.lessThan('createdAt', new Date(lastCreatedAt))
   }
+  if(mobilePhoneNumber) {
+    let query = new AV.Query('_User')
+    query.equalTo('mobilePhoneNumber', mobilePhoneNumber)
+    let user = await query.first()
+    userQuery.equalTo('user', user)
+  }
+  if(stationId) {
+    let query = new AV.Query('Device')
+    let station = AV.Object.createWithoutData('Station', stationId)
+    query.equalTo('station', station)
+    let devices = await query.find()
+    deviceQuery.containedIn('device', devices)
+  }
 
-  let query = AV.Query.and(startQuery, endQuery, otherQuery)
+  let query = AV.Query.and(startQuery, endQuery, otherQuery, userQuery, deviceQuery)
   query.include('user')
   query.include('device')
   query.include('device.station')
@@ -281,14 +296,6 @@ async function fetchOrders(request) {
   let total = await query.count()
   let orderList = []
   results.forEach((order) => {
-    let device = order.attributes.device
-    let user = order.attributes.user
-    if(mobilePhoneNumber && (mobilePhoneNumber != user.attributes.mobilePhoneNumber)) {
-      return
-    }
-    if(stationId && (stationId != device.attributes.station.id)) {
-      return
-    }
     orderList.push(constructOrderInfo(order, true, true))
   })
   return {total: total, orderList: orderList}
