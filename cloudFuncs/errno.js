@@ -145,12 +145,14 @@ export const ERROR_BASE_ACCOUNT       =   -(ERROR_BASE + 4000);
 export const ERROR_BASE_PROMOTION     =   -(ERROR_BASE + 5000);
 export const ERROR_BASE_PROFIT        =   -(ERROR_BASE + 6000);
 export const ERROR_BASE_DEAL          =   -(ERROR_BASE + 7000);
+export const ERROR_BASE_WITHDRAW      =   -(ERROR_BASE + 8000);
 
 /* Auth */
 export const ERROR_NO_WALLET                = (ERROR_BASE_AUTH - 1)         /* 用户钱包信息有误 */
 export const ERROR_NO_DEPOSIT               = (ERROR_BASE_AUTH - 2)         /* 用户未交押金 */
 export const ERROR_NO_ENOUGH_BALANCE        = (ERROR_BASE_AUTH - 3)         /* 用户钱包余额不足 */
 export const ERROR_NO_USER                  = (ERROR_BASE_AUTH - 4)         /* 用户不存在 */
+export const ERROR_NO_WECHAT                = (ERROR_BASE_AUTH - 5)         /* 用户未绑定微信 */
 
 /* Device */
 export const ERROR_INVALID_STATUS           = (ERROR_BASE_DEVICE - 1)       /* 设备状态有误 */
@@ -186,3 +188,5 @@ export const ERROR_IN_REFUND_PROCESS        = (ERROR_BASE_DEAL - 4)         /* �
 /* Station */
 export const ERROR_STATION_NOMAN = (ERROR_BASE_STATION - 1)       /* 查无此人 */
 export const ERROR_STATION_HAVESTATION = (ERROR_BASE_STATION - 2)       /* 该用户仍和服务点有关联 */
+
+/* Withdraw */
