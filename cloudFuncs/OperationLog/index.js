@@ -50,8 +50,18 @@ async function fetchOperationLogs(request) {
   if (!currentUser) {
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
-  let query = new AV.Query('OperationLog')
-  let {lastCreatedAt, userId, limit ,mobilePhoneNumber} = params
+  let {lastCreatedAt, userId, limit ,mobilePhoneNumber, startDate, endDate} = params
+
+  let startQuery = new AV.Query('OperationLog')
+  let endQuery = new AV.Query('OperationLog')
+  let otherQuery = new AV.Query('OperationLog')
+
+  if(startDate) {
+    startQuery.greaterThanOrEqualTo('createdAt', new Date(startDate))
+  }
+  if(endDate) {
+    endQuery.lessThan('createdAt', new Date(endDate))
+  }
   if(mobilePhoneNumber){
     let queryUser = new AV.Query('_User')
     queryUser.equalTo('mobilePhoneNumber',mobilePhoneNumber)
@@ -59,15 +69,16 @@ async function fetchOperationLogs(request) {
     if(!user){
       throw new AV.Cloud.Error('没有找到该用户', {code: errno.EPERM});
     }
-    query.equalTo('user', user)
+    otherQuery.equalTo('user', user)
   }
   if (userId) {
     let user = AV.Object.createWithoutData('_User', userId)
-    query.equalTo('user', user)
+    otherQuery.equalTo('user', user)
   }
   if (lastCreatedAt) {
-    query.lessThan('createdAt', new Date(lastCreatedAt))
+    otherQuery.lessThan('createdAt', new Date(lastCreatedAt))
   }
+  let query = AV.Query.and(startQuery, endQuery, otherQuery)
   query.limit(limit ? limit : 100)
   query.include(['user'])
 
