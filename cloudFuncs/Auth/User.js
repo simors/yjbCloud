@@ -1,7 +1,8 @@
 import AV from 'leanengine';
 import * as errno from '../errno';
 import {constructUserInfo, constructRoleInfo, constructPermissionInfo, constructMpAuthData} from './index';
-import moment from 'moment'
+import moment from 'moment';
+import * as OperationLog from '../OperationLog';
 
 // --- enum
 
@@ -28,6 +29,43 @@ export const AUTH_ROLE_CODE = {
   STATION_PROVIDER:             400,        // 服务单位
   SYS_MANAGER:                  500,        // 系统管理员
 };
+
+export const AUTH_USER_STATUS_STR = {
+  1:    '正常',
+  2:    '禁用',
+  101:  '正常',
+  102:  '禁用',
+};
+
+export const AUTH_ROLE_CODE_STR = {
+  100:  '平台管理员',
+  200:  '服务点管理员',
+  300:  '服务点投资人',
+  400:  '服务单位',
+  500:  '系统管理员',
+};
+
+function authStringifyStatus(status) {
+  return AUTH_USER_STATUS_STR[status];
+}
+
+function authStringifyRoles(roles) {
+  let str = [];
+
+  roles.forEach((i) => {
+    str.push(AUTH_ROLE_CODE_STR[i]);
+  });
+
+  return str.join(', ');
+}
+
+function authIsRolesEqual(roles1, roles2) {
+  const sortedRoles1 = roles1.sort();
+  const sortedRoles2 = roles2.sort();
+
+  return (sortedRoles1.length === sortedRoles2.length
+    && sortedRoles1.every((v, i) => v === sortedRoles2[i]));
+}
 
 async function authGetRolesAndPermissions(req) {
   const {currentUser, params} = req;
@@ -380,6 +418,10 @@ async function authCreateUser(req) {
   const user = new User(jsonUser);
   const leanUser = await user.save(null, {fetchWhenSave: true});
 
+  OperationLog.recordOperation(currentUser,
+    '创建新用户：' + jsonUser.nickname
+    + '，角色：' + authStringifyRoles(jsonUser.roles));
+
   return constructUserInfo(leanUser);
 }
 
@@ -394,8 +436,15 @@ async function authDeleteUser(req) {
   const {id} = params;
 
   const ptrUser = AV.Object.createWithoutData('_User', id);
+  await ptrUser.fetch();
+
+  const jsonUser = constructUserInfo(ptrUser);
 
   await AV.Object.destroyAll([ptrUser]);
+
+  OperationLog.recordOperation(currentUser,
+    '删除用户：' + jsonUser.nickname
+    + '，角色：' + authStringifyRoles(jsonUser.roles));
 
   return {
 
@@ -439,6 +488,9 @@ async function authUpdateUser(req) {
   const {id} = params;
 
   const ptrUser = AV.Object.createWithoutData('_User', id);
+  await ptrUser.fetch();
+
+  const jsonOriginUser = constructUserInfo(ptrUser);
 
   // update _User
 
@@ -449,6 +501,22 @@ async function authUpdateUser(req) {
   }
 
   await ptrUser.save(null, {fetchWhenSave: true});
+
+  let updateLog = '';
+  if (jsonUser.nickname && jsonUser.nickname !== jsonOriginUser.nickname)
+    updateLog += '，用户名：' + jsonUser.nickname;
+  if (jsonUser.roles && !authIsRolesEqual(jsonUser.roles, jsonOriginUser.roles))
+    updateLog += '，角色：' + authStringifyRoles(jsonUser.roles);
+  if (jsonUser.status && jsonUser.status !== jsonOriginUser.status)
+    updateLog += '，状态：' + authStringifyStatus(jsonUser.status);
+  if (jsonUser.mpStatus && jsonUser.mpStatus !== jsonOriginUser.mpStatus)
+    updateLog += '，状态：' + authStringifyStatus(jsonUser.mpStatus);
+  if (jsonUser.note !== undefined && jsonUser.note !== jsonOriginUser.note)
+    updateLog += '，备注：' + jsonUser.note;
+
+  OperationLog.recordOperation(currentUser,
+    '更新用户：' + jsonOriginUser.nickname
+    + updateLog);
 
   return constructUserInfo(ptrUser);
 }
