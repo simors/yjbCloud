@@ -889,7 +889,7 @@ async function fetchRechargeAmount(request) {
   try {
     mysqlConn = await mysqlUtil.getConnection()
     let sql = "SELECT SUM(`cost`) as amount from `DealRecords` WHERE `deal_type` = ?"
-    let queryRes = await mysqlUtil.query(mysqlConn, sql, [DEAL_TYPE_DEPOSIT])
+    let queryRes = await mysqlUtil.query(mysqlConn, sql, [DEAL_TYPE_RECHARGE])
     let amount = queryRes.results[0].amount
     return amount
   } catch (error) {
