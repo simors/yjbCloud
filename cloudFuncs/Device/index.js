@@ -377,6 +377,15 @@ async function updateDevice(request) {
 
   let device = await query.first()
   let currentStation = device.attributes.station
+  let currentStatus = device.attributes.status
+  if(currentStatus === DEVICE_STATUS_OCCUPIED) {
+    throw new AV.Cloud.Error('设备正在使用中', {code: errno.ERROR_OCCUPIED})
+  }
+  if(status === DEVICE_STATUS_OCCUPIED
+    || status === DEVICE_STATUS_OFFLINE
+    || status === DEVICE_STATUS_UNREGISTER) {
+    throw new AV.Cloud.Error('无效的设备状态', {code: errno.ERROR_INVALID_STATUS})
+  }
   if(!currentStation) {
     throw new AV.Cloud.Error('无服务点信息', {code: errno.ERROR_NO_STATION})
   }

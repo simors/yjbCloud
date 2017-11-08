@@ -157,7 +157,8 @@ export const ERROR_NO_WECHAT                = (ERROR_BASE_AUTH - 5)         /* �
 /* Device */
 export const ERROR_INVALID_STATUS           = (ERROR_BASE_DEVICE - 1)       /* 设备状态有误 */
 export const ERROR_TURNON_FAILED            = (ERROR_BASE_DEVICE - 2)       /* 设备开机请求失败*/
-export const ERROR_NO_STATION                  = (ERROR_BASE_DEVICE - 3)       /* 无服务点信息 */
+export const ERROR_NO_STATION               = (ERROR_BASE_DEVICE - 3)       /* 无服务点信息 */
+export const ERROR_OCCUPIED                 = (ERROR_BASE_DEVICE - 4)       /* 设备正在使用中 */
 
 /* Order */
 export const ERROR_UNPAID_ORDER             = (ERROR_BASE_ORDER - 1)        /* 未支付订单 */
