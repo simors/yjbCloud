@@ -4,7 +4,9 @@
 var AV = require('leanengine')
 var Promise = require('bluebird');
 var GLOBAL_CONFIG = require('../config')
-var client = require('mqtt').connect(GLOBAL_CONFIG.MQTT_SERVER_URL)
+var client = require('mqtt').connect(GLOBAL_CONFIG.MQTT_SERVER_URL, {
+  username: GLOBAL_CONFIG.MQTT_SERVER_USERNAME,
+  password: GLOBAL_CONFIG.MQTT_SERVER_PWD})
 var websocketIO = require('../websocketIO')
 var deviceFunc = require('../cloudFuncs/Device')
 var orderFunc = require('../cloudFuncs/Order')
