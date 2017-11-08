@@ -381,6 +381,9 @@ async function updateDevice(request) {
   if(currentStatus === DEVICE_STATUS_OCCUPIED) {
     throw new AV.Cloud.Error('设备正在使用中', {code: errno.ERROR_OCCUPIED})
   }
+  if(currentStatus === DEVICE_STATUS_OFFLINE && status != currentStatus) {
+    throw new AV.Cloud.Error('设备已下线', {code: errno.ERROR_OFFLINE})
+  }
   if(status === DEVICE_STATUS_OCCUPIED
     || status === DEVICE_STATUS_OFFLINE
     || status === DEVICE_STATUS_UNREGISTER) {
