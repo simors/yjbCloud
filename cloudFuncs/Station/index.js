@@ -224,7 +224,7 @@ function updateStation(request, response) {
       var query = new AV.Query('Station')
       query.include('admin')
       query.get(leanStation.id).then((stationInfo)=> {
-        OperationLog.recordOperation(currentUser, '更新服务点' + stationInfo.attributes.name)
+        OperationLog.recordOperation(currentUser, '更新服务点' + stationInfo.attributes.name+'信息')
         response.success(constructStationInfo(stationInfo, true))
       })
     }).catch((error) => {
@@ -481,7 +481,7 @@ async function createPartner(request, response) {
     let queryNew = new AV.Query('ProfitSharing')
     queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
-    OperationLog.recordOperation(currentUser, '创建'+finPartner.attributes.station.attributes.name+'服务单位' + finPartner.attributes.shareholder.attributes.nickname + '分成比例' + finPartner.attributes.royalty)
+    OperationLog.recordOperation(currentUser, '创建服务点'+finPartner.attributes.station.attributes.name+'服务单位' + finPartner.attributes.shareholder.attributes.nickname + '分成比例为' + finPartner.attributes.royalty)
     response.success(constructProfitSharing(finPartner, true, false))
   } catch (err) {
     response.error(err)
@@ -516,7 +516,7 @@ async function updatePartner(request, response) {
     let queryNew = new AV.Query('ProfitSharing')
     queryNew.include(['station', 'shareholder'])
     let finPartner = await queryNew.get(newPartner.id)
-    OperationLog.recordOperation(currentUser, '更新'+finPartner.attributes.station.attributes.name+'服务单位' + finPartner.attributes.shareholder.attributes.nickname + '分成比例' + finPartner.attributes.royalty)
+    OperationLog.recordOperation(currentUser, '更新服务点'+finPartner.attributes.station.attributes.name+'服务单位' + finPartner.attributes.shareholder.attributes.nickname + '分成比例为' + finPartner.attributes.royalty)
     response.success(constructProfitSharing(finPartner, true, false))
   } catch (err) {
     response.error(err)
@@ -585,7 +585,7 @@ function createInvestor(request, response) {
                       }
                       investors.push(constructProfitSharing(result,true,true))
                     })
-                    OperationLog.recordOperation(currentUser, '创建'+investorInfo.attributes.station.attributes.name+'投资人'+'投资金额'+investorInfo.attributes.investment)
+                    OperationLog.recordOperation(currentUser, '创建服务点'+investorInfo.attributes.station.attributes.name+'投资人'+investorInfo.attributes.shareholder.attributes.nickname+'投资金额为'+investorInfo.attributes.investment)
                     response.success(investors)
                   }
                 })
@@ -665,7 +665,7 @@ function updateInvestor(request, response) {
                     }
                     investors.push(constructProfitSharing(result))
                   })
-                  OperationLog.recordOperation(currentUser, '更新'+investorInfo.attributes.station.attributes.name+'投资人'+'投资金额'+investorInfo.attributes.investment)
+                  OperationLog.recordOperation(currentUser, '更新服务点'+investorInfo.attributes.station.attributes.name+'投资人'+investorInfo.attributes.shareholder.attributes.nickname+'的投资金额为'+investorInfo.attributes.investment)
                   response.success(investors)
                 } else {
                   response.success()
@@ -723,7 +723,7 @@ function openPartner(request, response) {
     var query = new AV.Query('ProfitSharing')
     query.include(['station', 'shareholder'])
     query.get(item.id).then((result)=> {
-      OperationLog.recordOperation(currentUser, '启用分成方' + result.attributes.shareholder.attributes.nickname)
+      OperationLog.recordOperation(currentUser, '启用服务点'+result.attributes.station.attributes.name+'的分成方' + result.attributes.shareholder.attributes.nickname)
       response.success(constructProfitSharing(result))
     }, (err)=> {
       response.error(err)
@@ -748,7 +748,7 @@ function closePartner(request, response) {
     var query = new AV.Query('ProfitSharing')
     query.include(['station', 'shareholder'])
     query.get(item.id).then((result)=> {
-      OperationLog.recordOperation(currentUser, '禁用分成方' + result.attributes.shareholder.attributes.nickname)
+      OperationLog.recordOperation(currentUser, '禁用服务点'+result.attributes.station.attributes.name+'的分成方' + result.attributes.shareholder.attributes.nickname)
       response.success(constructProfitSharing(result))
     }, (err)=> {
       response.error(err)
@@ -769,6 +769,7 @@ function openInvestor(request, response) {
   var investorId = request.params.investorId
   var investor = AV.Object.createWithoutData('ProfitSharing', investorId)
   var queryShare = new AV.Query('ProfitSharing')
+  queryShare.include(['station','shareholder'])
   queryShare.get(investorId).then((record)=> {
     var preInvestment = record.attributes.investment
     // console.log('record========>',record.attributes.station)
@@ -805,7 +806,7 @@ function openInvestor(request, response) {
                   results.forEach((result)=> {
                     investors.push(constructProfitSharing(result))
                   })
-                  OperationLog.recordOperation(currentUser, '启用投资人')
+                  OperationLog.recordOperation(currentUser, '启用服务点'+record.attributes.station.attributes.name+'的投资人'+record.attributes.shareholder.attributes.nickname)
                   response.success(investors)
                 } else {
                   response.success()
@@ -836,6 +837,7 @@ function closeInvestor(request, response) {
   // var royalty = request.params.royalty
   var investor = AV.Object.createWithoutData('ProfitSharing', investorId)
   var queryShare = new AV.Query('ProfitSharing')
+  queryShare.include(['station,shareholder'])
   queryShare.get(investorId).then((record)=> {
     var preInvestment = record.attributes.investment
     // console.log('record========>',record.attributes.station)
@@ -873,7 +875,7 @@ function closeInvestor(request, response) {
                   results.forEach((result)=> {
                     investors.push(constructProfitSharing(result))
                   })
-                  OperationLog.recordOperation(currentUser, '停用投资人')
+                  OperationLog.recordOperation(currentUser, '停用服务的'+record.attributes.station.attributes.name+'的投资人'+record.attributes.shareholder.attributes.nickname)
                   response.success(investors)
                 } else {
                   response.success()

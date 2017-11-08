@@ -784,6 +784,10 @@ async function fetchDealRecord(request) {
       countSql = countSql + "AND `deal_time`<? "
       countQueryParams.push(dateFormat(new Date(end), 'isoDateTime'))
     } else if(!start && !end) {
+      if(isRefresh === false) {
+        sql = sql + (dealType? "AND `deal_time`<? " : "WHERE `deal_time`<? ")
+        queryParams.push(dateFormat(new Date(lastDealTime), 'isoDateTime'))
+      }
     } else {
       throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
     }
@@ -885,7 +889,7 @@ async function fetchRechargeAmount(request) {
   try {
     mysqlConn = await mysqlUtil.getConnection()
     let sql = "SELECT SUM(`cost`) as amount from `DealRecords` WHERE `deal_type` = ?"
-    let queryRes = await mysqlUtil.query(mysqlConn, sql, [DEAL_TYPE_DEPOSIT])
+    let queryRes = await mysqlUtil.query(mysqlConn, sql, [DEAL_TYPE_RECHARGE])
     let amount = queryRes.results[0].amount
     return amount
   } catch (error) {
