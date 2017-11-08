@@ -59,8 +59,8 @@ var RABBITMQ_URL = process.env.RABBITMQ_URL
 
 //mqtt配置
 var MQTT_SERVER_URL = process.env.MQTT_SERVER_URL
-var MQTT_SERVER_USERNAME = 'mqttLeanClient'
-var MQTT_SERVER_PWD = 'Yiijiabao20171108'
+var MQTT_SERVER_USERNAME = process.env.MQTT_SERVER_USERNAME
+var MQTT_SERVER_PWD = process.env.MQTT_SERVER_PWD
 
 // mysql数据库配置
 const MYSQL_HOST = process.env.MYSQL_HOST
