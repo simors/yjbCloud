@@ -283,23 +283,48 @@ async function fetchPromotions(request) {
   let disabled = params.disabled
   let start = params.start
   let end = params.end
+  let region = params.region
   let lastCreatedAt = undefined
   let promotionList = []
 
-  let query = new AV.Query('Promotion')
+  let regionQuery = new AV.Query('Promotion')
+  if(region && region.length === 1) {
+    regionQuery.containsAll('region', region)
+  } else if(region && region.length === 2) {
+    let regionQueryA = new AV.Query('Promotion')
+    let regionQueryB = new AV.Query('Promotion')
+    let regionQueryC = new AV.Query('Promotion')
+    regionQueryA.containsAll('region', [region[0]])
+    regionQueryC.sizeEqualTo('region', 1)
+    let regionQueryD = AV.Query.and(regionQueryA, regionQueryC)
+    regionQueryB.containsAll('region', region)
+    regionQuery = AV.Query.or(regionQueryD, regionQueryB)
+  }
+
+  let timeQueryA = new AV.Query('Promotion')
+  let timeQueryB = new AV.Query('Promotion')
+  let timeQueryC = new AV.Query('Promotion')
+  if(start && end) {
+    timeQueryA.greaterThan('end', new Date(start))
+    timeQueryA.lessThanOrEqualTo('start', new Date(start))
+    timeQueryB.greaterThanOrEqualTo('start', new Date(start))
+    timeQueryB.lessThan('end', new Date(end))
+    timeQueryC.lessThan('start', new Date(end))
+    timeQueryC.greaterThan('end', new Date(end))
+  }
+
+  let timeQuery = AV.Query.or(timeQueryA, timeQueryB, timeQueryC)
+
+  let otherQuery = new AV.Query('Promotion')
+  if(disabled != undefined) {
+    otherQuery.equalTo('disabled', disabled)
+  }
+
+  let query = AV.Query.and(timeQuery, regionQuery, otherQuery)
   query.descending('createdAt')
   query.include('category')
   query.include('user')
 
-  if(disabled != undefined) {
-    query.equalTo('disabled', disabled)
-  }
-  if(start) {
-    query.greaterThanOrEqualTo('createdAt', new Date(start))
-  }
-  if(end) {
-    query.lessThan('createdAt', new Date(end))
-  }
   while (1) {
     if(lastCreatedAt) {
       query.lessThan('createdAt', new Date(lastCreatedAt))
