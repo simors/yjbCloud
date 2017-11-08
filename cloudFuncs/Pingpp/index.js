@@ -784,6 +784,10 @@ async function fetchDealRecord(request) {
       countSql = countSql + "AND `deal_time`<? "
       countQueryParams.push(dateFormat(new Date(end), 'isoDateTime'))
     } else if(!start && !end) {
+      if(isRefresh === false) {
+        sql = sql + (dealType? "AND `deal_time`<? " : "WHERE `deal_time`<? ")
+        queryParams.push(dateFormat(new Date(lastDealTime), 'isoDateTime'))
+      }
     } else {
       throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
     }
