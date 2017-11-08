@@ -284,12 +284,12 @@ async function createStationDayAccount() {
       for (let i = 0; i < stationList.length; i++) {
         let stationAccount = await createStationAccount(stationList[i], dayInfo)
         let attr = stationAccount.attributes
-        cost = mathjs.chain(cost).add(attr.cost).done()
-        profit = mathjs.chain(profit).add(attr.profit).done()
-        incoming = mathjs.chain(incoming).add(attr.incoming).done()
-        platformProfit = mathjs.chain(platformProfit).add(attr.platformProfit).done()
-        partnerProfit = mathjs.chain(partnerProfit).add(attr.partnerProfit).done()
-        investorProfit = mathjs.chain(investorProfit).add(attr.investorProfit).done()
+        cost = mathjs.round(mathjs.chain(cost).add(attr.cost).done(), 2)
+        profit = mathjs.round(mathjs.chain(profit).add(attr.profit).done(), 2)
+        incoming = mathjs.round(mathjs.chain(incoming).add(attr.incoming).done(), 2)
+        platformProfit = mathjs.round(mathjs.chain(platformProfit).add(attr.platformProfit).done(), 2)
+        partnerProfit = mathjs.round(mathjs.chain(partnerProfit).add(attr.partnerProfit).done(), 2)
+        investorProfit = mathjs.round(mathjs.chain(investorProfit).add(attr.investorProfit).done(), 2)
       }
       lastTime = stationList[stationList.length - 1].createdAt
     }
