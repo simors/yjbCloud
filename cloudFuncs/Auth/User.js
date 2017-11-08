@@ -323,31 +323,6 @@ async function authFetchSysAdminUsers(nickname, mobilePhoneNumber, status, limit
   };
 }
 
-/**
- * List system admin users.
- * @param {object} req
- * params = {
- *   limit?: number,
- *   nickname?: string,
- *   mobilePhoneNumber?: string,
- *   status?: string, 'disabled'
- * }
- * @returns {Promise.<Array>} an Array of json representation User(s)
- */
-async function authListSysAdminUsers(req) {
-  const {currentUser, params} = req;
-
-  if (!currentUser) {
-    // no token provided
-    throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
-  }
-
-  const {limit=10, nickname, mobilePhoneNumber, status} = params;
-
-  let jsonUsers =  await authFetchSysAdminUsers(nickname, mobilePhoneNumber, status, limit)
-  return jsonUsers
-}
-
 async function authCreateUser(req) {
   const {currentUser, params} = req;
 
@@ -659,7 +634,6 @@ const authApi = {
   authListEndUsers,
   authListAdminUsers,
   authFetchSysAdminUsers,
-  authListSysAdminUsers,
   authCreateUser,
   authDeleteUser,
   authUpdateUser,
