@@ -43,11 +43,13 @@ function updateUserDealRecords(conn, deal) {
   var channel = deal.channel || ''
   var transaction_no = deal.transaction_no || ''
   var feeAmount = deal.feeAmount || 0
+  let promotionId = deal.metadata? deal.metadata.promotionId : undefined
+  let award = deal.metadata? deal.metadata.award : undefined
   var recordSql = 'INSERT INTO `DealRecords` (`from`, `to`, `cost`, `deal_type`, `charge_id`, `order_no`, `channel`, `transaction_no`, `fee`, `promotion_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  return mysqlUtil.query(conn, recordSql, [deal.from, deal.to, deal.cost, deal.deal_type, charge_id, order_no, channel, transaction_no, feeAmount, deal.metadata.promotionId || '']).then(() => {
-    if(deal.deal_type === DEAL_TYPE_RECHARGE && deal.metadata.promotionId && deal.metadata.award > 0) {
+  return mysqlUtil.query(conn, recordSql, [deal.from, deal.to, deal.cost, deal.deal_type, charge_id, order_no, channel, transaction_no, feeAmount, promotionId || '']).then(() => {
+    if(deal.deal_type === DEAL_TYPE_RECHARGE && promotionId && award > 0) {
       let present_order_no = uuidv4().replace(/-/g, '').substr(0, 16) //充值赠送新生产一个订单号
-      return mysqlUtil.query(conn, recordSql, [deal.to, deal.from, deal.metadata.award, DEAL_TYPE_SYS_PRESENT, charge_id, present_order_no, channel, transaction_no, feeAmount, deal.metadata.promotionId])
+      return mysqlUtil.query(conn, recordSql, [deal.to, deal.from, award, DEAL_TYPE_SYS_PRESENT, charge_id, present_order_no, channel, transaction_no, feeAmount, promotionId])
     }
   })
 }
