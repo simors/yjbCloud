@@ -704,7 +704,8 @@ async function fetchDealRecord(request) {
   if(!currentUser) {
     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
   }
-  const {start, end, mobilePhoneNumber, userId, isRefresh, lastDealTime, limit, dealType} = params
+  const {start, end, mobilePhoneNumber, isRefresh, lastDealTime, limit, dealType} = params
+  let userId = params.userId
   if(isRefresh === false && !lastDealTime) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
@@ -879,7 +880,6 @@ var PingppFunc = {
   transferEvent: transferEvent,
   getWalletInfo: getWalletInfo,
   updateWalletInfo: updateWalletInfo,
-  getUserDealRecords: getUserDealRecords,
   handleRedEnvelopeDeal: handleRedEnvelopeDeal,
   createUserWallet: createUserWallet,
   fetchDealRecord: fetchDealRecord,
