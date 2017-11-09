@@ -36,7 +36,7 @@ async function recordOperation(user, operation) {
     await operationLog.save()
     return true
   } catch (err) {
-    throw err
+    console.log('record operation error:', user.attributes.mobilePhoneNumber, ", operation: ", operation)
   }
 }
 

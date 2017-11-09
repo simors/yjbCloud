@@ -20,6 +20,8 @@ export const PERMISSION_CODE = {
   STATION_CHANGE_STATUS:                      2004,         // 服务点综合管理/服务点信息管理/修改服务点状态
   STATION_FETCH_ALL_STATION:                  2005,         // 服务点综合管理/投资人信息管理/获取所有服务点
   STATION_FETCH_RELATED_STATION:              2006,         // 服务点综合管理/投资人信息管理/获取关联服务点
+  STATION_ADD_PARTNER:                        2007,         // 服务点综合管理/投资人信息管理/添加服务单位
+  STATION_CHANGE_PARTNER_STATUS:              2008,         // 服务点综合管理/投资人信息管理/修改服务单位状态
 
   STATION_INVESTOR_BASE_QUERY:                2100,         // 服务点综合管理/投资人信息管理/查看基本信息
   STATION_INVESTOR_ADD:                       2101,         // 服务点综合管理/投资人信息管理/添加投资人
