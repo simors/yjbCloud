@@ -11,6 +11,7 @@ import stationFunc from '../Station'
 import moment from 'moment'
 import {PERMISSION_CODE} from '../../rolePermission'
 import * as authFuncs from '../Auth'
+import {recordOperation} from '../OperationLog'
 
 
 //设备状态

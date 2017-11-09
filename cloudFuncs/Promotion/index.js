@@ -210,6 +210,13 @@ async function editPromotion(request) {
   if(!promotion) {
     throw new AV.Cloud.Error('没找到该活动对象', {code: errno.ENODATA})
   }
+  let leanPromotion = await promotion.fetch()
+  if(disabled === false) {
+    let isPromExist = await isPromotionExist(leanPromotion.attributes.category.id, start, end, region)
+    if(isPromExist) {
+      throw new AV.Cloud.Error('重复的活动', {code: errno.ERROR_PROM_REPEAT})
+    }
+  }
   if(title) {
     promotion.set('title', title)
   }
@@ -233,7 +240,7 @@ async function editPromotion(request) {
   }
 
   let result = await promotion.save()
-  let leanPromotion = await result.fetch()
+  leanPromotion = await result.fetch()
   return constructPromotionInfo(leanPromotion, false, false)
 }
 
