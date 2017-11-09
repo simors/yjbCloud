@@ -312,29 +312,34 @@ async function fetchInvestorByStationId(request, response) {
   if (!currentUser) {
     response.error('User didn\'t login')
   }
+  var query = new AV.Query('ProfitSharing')
+  if( limit){
+    query.limit(limit)
+  }
   try{
     let queryAll = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_ALL_INVESTOR])
-    let queryRelate = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_RELATED_INVESTOR])
+    if(queryAll){
 
-    var query = new AV.Query('ProfitSharing')
-    if( limit){
-      query.limit(limit)
-    }
-    if(queryRelate&&!queryAll){
-      let queryInvestor = new AV.Query('ProfitSharing')
-      queryInvestor.equalTo('shareholder',currentUser)
-      queryInvestor.equalTo('type','investor')
+    }else{
 
-      let investors = await queryInvestor.find()
-      if(investors&&investors.length){
-        let stationList = []
-        investors.forEach((item)=>{
-          let station = AV.Object.createWithoutData('Station',item.attributes.station.id)
-          stationList.push(station)
-        })
-        query.containedIn('station',stationList)
+      let queryRelate = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_RELATED_INVESTOR])
+      if(queryRelate){
+        let queryInvestor = new AV.Query('ProfitSharing')
+        queryInvestor.equalTo('shareholder',currentUser)
+        queryInvestor.equalTo('type','investor')
+
+        let investors = await queryInvestor.find()
+        if(investors&&investors.length){
+          let stationList = []
+          investors.forEach((item)=>{
+            let station = AV.Object.createWithoutData('Station',item.attributes.station.id)
+            stationList.push(station)
+          })
+          query.containedIn('station',stationList)
+        }
+      }else{
+        response.success([])
       }
-
     }
 
     if (stationId) {
@@ -362,10 +367,12 @@ async function fetchInvestorByStationId(request, response) {
     }
     let sharings = await query.find()
     var sharingList = []
-    sharings.forEach((sharing)=> {
-      let sharingInfo = constructProfitSharing(sharing, true, true)
-      sharingList.push(sharingInfo)
-    })
+    if(sharings&&sharings.length){
+      sharings.forEach((sharing)=> {
+        let sharingInfo = constructProfitSharing(sharing, true, true)
+        sharingList.push(sharingInfo)
+      })
+    }
     response.success(sharingList)
   }catch(err){
     response.error(err)
