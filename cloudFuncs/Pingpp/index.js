@@ -904,6 +904,7 @@ var PingppFunc = {
   fetchDealRecord: fetchDealRecord,
   fetchDepositAmount: fetchDepositAmount,
   fetchRechargeAmount: fetchRechargeAmount,
+  updateUserDealRecords: updateUserDealRecords,
   pingppFuncTest: pingppFuncTest,
 }
 

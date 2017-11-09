@@ -395,9 +395,7 @@ async function onLogin(request) {
  * 更新用户区域信息
  * @param request
  */
-async function updateUserRegion(request) {
-  const {currentUser, meta} = request
-  const remoteAddress = meta.remoteAddress
+async function updateUserRegion(currentUser, remoteAddress) {
   if(!currentUser || !remoteAddress) {
     return undefined
   }

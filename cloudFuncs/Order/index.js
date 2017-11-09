@@ -9,6 +9,7 @@ var Promise = require('bluebird')
 const uuidv4 = require('uuid/v4')
 var mathjs = require('mathjs')
 import * as errno from '../errno'
+import {updateUserRegion} from '../Auth'
 
 //设备状态
 const ORDER_STATUS_UNPAID = 0  //未支付
@@ -101,14 +102,13 @@ function createOrder(deviceNo, userId, turnOnTime) {
 }
 
 async function fetchOwnsOrders(request, response) {
-  let currentUser = request.currentUser
-  var limit = request.params.limit || 10
-  var lastTurnOnTime = request.params.lastTurnOnTime
-  var isRefresh = request.params.isRefresh
+  const {currentUser, params, meta} = request
+  const remoteAddress = meta.remoteAddress
+  const {limit, lastTurnOnTime, isRefresh} = params
 
   var query = new AV.Query('Order')
   query.equalTo('user', currentUser)
-  query.limit(limit)
+  query.limit(limit || 10)
   if(!isRefresh && lastTurnOnTime) {
     query.lessThan('start', new Date(lastTurnOnTime))
   }
@@ -127,6 +127,7 @@ async function fetchOwnsOrders(request, response) {
     console.error(error)
     response.error(error)
   }
+  updateUserRegion(currentUser, remoteAddress)
 }
 
 function updateOrderStatus(orderId, status, amount) {
