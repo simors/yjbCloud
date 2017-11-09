@@ -395,14 +395,9 @@ async function onLogin(request) {
  * 更新用户区域信息
  * @param request
  */
-async function updateUserRegion(request) {
-  const {currentUser, meta} = request
-  const remoteAddress = meta.remoteAddress
-  if(!currentUser) {
-    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
-  }
-  if(!remoteAddress) {
-    throw new AV.Cloud.Error('获取用户ip失败', {code: errno.ERROR_PROM_NOIP})
+async function updateUserRegion(currentUser, remoteAddress) {
+  if(!currentUser || !remoteAddress) {
+    return undefined
   }
   let userAddrInfo = await utilFunc.getIpInfo(remoteAddress)
   if(userAddrInfo) {
@@ -410,6 +405,7 @@ async function updateUserRegion(request) {
     currentUser.set('province', {label: userAddrInfo.region, value: userAddrInfo.region_id})
     currentUser.set('city', {label: userAddrInfo.city, value: userAddrInfo.city_id})
   }
+  console.log("updateUserRegion success")
   return await currentUser.save()
 }
 
