@@ -190,29 +190,28 @@ function createDevice(deviceNo, onlineTime) {
  * @param {Object}  request
  * @param {Object}  response
  */
-async function associateWithStation(request, response) {
-  var currentUser = request.currentUser
-  let stationId = request.params.stationId
-  var deviceNo = request.params.deviceNo
-
+async function associateWithStation(request) {
+  const {currentUser, params} = request
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+  const {stationId, deviceNo} = params
+  if(!stationId || !deviceNo) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
   let station = AV.Object.createWithoutData('Station', stationId)
   var query = new AV.Query('Device')
   query.include('station')
   query.equalTo('deviceNo', deviceNo)
-  query.first().then((device) => {
-    device.set('station', station)
-    device.set('status', DEVICE_STATUS_MAINTAIN)
-    return device.save()
-  }).then((device) => {
-    stationFunc.changeDeviceNum(stationId, 'add')
-    return query.get(device.id)
-  }).then((device) => {
-    response.success(constructDeviceInfo(device, true))
-  }).catch((error) => {
-    console.log("associateWithStation", error)
-    response.success(error)
-  })
-
+  let device = await query.first()
+  device.set('station', station)
+  device.set('status', DEVICE_STATUS_MAINTAIN)
+  await device.save()
+  stationFunc.changeDeviceNum(stationId, 'add')
+  let leanDevice = await query.get(device.id)
+  let stationInfo = await station.fetch()
+  recordOperation(currentUser, "设备关联服务网点:" + deviceNo + "&" + stationInfo.attributes.name)
+  return constructDeviceInfo(leanDevice, true)
 }
 
 /**
@@ -405,6 +404,7 @@ async function updateDevice(request) {
     stationFunc.changeDeviceNum(stationId, 'add')
   }
   let deviceInfo =  await query.get(device.id)
+  recordOperation(currentUser, "更新设备信息:" + deviceNo)
   return constructDeviceInfo(deviceInfo, true)
 }
 

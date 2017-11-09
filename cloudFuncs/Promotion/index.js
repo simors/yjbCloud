@@ -9,6 +9,7 @@ import GLOBAL_CONFIG from '../../config'
 import moment from 'moment'
 import utilFunc from '../Util'
 import mathjs from 'mathjs'
+import {recordOperation} from '../OperationLog'
 
 //营销活动类型
 const PROMOTION_CATEGORY_TYPE_RECHARGE = 1        //充值奖励
@@ -179,6 +180,7 @@ async function createPromotion(request) {
 
   let result = await promotion.save()
   let leanPromotion = await result.fetch()
+  recordOperation(currentUser, "创建营销活动:" + title)
   return constructPromotionInfo(leanPromotion, false, true)
 }
 
@@ -241,6 +243,7 @@ async function editPromotion(request) {
 
   let result = await promotion.save()
   leanPromotion = await result.fetch()
+  recordOperation(currentUser, "更新营销活动:" + title)
   return constructPromotionInfo(leanPromotion, false, false)
 }
 
