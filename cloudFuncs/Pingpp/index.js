@@ -730,8 +730,8 @@ async function fetchDealRecord(request) {
     }
 
     if(start && end) {
-      sql = sql + (dealType? "AND `deal_time`>? " : "WHERE `deal_time`>? ")
-      countSql = countSql + (dealType? "AND `deal_time`>? " : "WHERE `deal_time`>? ")
+      sql = sql + ((sql.indexOf("WHERE") > 0)? "AND `deal_time`>? " : "WHERE `deal_time`>? ")
+      countSql = countSql + ((countSql.indexOf("WHERE") > 0)? "AND `deal_time`>? " : "WHERE `deal_time`>? ")
       queryParams.push(dateFormat(new Date(start), 'isoDateTime'))
       countQueryParams.push(dateFormat(new Date(start), 'isoDateTime'))
       if(isRefresh === false) {
@@ -745,7 +745,7 @@ async function fetchDealRecord(request) {
       countQueryParams.push(dateFormat(new Date(end), 'isoDateTime'))
     } else if(!start && !end) {
       if(isRefresh === false) {
-        sql = sql + (dealType? "AND `deal_time`<? " : "WHERE `deal_time`<? ")
+        sql = sql + ((sql.indexOf("WHERE") > 0)? "AND `deal_time`<? " : "WHERE `deal_time`<? ")
         queryParams.push(dateFormat(new Date(lastDealTime), 'isoDateTime'))
       }
     } else {
@@ -753,10 +753,29 @@ async function fetchDealRecord(request) {
     }
 
     if(userId) {
-      sql = sql + (dealType || start? "AND `from`=?  " : "WHERE `from`=?  ")
-      countSql = countSql + (dealType || start? "AND `from`=?  " : "WHERE `from`=?  ")
-      queryParams.push(userId)
-      countQueryParams.push(userId)
+      if(dealType === undefined) {
+        sql = sql + ((sql.indexOf("WHERE") > 0)? "AND (`from`=? OR `to`=?)  " : "WHERE (`from`=? OR `to`=?) ")
+        queryParams.push(userId)
+        queryParams.push(userId)
+        countSql = countSql + ((countSql.indexOf("WHERE") > 0)? "AND (`from`=? OR `to`=?) " : "WHERE (`from`=? OR `to`=?) ")
+        countQueryParams.push(userId)
+        countQueryParams.push(userId)
+      } else if(dealType === DEAL_TYPE_DEPOSIT
+        || dealType === DEAL_TYPE_RECHARGE
+        || dealType === DEAL_TYPE_SERVICE
+        || dealType === DEAL_TYPE_ORDER_PAY) {
+        sql = sql + ((sql.indexOf("WHERE") > 0)? "AND `from`=?  " : "WHERE `from`=?  ")
+        countSql = countSql + ((countSql.indexOf("WHERE") > 0)? "AND `from`=?  " : "WHERE `from`=?  ")
+        queryParams.push(userId)
+        countQueryParams.push(userId)
+      } else if(dealType === DEAL_TYPE_REFUND
+        || dealType === DEAL_TYPE_WITHDRAW
+        || dealType === DEAL_TYPE_SYS_PRESENT) {
+        sql = sql + ((sql.indexOf("WHERE") > 0)? "AND `to`=?  " : "WHERE `to`=?  ")
+        countSql = countSql + ((countSql.indexOf("WHERE") > 0)? "AND `to`=?  " : "WHERE `to`=?  ")
+        queryParams.push(userId)
+        countQueryParams.push(userId)
+      }
     }
     sql = sql + "ORDER BY `deal_time` DESC LIMIT ?"
     queryParams.push(lmt)
@@ -770,7 +789,7 @@ async function fetchDealRecord(request) {
     if(queryRes.results.length > 0) {
       for (let deal of queryRes.results) {
         let record = {}
-        record.id = deal.charge_id
+        record.id = deal.id
         record.order_no = deal.order_no
         switch (deal.deal_type) {
           case DEAL_TYPE_DEPOSIT:
