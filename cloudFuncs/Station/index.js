@@ -152,7 +152,6 @@ function createStation(request, response) {
 async function fetchStations(request, response) {
   let params = request.params
   let currentUser = request.currentUser
-  console.log('currentUser==>',currentUser)
   if (!currentUser) {
     response.error('User didn\'t login')
   }
@@ -167,6 +166,8 @@ async function fetchStations(request, response) {
   if (queryAll) {
     params.userId = undefined
   }
+
+  console.log('queryRelate=======>',queryRelate,queryAll)
   try {
     let results = await getStations(params)
     response.success(results)
@@ -1004,10 +1005,11 @@ async function getStations(params) {
         }
       })
     }
-    console.log('isAdmin=====?',isAdmin ,isPartner, isInvestor)
-    let queryArr = []
+
     if(isAdmin){
       queryAdminStation.equalTo('admin', currentUser)
+    }else{
+      queryAdminStation.equalTo('objectId','nodata')
     }
 
     if(isInvestor){
@@ -1022,6 +1024,8 @@ async function getStations(params) {
         })
       }
       queryInvestorStation.containedIn('objectId',investorStationList)
+    }else{
+      queryInvestorStation.equalTo('objectId','nodata')
     }
 
     if(isPartner){
@@ -1036,8 +1040,12 @@ async function getStations(params) {
         })
       }
       queryPartnerStation.containedIn('objectId',partnerStationList)
+    }else{
+      queryPartnerStation.equalTo('objectId','nodata')
+
     }
-    query = AV.Query.or(isAdmin?queryAdminStation:undefined,isInvestor?queryInvestorStation:undefined,isPartner?queryPartnerStation:undefined)
+
+    query = AV.Query.or(queryAdminStation,queryInvestorStation,queryPartnerStation)
   }else{
     query = new AV.Query('Station')
   }
