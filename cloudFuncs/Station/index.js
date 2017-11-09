@@ -152,12 +152,14 @@ function createStation(request, response) {
 async function fetchStations(request, response) {
   let params = request.params
   let currentUser = request.currentUser
-  // console.log('currentUser==>',currentUser)
+  console.log('currentUser==>',currentUser)
   if (!currentUser) {
     response.error('User didn\'t login')
   }
   let queryAll = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_ALL_STATION])
   let queryRelate = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_RELATED_STATION])
+
+  params.currentUser = currentUser
 
   if (queryRelate) {
     params.userId = currentUser.id
@@ -168,12 +170,9 @@ async function fetchStations(request, response) {
   try {
     let results = await getStations(params)
     response.success(results)
-
   } catch (err) {
     response.error(err)
   }
-
-
 }
 
 /**
@@ -982,9 +981,69 @@ function userFuncTest(request, response) {
  * @returns {Array}
  */
 async function getStations(params) {
-  let {lastCreatedAt, userId, status, province, city, area, name, addr, limit} = params
-  let query = new AV.Query('Station')
-  let stationList = []
+  let {lastCreatedAt, userId, status, province, city, area, name, addr, limit, currentUser} = params
+  let queryPartnerStation = new AV.Query('Station')
+  let queryAdminStation = new AV.Query('Station')
+  let queryInvestorStation = new AV.Query('Station')
+  let query = undefined
+  if(userId){
+      let isAdmin = false
+      let isPartner =  false
+      let isInvestor = false
+
+    if(currentUser.attributes.roles&&currentUser.attributes.roles.length>0){
+      currentUser.attributes.roles.forEach((item)=>{
+        if(item==ROLE_CODE.STATION_MANAGER){
+          isAdmin = true
+        }
+        if(item==ROLE_CODE.STATION_PROVIDER){
+          isPartner = true
+        }
+        if(item == ROLE_CODE.STATION_INVESTOR){
+          isInvestor = true
+        }
+      })
+    }
+    console.log('isAdmin=====?',isAdmin ,isPartner, isInvestor)
+    let queryArr = []
+    if(isAdmin){
+      queryAdminStation.equalTo('admin', currentUser)
+    }
+
+    if(isInvestor){
+      let queryInvestor = new AV.Query('ProfitSharing')
+      queryInvestor.equalTo('shareholder', currentUser)
+      queryInvestor.equalTo('type','investor')
+      let stationsInvestor = await queryInvestor.find()
+      let investorStationList = []
+      if(stationsInvestor&&stationsInvestor.length>0){
+        stationsInvestor.forEach((item)=>{
+          investorStationList.push(item.attributes.station.id)
+        })
+      }
+      queryInvestorStation.containedIn('objectId',investorStationList)
+    }
+
+    if(isPartner){
+      let queryPartner = new AV.Query('ProfitSharing')
+      queryPartner.equalTo('shareholder', currentUser)
+      queryPartner.equalTo('type','partner')
+      let stationsPartner = await queryPartner.find()
+      let partnerStationList = []
+      if(stationsPartner&&stationsPartner.length>0){
+        stationsPartner.forEach((item)=>{
+          partnerStationList.push(item.attributes.station.id)
+        })
+      }
+      queryPartnerStation.containedIn('objectId',partnerStationList)
+    }
+    query = AV.Query.or(isAdmin?queryAdminStation:undefined,isInvestor?queryInvestorStation:undefined,isPartner?queryPartnerStation:undefined)
+  }else{
+    query = new AV.Query('Station')
+  }
+
+
+
   if (province) {
     query.equalTo('province.value', province)
   }
@@ -1006,16 +1065,15 @@ async function getStations(params) {
   if (lastCreatedAt) {
     query.lessThan('createdAt', new Date(lastCreatedAt))
   }
-  if (userId) {
-    let user = AV.Object.createWithoutData('_User', userId)
-    query.equalTo('admin', user)
-  }
+
   if (status != undefined) {
     query.equalTo('status', status)
   }
+
   query.include(['admin'])
   query.descending('createdAt')
   try {
+    let stationList = []
     let stations = await query.find()
     stations.forEach((station) => {
       stationList.push(constructStationInfo(station, true))
