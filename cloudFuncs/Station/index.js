@@ -146,33 +146,32 @@ function createStation(request, response) {
 /**
  * 查询服务网点
  * @param {Object}  request
- * @param {Object}  response
  */
-
-async function fetchStations(request, response) {
+async function fetchStations(request) {
   let params = request.params
   let currentUser = request.currentUser
   if (!currentUser) {
-    response.error('User didn\'t login')
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EINVAL})
   }
-  let queryAll = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_ALL_STATION])
-  let queryRelate = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_RELATED_STATION])
-
   params.currentUser = currentUser
 
-  if (queryRelate) {
-    params.userId = currentUser.id
-  }
+  let queryAll = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_ALL_STATION])
   if (queryAll) {
     params.userId = undefined
+  } else {
+    let queryRelate = await authFuncs.authValidPermissions(currentUser.id, [PERMISSION_CODE.STATION_FETCH_RELATED_STATION])
+    if (queryRelate) {
+      params.userId = currentUser.id
+    } else {
+      return []
+    }
   }
 
-  console.log('queryRelate=======>',queryRelate,queryAll)
   try {
     let results = await getStations(params)
-    response.success(results)
+    return results
   } catch (err) {
-    response.error(err)
+    throw new AV.Cloud.Error('查询服务点失败', {code: errno.EIO})
   }
 }
 
@@ -987,66 +986,66 @@ async function getStations(params) {
   let queryAdminStation = new AV.Query('Station')
   let queryInvestorStation = new AV.Query('Station')
   let query = undefined
-  if(userId){
-      let isAdmin = false
-      let isPartner =  false
-      let isInvestor = false
+  if (userId) {
+    let isAdmin = false
+    let isPartner = false
+    let isInvestor = false
 
-    if(currentUser.attributes.roles&&currentUser.attributes.roles.length>0){
-      currentUser.attributes.roles.forEach((item)=>{
-        if(item==ROLE_CODE.STATION_MANAGER){
+    if (currentUser.attributes.roles && currentUser.attributes.roles.length > 0) {
+      currentUser.attributes.roles.forEach((item)=> {
+        if (item == ROLE_CODE.STATION_MANAGER) {
           isAdmin = true
         }
-        if(item==ROLE_CODE.STATION_PROVIDER){
+        if (item == ROLE_CODE.STATION_PROVIDER) {
           isPartner = true
         }
-        if(item == ROLE_CODE.STATION_INVESTOR){
+        if (item == ROLE_CODE.STATION_INVESTOR) {
           isInvestor = true
         }
       })
     }
 
-    if(isAdmin){
+    if (isAdmin) {
       queryAdminStation.equalTo('admin', currentUser)
-    }else{
-      queryAdminStation.equalTo('objectId','nodata')
+    } else {
+      queryAdminStation.equalTo('objectId', 'nodata')
     }
 
-    if(isInvestor){
+    if (isInvestor) {
       let queryInvestor = new AV.Query('ProfitSharing')
       queryInvestor.equalTo('shareholder', currentUser)
-      queryInvestor.equalTo('type','investor')
+      queryInvestor.equalTo('type', 'investor')
       let stationsInvestor = await queryInvestor.find()
       let investorStationList = []
-      if(stationsInvestor&&stationsInvestor.length>0){
-        stationsInvestor.forEach((item)=>{
+      if (stationsInvestor && stationsInvestor.length > 0) {
+        stationsInvestor.forEach((item)=> {
           investorStationList.push(item.attributes.station.id)
         })
       }
-      queryInvestorStation.containedIn('objectId',investorStationList)
-    }else{
-      queryInvestorStation.equalTo('objectId','nodata')
+      queryInvestorStation.containedIn('objectId', investorStationList)
+    } else {
+      queryInvestorStation.equalTo('objectId', 'nodata')
     }
 
-    if(isPartner){
+    if (isPartner) {
       let queryPartner = new AV.Query('ProfitSharing')
       queryPartner.equalTo('shareholder', currentUser)
-      queryPartner.equalTo('type','partner')
+      queryPartner.equalTo('type', 'partner')
       let stationsPartner = await queryPartner.find()
       let partnerStationList = []
-      if(stationsPartner&&stationsPartner.length>0){
-        stationsPartner.forEach((item)=>{
+      if (stationsPartner && stationsPartner.length > 0) {
+        stationsPartner.forEach((item)=> {
           partnerStationList.push(item.attributes.station.id)
         })
       }
-      queryPartnerStation.containedIn('objectId',partnerStationList)
-    }else{
-      queryPartnerStation.equalTo('objectId','nodata')
+      queryPartnerStation.containedIn('objectId', partnerStationList)
+    } else {
+      queryPartnerStation.equalTo('objectId', 'nodata')
 
     }
 
-    query = AV.Query.or(queryAdminStation,queryInvestorStation,queryPartnerStation)
-  }else{
+    query = AV.Query.or(queryAdminStation, queryInvestorStation, queryPartnerStation)
+  } else {
     query = new AV.Query('Station')
   }
 
