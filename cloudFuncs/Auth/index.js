@@ -405,7 +405,6 @@ async function updateUserRegion(currentUser, remoteAddress) {
     currentUser.set('province', {label: userAddrInfo.region, value: userAddrInfo.region_id})
     currentUser.set('city', {label: userAddrInfo.city, value: userAddrInfo.city_id})
   }
-  console.log("updateUserRegion success")
   return await currentUser.save()
 }
 
