@@ -52,46 +52,6 @@ function updateUserDealRecords(conn, deal) {
   })
 }
 
-function getUserDealRecords(userId, limit, lastTime) {
-  var sql = ""
-  var mysqlConn = undefined
-  var records = []
-
-  return mysqlUtil.getConnection().then((conn) => {
-    mysqlConn = conn
-    sql = ""
-    if(lastTime) {
-      sql = "SELECT * FROM `DealRecords` WHERE (`to`=? OR `from`=?) AND `deal_time`<? ORDER BY `deal_time` DESC LIMIT ?"
-      return mysqlUtil.query(conn, sql, [userId, userId, dateFormat(lastTime, 'isoDateTime'), limit])
-    } else {
-      sql = "SELECT * FROM `DealRecords` WHERE `to`=? OR `from`=? ORDER BY `deal_time` DESC LIMIT ?"
-      return mysqlUtil.query(conn, sql, [userId, userId, limit])
-    }
-  }).then((queryRes) => {
-    if(queryRes.results.length > 0) {
-      queryRes.results.forEach((deal) => {
-        var record = {
-          order_no: deal.order_no,
-          from: deal.from,
-          to: deal.to,
-          cost: deal.cost,
-          dealTime: deal.deal_time,
-          dealType: deal.deal_type,
-        }
-        records.push(record)
-      })
-    }
-    return records
-  }).catch((error) => {
-    console.log('getUserDealRecords', error)
-    throw error
-  }).finally(() => {
-    if (mysqlConn) {
-      mysqlUtil.release(mysqlConn)
-    }
-  })
-}
-
 /**
  * 获取mysql中的Wallet信息
  * @param useId
@@ -744,12 +704,11 @@ async function fetchDealRecord(request) {
   if(!currentUser) {
     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
   }
-  const {start, end, mobilePhoneNumber, isRefresh, lastDealTime, limit, dealType} = params
+  const {start, end, mobilePhoneNumber, userId, isRefresh, lastDealTime, limit, dealType} = params
   if(isRefresh === false && !lastDealTime) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
-  let userId = undefined
-  if(mobilePhoneNumber) {
+  if(!userId && mobilePhoneNumber) {
     userId = await getUserId(mobilePhoneNumber)
   }
   let total = undefined

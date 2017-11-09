@@ -285,20 +285,6 @@ async function fetchWalletInfo(request) {
   return await getWalletInfo(currentUser.id)
 }
 
-function fetchDealRecords(request, response) {
-  console.log("fetchDealRecords params:", request.params)
-  var userId = request.params.userId
-  var limit = request.params.limit || 10
-  var lastTime = request.params.lastTime
-
-  PingppFunc.getUserDealRecords(userId, limit, lastTime).then((records) => {
-    response.success(records)
-  }).catch((error) => {
-    console.log("fetchDealRecords", error)
-    response.error(error)
-  })
-}
-
 function verifyIdName(request, response) {
   var userId = request.params.userId
   var idName = request.params.idName
@@ -449,7 +435,6 @@ var authFunc = {
   authFuncTest: authFuncTest,
   isUserSignIn: isUserSignIn,
   fetchWalletInfo: fetchWalletInfo,
-  fetchDealRecords: fetchDealRecords,
   verifyIdName: verifyIdName,
   getUserId: getUserId,
   getUserInfoById: getUserInfoById,

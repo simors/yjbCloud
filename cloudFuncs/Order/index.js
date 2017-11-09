@@ -173,6 +173,7 @@ async function  orderPayment(request) {
       cost: Number(amount),
       deal_type: PingppFunc.DEAL_TYPE_ORDER_PAY,
     }
+    await PingppFunc.updateUserDealRecords(mysqlConn, deal)
     await PingppFunc.updateWalletInfo(mysqlConn, deal)
     await mysqlUtil.commit(mysqlConn)
   } catch (error) {

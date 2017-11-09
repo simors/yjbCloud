@@ -25,7 +25,6 @@ var withdrawFunc = require('./cloudFuncs/Withdraw')
 //用户
 AV.Cloud.define('authFuncTest', authFunc.authFuncTest)
 AV.Cloud.define('authFetchWalletInfo', authFunc.fetchWalletInfo)
-AV.Cloud.define('authFetchDealRecords', authFunc.fetchDealRecords)
 AV.Cloud.define('authVerifyIdName', authFunc.verifyIdName)
 AV.Cloud.define('wechatIsSubscribe', mpUserFuncs.isSubscribe)
 AV.Cloud.define('authSetUserMobilePhone', authFunc.setUserMobilePhone)
