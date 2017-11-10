@@ -702,8 +702,10 @@ async function getPromotionRecord(promotionId, userId) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
   let promotion = AV.Object.createWithoutData('Promotion', promotionId)
+  let user = AV.Object.createWithoutData('_User', userId)
   let query = new AV.Query('PromotionRecord')
   query.equalTo('promotion', promotion)
+  query.equalTo('user', user)
   let results = await query.find()
   let recordList = []
   results.forEach((record) => {
