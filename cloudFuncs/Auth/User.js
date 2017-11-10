@@ -142,7 +142,7 @@ async function authGetRolesAndPermissions(req) {
  *   mobilePhoneNumber?: string,
  *   province?: string,
  *   city?: string,
- *   status?: string, 'disabled'
+ *   status?: number
  * }
  * @returns {Promise.<Array>} an Array of json representation User(s)
  */
@@ -202,14 +202,14 @@ async function authListEndUsers(req) {
 }
 
 /**
- * List admin users, i.e., which has has user type of 'admin' or 'both'.
+ * List admin users.
  * @param {object} req
  * params = {
  *   limit?: number,
  *   nickname?: string,
  *   mobilePhoneNumber?: string,
  *   roles?: Array<number>, role codes
- *   status?: string, 'disabled'
+ *   status?: number
  *   skipMyself: boolean
  * }
  * @returns {Promise.<Array>} an Array of json representation User(s)
@@ -274,6 +274,87 @@ async function authListAdminUsers(req) {
 
   return {
     count,
+    jsonUsers
+  };
+}
+
+/**
+ * Fetch admins by specified roles.
+ * @param {object} req
+ * params = {
+ *   nickname?: string,
+ *   mobilePhoneNumber?: string,
+ *   roles?: Array<number>, role codes
+ *   status?: number
+ * }
+ * @returns {Promise.<Array>} an Array of json representation User(s)
+ */
+async function authFetchAdminsByRoles(req) {
+  const {currentUser, params} = req;
+
+  if (!currentUser) {
+    // no token provided
+    throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
+  }
+
+  const {nickname, mobilePhoneNumber, roles, status} = params;
+
+  const jsonUsers = [];
+
+  const values = [];
+  let cql = 'select * from _User';
+  cql += ' where (type=? or type=?)';
+  values.push(AUTH_USER_TYPE.ADMIN);
+  values.push(AUTH_USER_TYPE.BOTH);
+  if (nickname) {
+    cql += ` and nickname regexp ".*${nickname}.*"`;
+  }
+  if (mobilePhoneNumber) {
+    cql += ` and mobilePhoneNumber regexp ".*${mobilePhoneNumber}.*"`;
+  }
+  if (roles) {
+    // match user who has any role in provided array, change 'in' to 'all' to match
+    // user who has all roles in provided array
+    cql += ' and roles in ?';
+    values.push(roles);
+  }
+  if (status) {
+    if (status === AUTH_USER_STATUS.ADMIN_DISABLED) {
+      cql += ' and status=?';
+      values.push(AUTH_USER_STATUS.ADMIN_DISABLED);
+    } else if (status === AUTH_USER_STATUS.ADMIN_NORMAL) {
+      cql += ' and (status is not exists or status=?)';
+      values.push(AUTH_USER_STATUS.ADMIN_NORMAL);
+    }
+  }
+
+  const kLimit = 100;
+  const cql_first = cql + ` limit ${kLimit} order by -createdAt`;
+
+  const {results} = await AV.Query.doCloudQuery(cql_first, values);
+
+  let i = undefined;
+  for (i of results) {
+    jsonUsers.push(constructUserInfo(i));
+  }
+
+  const cql_next = cql + ` and createdAt < date(?) limit ${kLimit} order by -createdAt`;
+
+  let more = (kLimit === results.length);
+  while (more) { // list all users
+    values.push(i.createdAt);
+
+    const {results} = await AV.Query.doCloudQuery(cql_next, values);
+
+    values.pop();
+    more = (kLimit === results.length);
+
+    for (i of results) {
+      jsonUsers.push(constructUserInfo(i));
+    }
+  }
+
+  return {
     jsonUsers
   };
 }
@@ -552,7 +633,7 @@ async function authListOpenIds(params) {
     }
   }
   if (lastUpdatedAt) {
-    cql += ' and updatedAt<date(?)';
+    cql += ' and updatedAt < date(?)';
     values.push(lastUpdatedAt);
   }
   cql += ' limit ?';
@@ -633,6 +714,7 @@ const authApi = {
   authGetRolesAndPermissions,
   authListEndUsers,
   authListAdminUsers,
+  authFetchAdminsByRoles,
   authFetchSysAdminUsers,
   authCreateUser,
   authDeleteUser,
