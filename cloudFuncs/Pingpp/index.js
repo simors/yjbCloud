@@ -91,7 +91,7 @@ function getWalletInfo(userId) {
   })
 }
 
-async function createUserWallet(userId) {
+async function createUserWallet(userId, openid) {
   if(!userId) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
@@ -102,7 +102,7 @@ async function createUserWallet(userId) {
     let queryRes = await mysqlUtil.query(mysqlConn, sql, [userId])
     if(queryRes.results.length === 0) {
       sql = "INSERT INTO `Wallet` (`userId`, `balance`, `deposit`, `password`, `openid`, `user_name`, `debt`, `process`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-      await mysqlUtil.query(mysqlConn, sql, [userId, 0, 0, '', '', '', 0, WALLET_PROCESS_TYPE.NORMAL_PROCESS])
+      await mysqlUtil.query(mysqlConn, sql, [userId, 0, 0, '', openid || '', '', 0, WALLET_PROCESS_TYPE.NORMAL_PROCESS])
       return {
         userId: userId,
         balance: 0,

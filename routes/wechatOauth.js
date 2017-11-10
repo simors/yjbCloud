@@ -42,7 +42,7 @@ async function createUserByAuthData(authData, phone, clientIp) {
     //创建钱包信息
     let createUserWallet = require('../cloudFuncs/Pingpp').createUserWallet
     let leanUser = await AV.User.associateWithAuthData(user, platform, authData)
-    createUserWallet(leanUser.id)
+    createUserWallet(leanUser.id, openid)
     return leanUser
   }
   return authApi.authFetchUserByOpenId(openid)
