@@ -418,9 +418,9 @@ async function getValidPromotionList(request) {
   let userAddrInfo = await utilFunc.getIpInfo(remoteAddress)
   let userRegion = [userAddrInfo.region_id, userAddrInfo.city_id]
   let timeQuery = new AV.Query('Promotion')
-  let statusQuery = new AV.Query('Promotion')
   timeQuery.greaterThan('end', new Date())
   timeQuery.lessThanOrEqualTo('start', new Date())
+  timeQuery.equalTo('disabled', false)
 
   let regionQueryA = new AV.Query('Promotion')
   let regionQueryB = new AV.Query('Promotion')
@@ -431,9 +431,8 @@ async function getValidPromotionList(request) {
   regionQueryB.containsAll('region', userRegion)
   let regionQuery = AV.Query.or(regionQueryD, regionQueryB)
 
-  statusQuery.equalTo('disabled', false)
 
-  let query = AV.Query.and(statusQuery, timeQuery, regionQuery)
+  let query = AV.Query.and(timeQuery, regionQuery)
   query.include('user')
   query.include('category')
   let results = await query.find()

@@ -13,8 +13,8 @@ function subscribeEvent(req, res, next) {
   var message = req.weixin
   var openid = message.FromUserName
 
-  authFunc.updateUserSubscribe(openid, true).then((result) => {
-    if(result) {
+  authFunc.updateUserSubscribe(openid, true).then((user) => {
+    if(user) {
       res.reply({
         type: 'text',
         content: "欢迎回来"
@@ -25,10 +25,14 @@ function subscribeEvent(req, res, next) {
         content: "欢迎使用衣家宝干衣柜"
       })
     }
-  }).then(() => {
+    return user
+  }).then((user) => {
+    if(!user) {
+      return
+    }
     let updateUserScore = require('../../cloudFuncs/Score').updateUserScore
     let SCORE_OP_TYPE_FOCUS = require('../../cloudFuncs/Score').SCORE_OP_TYPE_FOCUS
-    return updateUserScore(userId, SCORE_OP_TYPE_FOCUS, {})
+    return updateUserScore(user.id, SCORE_OP_TYPE_FOCUS, {})
   }).catch((error) => {
     console.log("subscribeEvent error", error)
     res.reply({
@@ -43,7 +47,19 @@ function unsubscribeEvent(req, res, next) {
   let message = req.weixin
   let openid = message.FromUserName
 
-  authFunc.updateUserSubscribe(openid, false).catch((error) => {
+  authFunc.updateUserSubscribe(openid, false).then((user) => {
+    if(!user) {
+      return
+    }
+    let subtractUserScore = require('../../cloudFuncs/Score').subtractUserScore
+    const OP_SCORE = require('../../cloudFuncs/Score').OP_SCORE
+    return subtractUserScore(user.id, OP_SCORE.FOCUS_MP)
+  }).then(() => {
+    res.reply({
+      type: 'text',
+      content: ""
+    })
+  }).catch((error) => {
     console.log("unsubscribeEvent error", error)
   })
 }

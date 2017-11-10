@@ -106,6 +106,7 @@ async function scoreFuncTest(request) {
 }
 
 var scoreFunc = {
+  OP_SCORE,
   SCORE_OP_TYPE_FOCUS,
   SCORE_OP_TYPE_DEPOSIT,
   SCORE_OP_TYPE_RECHARGE,

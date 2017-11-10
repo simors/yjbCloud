@@ -375,8 +375,7 @@ async function updateUserSubscribe(openid, subscribe) {
     return undefined
   }
   user.set('subscribe', subscribe)
-  let result = await user.save()
-  return result
+  return await user.save()
 }
 
 /**
