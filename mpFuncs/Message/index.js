@@ -4,7 +4,7 @@
 var Promise = require('bluebird')
 var GLOBAL_CONFIG = require('../../config')
 var wechat_api = require('../index').wechat_api
-var PingppFunc = require('../../cloudFuncs/Pingpp')
+import {DEAL_TYPE_RECHARGE, DEAL_TYPE_DEPOSIT} from '../../cloudFuncs/Pingpp'
 import moment from 'moment'
 
 /**
@@ -18,11 +18,11 @@ import moment from 'moment'
  */
 function sendRechargeTmpMsg(openid, amount, balance, score, payTime, type) {
   var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_RECHARGE
-  var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + 'mine/wallet'
+  var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine/wallet'
   var title = ""
-  if(type === PingppFunc.DEAL_TYPE_RECHARGE) {
+  if(type === DEAL_TYPE_RECHARGE) {
     title = "尊敬的衣家宝用户，您已充值成功\n"
-  } else if(type === PingppFunc.DEAL_TYPE_DEPOSIT) {
+  } else if(type === DEAL_TYPE_DEPOSIT) {
     title = "尊敬的衣家宝用户，您的押金已经支付成功\n"
   }
 
