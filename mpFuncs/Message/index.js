@@ -4,7 +4,6 @@
 var Promise = require('bluebird')
 var GLOBAL_CONFIG = require('../../config')
 var wechat_api = require('../index').wechat_api
-import {DEAL_TYPE_RECHARGE, DEAL_TYPE_DEPOSIT} from '../../cloudFuncs/Pingpp'
 import moment from 'moment'
 
 /**
@@ -17,6 +16,9 @@ import moment from 'moment'
  * @param {Number} type 支付类型
  */
 function sendRechargeTmpMsg(openid, amount, balance, score, payTime, type) {
+  let DEAL_TYPE_RECHARGE = require('../../cloudFuncs/Pingpp').DEAL_TYPE_RECHARGE
+  let DEAL_TYPE_DEPOSIT = require('../../cloudFuncs/Pingpp').DEAL_TYPE_DEPOSIT
+
   var templateId = GLOBAL_CONFIG.WECHAT_MSG_TMPID_RECHARGE
   var url = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine/wallet'
   var title = ""
@@ -25,7 +27,6 @@ function sendRechargeTmpMsg(openid, amount, balance, score, payTime, type) {
   } else if(type === DEAL_TYPE_DEPOSIT) {
     title = "尊敬的衣家宝用户，您的押金已经支付成功\n"
   }
-
   var data = {
     "first": {
       "value": title,
