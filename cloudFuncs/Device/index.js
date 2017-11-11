@@ -433,7 +433,6 @@ async function turnOnDeviceCheck(deviceNo, userId) {
       return errno.ERROR_NO_DEPOSIT
     }
     const withdrawApply = await getUserRefundRequest(userId)
-    console.log("withdrawApply:", withdrawApply)
     if(withdrawApply && withdrawApply.status === WITHDRAW_STATUS.APPLYING) {
       return errno.ERROR_REFUNDING
     }
