@@ -56,7 +56,7 @@ function authStringifyRoles(roles) {
     str.push(AUTH_ROLE_CODE_STR[i]);
   });
 
-  return str.join(', ');
+  return str.join('，');
 }
 
 function authIsRolesEqual(roles1, roles2) {
@@ -282,6 +282,7 @@ async function authListAdminUsers(req) {
  * Fetch admins by specified roles.
  * @param {object} req
  * params = {
+ * nicknameOrMobilePhoneNumber?: string
  *   nickname?: string,
  *   mobilePhoneNumber?: string,
  *   roles?: Array<number>, role codes
@@ -297,7 +298,7 @@ async function authFetchAdminsByRoles(req) {
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
 
-  const {nickname, mobilePhoneNumber, roles, status} = params;
+  const {nicknameOrMobilePhoneNumber,nickname, mobilePhoneNumber, roles, status} = params;
 
   const jsonUsers = [];
 
@@ -306,12 +307,10 @@ async function authFetchAdminsByRoles(req) {
   cql += ' where (type=? or type=?)';
   values.push(AUTH_USER_TYPE.ADMIN);
   values.push(AUTH_USER_TYPE.BOTH);
-  if (nickname) {
-    cql += ` and nickname regexp ".*${nickname}.*"`;
+  if (nicknameOrMobilePhoneNumber) {
+    cql += ` and (nickname regexp ".*${nicknameOrMobilePhoneNumber}.*" or mobilePhoneNumber regexp ".*${nicknameOrMobilePhoneNumber}.*")`;
   }
-  if (mobilePhoneNumber) {
-    cql += ` and mobilePhoneNumber regexp ".*${mobilePhoneNumber}.*"`;
-  }
+
   if (roles) {
     // match user who has any role in provided array, change 'in' to 'all' to match
     // user who has all roles in provided array
