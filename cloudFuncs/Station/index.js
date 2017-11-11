@@ -133,7 +133,7 @@ function createStation(request, response) {
       var query = new AV.Query('Station')
       query.include('admin')
       query.get(leanStation.id).then((stationInfo)=> {
-        OperationLog.recordOperation(currentUser, '创建服务点' + stationInfo.attributes.name)
+        OperationLog.recordOperation(currentUser, '创建服务点' + stationInfo.attributes.name + '管理员为' +stationInfo.attributes.admin.attributes.nickname+'平台分成比例为'+stationInfo.attributes.platformProp)
         response.success(constructStationInfo(stationInfo, true))
       })
     }).catch((error) => {
@@ -223,7 +223,7 @@ function updateStation(request, response) {
       var query = new AV.Query('Station')
       query.include('admin')
       query.get(leanStation.id).then((stationInfo)=> {
-        OperationLog.recordOperation(currentUser, '更新服务点' + stationInfo.attributes.name+'信息')
+        OperationLog.recordOperation(currentUser, '更新服务点' + stationInfo.attributes.name + '管理员为' +stationInfo.attributes.admin.attributes.nickname+'平台分成比例为'+stationInfo.attributes.platformProp)
         response.success(constructStationInfo(stationInfo, true))
       })
     }).catch((error) => {
