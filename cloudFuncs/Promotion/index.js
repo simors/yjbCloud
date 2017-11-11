@@ -332,17 +332,17 @@ async function fetchPromotions(request) {
   let otherQuery = new AV.Query('Promotion')
 
   if(showType=='disable'){
-    otherQuery.equalTo('disable',true)
+    otherQuery.equalTo('disabled',true)
   }else if(showType=='enable'){
     otherQuery.lessThanOrEqualTo('start', new Date())
     otherQuery.greaterThanOrEqualTo('end', new Date())
-    otherQuery.equalTo('disable',false)
+    otherQuery.equalTo('disabled',false)
   }else if(showType=='isBefore'){
-    otherQuery.greaterThan('start', new Date())
-    otherQuery.equalTo('disable',false)
-  }else if(showType=='isAfter'){
     otherQuery.lessThan('end', new Date())
-    otherQuery.equalTo('disable',false)
+    otherQuery.equalTo('disabled',false)
+  }else if(showType=='isAfter'){
+    otherQuery.greaterThan('start', new Date())
+    otherQuery.equalTo('disabled',false)
   }else if(!showType){
 
   }
