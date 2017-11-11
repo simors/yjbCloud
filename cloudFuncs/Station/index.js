@@ -110,7 +110,7 @@ function createStation(request, response) {
 
   query.first().then((stationRecord) => {
     if (stationRecord) {
-      response.error(new Error("服务网点名字重复"))
+      response.error(new AV.Cloud.Error("服务网点名字重复",{code: errno.ERROR_STATION_REPEAT}))
       return
     }
     var admin = AV.Object.createWithoutData('_User', adminId)

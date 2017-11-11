@@ -192,5 +192,6 @@ export const ERROR_CREATE_CHARGES           = (ERROR_BASE_DEAL - 5)         /* �
 /* Station */
 export const ERROR_STATION_NOMAN = (ERROR_BASE_STATION - 1)       /* 查无此人 */
 export const ERROR_STATION_HAVESTATION = (ERROR_BASE_STATION - 2)       /* 该用户仍和服务点有关联 */
+export const ERROR_STATION_REPEAT = (ERROR_BASE_STATION - 3)       /* 服务点重复 */
 
 /* Withdraw */
