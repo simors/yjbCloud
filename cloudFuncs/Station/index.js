@@ -207,7 +207,7 @@ function updateStation(request, response) {
   queryName.equalTo('name', name)
   queryName.first().then((stationRecord) => {
     if (stationRecord && stationRecord.id != stationId) {
-      response.error(new Error("服务网点名字重复"))
+      response.error(new AV.Cloud.Error("服务网点名字重复",{code: errno.ERROR_STATION_REPEAT}))
       return
     }
     station.set('name', name)
