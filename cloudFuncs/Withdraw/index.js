@@ -142,22 +142,17 @@ async function fetchWithdrawRecords(request) {
 }
 
 /**
- * 获取用户最后一次申请押金返还的信息
- * @param request
+ * 获取押金返还信息
+ * @param userId
  * @returns {*}
  */
-async function fetchUserLastRefund(request) {
+async function getUserRefundRequest(userId) {
   let conn = undefined
-  let currentUser = request.currentUser
-  if(!currentUser) {
-    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
-  }
-
   try {
     conn = await mysqlUtil.getConnection()
     let sql = 'SELECT * FROM `WithdrawApply` WHERE `userId`=? AND `applyType`=? AND `status`=? ORDER BY `applyDate` LIMIT 1'
 
-    let queryRes = await mysqlUtil.query(conn, sql, [currentUser.id, WITHDRAW_APPLY_TYPE.REFUND, WITHDRAW_STATUS.APPLYING])
+    let queryRes = await mysqlUtil.query(conn, sql, [userId, WITHDRAW_APPLY_TYPE.REFUND, WITHDRAW_STATUS.APPLYING])
     let result = queryRes.results
     if (result.length == 0) {
       return undefined
@@ -172,12 +167,31 @@ async function fetchUserLastRefund(request) {
   }
 }
 
+/**
+ * 获取用户最后一次申请押金返还的信息
+ * @param request
+ * @returns {*}
+ */
+async function fetchUserLastRefund(request) {
+  let currentUser = request.currentUser
+  if(!currentUser) {
+    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
+  }
+
+  try {
+    return await getUserRefundRequest(currentUser.id)
+  } catch (e) {
+    throw new AV.Cloud.Error('查询押金返还信息失败', {code: errno.EIO})
+  }
+}
+
 const withdrawFunc = {
   WITHDRAW_STATUS,
   WITHDRAW_APPLY_TYPE,
   createWithdrawApply,
   confirmWithdraw,
   fetchWithdrawRecords,
+  getUserRefundRequest,
   fetchUserLastRefund,
 }
 
