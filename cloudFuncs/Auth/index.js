@@ -5,6 +5,7 @@ import AV from 'leanengine'
 import PingppFunc from '../Pingpp'
 import * as errno from '../errno'
 import utilFunc from '../Util'
+import {AUTH_USER_STATUS} from './User'
 
 export function constructUserInfo(user) {
   if(!user) {
@@ -387,7 +388,12 @@ async function onLogin(request) {
   if(!currentUser) {
     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
   }
-  //TODO 黑名单过滤
+
+  let mpStatus = currentUser.attributes.mpStatus
+  if(mpStatus === AUTH_USER_STATUS.MP_DISABLED) {
+    throw new AV.Cloud.Error('用户已经被禁用', {code: errno.EACCES})
+  }
+
 }
 
 /**
