@@ -301,13 +301,22 @@ function updateWalletInfo(conn, deal) {
 }
 
 
-function createPayment(request, response) {
+async function createPayment(request) {
   var order_no = uuidv4().replace(/-/g, '').substr(0, 16)
   var amount = mathjs.number(request.params.amount) * 100
   var channel = request.params.channel
   var metadata = request.params.metadata
   var openid = request.params.openid
   var subject = request.params.subject
+
+  let promotionId = metadata? metadata.promotionId : undefined
+  let userId = metadata? metadata.fromUser : undefined
+  if(promotionId && userId) {
+    let promotion = await promotionFunc.getValidPromotion(userId, promotionFunc.PROMOTION_CATEGORY_TYPE_RECHARGE)
+    if(!promotion || promotion.id != promotionId) {
+      throw new AV.Cloud.Error('活动已失效', {code: errno.ERROR_PROM_INVALID})
+    }
+  }
 
   if(process.env.LEANCLOUD_APP_ID === GLOBAL_CONFIG.LC_DEV_APP_ID) {
     amount = mathjs.chain(amount).multiply(0.01).done()
@@ -317,30 +326,33 @@ function createPayment(request, response) {
   }
 
   pingpp.setPrivateKeyPath(__dirname + "/rsa_private_key.pem");
-  pingpp.charges.create({
-    order_no: order_no,// 推荐使用 8-20 位，要求数字或字母，不允许其他字符
-    app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
-    channel: channel,// 支付使用的第三方支付渠道取值，请参考：https://www.pingxx.com/api#api-c-new
-    amount: amount,//订单总金额, 人民币单位：分（如订单总金额为 1 元，此处请填 100）
-    client_ip: "127.0.0.1",// 发起支付请求客户端的 IP 地址，格式为 IPV4，如: 127.0.0.1
-    currency: "cny",
-    subject: subject,
-    body: "商品的描述信息",
-    extra: {
-      open_id: openid
-    },
-    description: "衣家宝支付",
-    metadata: metadata,
-  }, function (err, charge) {
-    if (err != null) {
-      console.log("pingpp.charges.create fail:", err)
-      response.error({
-        errcode: 1,
-        message: '[PingPP] create charges failed!',
+  try {
+    let charges = await new Promise((resolve, reject) => {
+      pingpp.charges.create({
+        order_no: order_no,// 推荐使用 8-20 位，要求数字或字母，不允许其他字符
+        app: {id: GLOBAL_CONFIG.PINGPP_APP_ID},
+        channel: channel,// 支付使用的第三方支付渠道取值，请参考：https://www.pingxx.com/api#api-c-new
+        amount: amount,//订单总金额, 人民币单位：分（如订单总金额为 1 元，此处请填 100）
+        client_ip: "127.0.0.1",// 发起支付请求客户端的 IP 地址，格式为 IPV4，如: 127.0.0.1
+        currency: "cny",
+        subject: subject,
+        body: "商品的描述信息",
+        extra: {
+          open_id: openid
+        },
+        description: "衣家宝支付",
+        metadata: metadata,
+      }, function (err, charge) {
+        if (err != null) {
+          reject(new AV.Cloud.Error('request charges error' + err.message, {code: errno.ERROR_CREATE_CHARGES}))
+        }
+        resolve(charge)
       })
-    }
-    response.success(charge)
-  })
+    })
+    return charges
+  } catch (e) {
+    throw e
+  }
 }
 
 async function paymentEvent(request) {
@@ -357,7 +369,6 @@ async function paymentEvent(request) {
   var fromUser = charge.metadata.fromUser
   var payTime = charge.created  //unix时间戳
 
-  console.log("收到paymentEvent消息 charge:", charge)
   let updateUserScore = require('../Score').updateUserScore
   let SCORE_OP_TYPE_DEPOSIT = require('../Score').SCORE_OP_TYPE_DEPOSIT
   let SCORE_OP_TYPE_RECHARGE = require('../Score').SCORE_OP_TYPE_RECHARGE
@@ -813,6 +824,7 @@ async function fetchDealRecord(request) {
         record.cost = deal.cost
         record.dealTime = deal.deal_time
         record.dealType = deal.deal_type
+        record.promotionId = deal.promotion_id
         dealList.push(record)
       }
     }
