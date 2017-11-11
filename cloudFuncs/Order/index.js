@@ -220,7 +220,7 @@ async function finishOrder(deviceNo, finishTime) {
   let user = order.attributes.user
   let duration = mathjs.eval((finishTime - order.attributes.start.valueOf()) * 0.001 / 60)
   duration = duration < 1? 1: Number(duration.toFixed(0))
-  let amount = mathjs.chain(unitPrice).multiply(duration).done()
+  let amount = mathjs.round(mathjs.chain(unitPrice).multiply(duration).done(),1)
 
   let mysqlConn = await mysqlUtil.getConnection()
 
