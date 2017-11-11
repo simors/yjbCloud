@@ -35,7 +35,7 @@ async function createUserByAuthData(authData, phone, clientIp) {
       user.set('province', {label: userAddrInfo.region, value: userAddrInfo.region_id})
       user.set('city', {label: userAddrInfo.city, value: userAddrInfo.city_id})
     }
-    user.set('subscribe', userWechatInfo.subscribe)
+    user.set('subscribe', Boolean(userWechatInfo.subscribe))
     user.set('type', AUTH_USER_TYPE.END)
     user.set('score', 0)
 

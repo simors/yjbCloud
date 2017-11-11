@@ -5,6 +5,8 @@ import AV from 'leanengine'
 import PingppFunc from '../Pingpp'
 import * as errno from '../errno'
 import utilFunc from '../Util'
+import {AUTH_USER_STATUS} from './User'
+import {getWechatUserInfo} from '../../mpFuncs/User/index'
 
 export function constructUserInfo(user) {
   if(!user) {
@@ -387,7 +389,29 @@ async function onLogin(request) {
   if(!currentUser) {
     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
   }
-  //TODO 黑名单过滤
+
+  let mpStatus = currentUser.attributes.mpStatus
+  if(mpStatus === AUTH_USER_STATUS.MP_DISABLED) {
+    throw new AV.Cloud.Error('用户已经被禁用', {code: errno.EACCES})
+  }
+  //同步用户微信信息
+  let authData = currentUser.attributes.authData
+  if(!authData) {
+    return
+  }
+  let openid = authData.weixin.openid
+  if(!openid) {
+    return
+  }
+  let wechatUserInfo = await getWechatUserInfo(openid)
+  if(wechatUserInfo) {
+    currentUser.set('subscribe', Boolean(wechatUserInfo.subscribe))
+    currentUser.set('nickname', wechatUserInfo.nickname)
+    currentUser.set('avatar', wechatUserInfo.headimgurl)
+    currentUser.set('language', wechatUserInfo.language)
+    currentUser.set('sex', wechatUserInfo.sex)
+    return await currentUser.save()
+  }
 }
 
 /**
