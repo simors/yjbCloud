@@ -52,9 +52,11 @@ function authStringifyStatus(status) {
 function authStringifyRoles(roles) {
   let str = [];
 
-  roles.forEach((i) => {
-    str.push(AUTH_ROLE_CODE_STR[i]);
-  });
+  if (roles) {
+    roles.forEach((i) => {
+      str.push(AUTH_ROLE_CODE_STR[i]);
+    });
+  }
 
   return str.join('，');
 }
@@ -560,7 +562,7 @@ async function authUpdateUser(req) {
   let updateLog = '';
   if (jsonUser.nickname && jsonUser.nickname !== jsonOriginUser.nickname)
     updateLog += '，用户名：' + jsonUser.nickname;
-  if (jsonUser.roles && !authIsRolesEqual(jsonUser.roles, jsonOriginUser.roles))
+  if (jsonUser.roles && (!jsonOriginUser.roles || !authIsRolesEqual(jsonUser.roles, jsonOriginUser.roles)))
     updateLog += '，角色：' + authStringifyRoles(jsonUser.roles);
   if (jsonUser.status && jsonUser.status !== jsonOriginUser.status)
     updateLog += '，状态：' + authStringifyStatus(jsonUser.status);
