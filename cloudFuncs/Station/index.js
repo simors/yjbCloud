@@ -133,8 +133,13 @@ function createStation(request, response) {
       var query = new AV.Query('Station')
       query.include('admin')
       query.get(leanStation.id).then((stationInfo)=> {
-        OperationLog.recordOperation(currentUser, '创建服务点' + stationInfo.attributes.name + '管理员为' +stationInfo.attributes.admin.attributes.nickname+'平台分成比例为'+stationInfo.attributes.platformProp)
-        response.success(constructStationInfo(stationInfo, true))
+        let stationDetail = constructStationInfo(stationInfo,true)
+        OperationLog.recordOperation(currentUser, '创建服务点' + stationDetail.name +
+          '管理员为' +stationDetail.admin.nickname+'平台分成比例为'+stationDetail.platformProp +
+          '服务点地址为'+ stationDetail.province.label+stationDetail.city.label+stationDetail.area.label+stationDetail.addr+
+          '电费单价为 ' +stationDetail.powerUnitPrice+' 使用单价为 '+stationDetail.unitPrice+' 押金为 '+stationDetail.deposit
+        )
+        response.success(stationDetail)
       })
     }).catch((error) => {
       console.log("createStation", error)
@@ -223,8 +228,13 @@ function updateStation(request, response) {
       var query = new AV.Query('Station')
       query.include('admin')
       query.get(leanStation.id).then((stationInfo)=> {
-        OperationLog.recordOperation(currentUser, '更新服务点' + stationInfo.attributes.name + '管理员为' +stationInfo.attributes.admin.attributes.nickname+'平台分成比例为'+stationInfo.attributes.platformProp)
-        response.success(constructStationInfo(stationInfo, true))
+        let stationDetail = constructStationInfo(stationInfo,true)
+        OperationLog.recordOperation(currentUser, '更新服务点' + stationDetail.name +
+          '管理员为' +stationDetail.admin.nickname+'平台分成比例为'+stationDetail.platformProp +
+          '服务点地址为'+ stationDetail.province.label+stationDetail.city.label+stationDetail.area.label+stationDetail.addr+
+          '电费单价为 ' +stationDetail.powerUnitPrice+' 使用单价为 '+stationDetail.unitPrice+' 押金为 '+stationDetail.deposit
+        )
+        response.success(stationDetail)
       })
     }).catch((error) => {
       console.log("createStation", error)
