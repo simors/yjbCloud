@@ -385,6 +385,7 @@ async function updateUserSubscribe(openid, subscribe) {
  */
 async function onLogin(request) {
   const {currentUser} = request
+  console.log("onLogin currentUser", currentUser)
   if(!currentUser) {
     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
   }
@@ -393,7 +394,6 @@ async function onLogin(request) {
   if(mpStatus === AUTH_USER_STATUS.MP_DISABLED) {
     throw new AV.Cloud.Error('用户已经被禁用', {code: errno.EACCES})
   }
-
 }
 
 /**

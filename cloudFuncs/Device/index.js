@@ -13,6 +13,8 @@ import {PERMISSION_CODE} from '../../rolePermission'
 import * as authFuncs from '../Auth'
 import {recordOperation} from '../OperationLog'
 import {getUserRefundRequest, WITHDRAW_STATUS} from '../Withdraw'
+import {getUserInfoById} from '../Auth'
+import {AUTH_USER_STATUS} from '../Auth/User'
 
 
 //设备状态
@@ -422,6 +424,15 @@ async function turnOnDeviceCheck(deviceNo, userId) {
     let status = await getDeviceStatus(deviceNo)
     if(status != DEVICE_STATUS_IDLE) {
       return errno.ERROR_INVALID_STATUS
+    }
+
+    let userInfo = await getUserInfoById(userId)
+    if(!userInfo) {
+      return errno.ERROR_NO_USER
+    }
+    let mpStatus = userInfo.mpStatus
+    if(mpStatus && mpStatus === AUTH_USER_STATUS.ADMIN_DISABLED) {
+      return errno.EACCES
     }
 
     let userWalletInfo = await PingppFunc.getWalletInfo(userId)
