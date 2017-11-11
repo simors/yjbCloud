@@ -56,7 +56,7 @@ function authStringifyRoles(roles) {
     str.push(AUTH_ROLE_CODE_STR[i]);
   });
 
-  return str.join(', ');
+  return str.join('，');
 }
 
 function authIsRolesEqual(roles1, roles2) {
