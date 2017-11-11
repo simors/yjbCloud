@@ -22,10 +22,20 @@ function createMenu() {
         "url": GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/mine'
       },
       {
-        "type":"view",
-        "name":"业务合作",
-        "url": GLOBAL_CONFIG.MP_CLIENT_DOMAIN
-      },
+        "name":"菜单",
+        "sub_button": [
+          {
+            "type":"view",
+            "name":"业务合作",
+            "url": GLOBAL_CONFIG.MP_CLIENT_DOMAIN
+          },
+          {
+            "type":"view",
+            "name":"android清理缓冲",
+            "url": "http://debugx5.qq.com"
+          }
+        ]
+      }
     ]
   }
 
