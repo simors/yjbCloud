@@ -813,6 +813,7 @@ async function fetchDealRecord(request) {
         record.cost = deal.cost
         record.dealTime = deal.deal_time
         record.dealType = deal.deal_type
+        record.promotionId = deal.promotion_id
         dealList.push(record)
       }
     }
