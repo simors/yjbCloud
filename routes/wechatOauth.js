@@ -91,7 +91,7 @@ router.get('/adminUserAuth', async function (req, res, next) {
     }
     let phone = state
     await createUserByAuthData(authData, phone, clientIp)
-    redirectUrl =  GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/authSuccess'
+    redirectUrl =  GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/authSuccess?' + querystring.stringify(authData)
   } catch (error) {
     console.error(error)
     redirectUrl = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + ''
