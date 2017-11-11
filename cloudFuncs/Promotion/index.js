@@ -296,6 +296,7 @@ async function fetchPromotions(request) {
   let region = params.region
   let lastCreatedAt = undefined
   let promotionList = []
+  let showType = params.showType
 
   let regionQuery = new AV.Query('Promotion')
   if(region && region.length === 1) {
@@ -325,9 +326,25 @@ async function fetchPromotions(request) {
 
   let timeQuery = AV.Query.or(timeQueryA, timeQueryB, timeQueryC)
 
+
+
+
   let otherQuery = new AV.Query('Promotion')
-  if(disabled != undefined) {
-    otherQuery.equalTo('disabled', disabled)
+
+  if(showType=='disable'){
+    otherQuery.equalTo('disable',true)
+  }else if(showType=='enable'){
+    otherQuery.lessThanOrEqualTo('start', new Date())
+    otherQuery.greaterThanOrEqualTo('end', new Date())
+    otherQuery.equalTo('disable',false)
+  }else if(showType=='isBefore'){
+    otherQuery.greaterThan('start', new Date())
+    otherQuery.equalTo('disable',false)
+  }else if(showType=='isAfter'){
+    otherQuery.lessThan('end', new Date())
+    otherQuery.equalTo('disable',false)
+  }else if(!showType){
+
   }
 
   let query = AV.Query.and(timeQuery, regionQuery, otherQuery)
