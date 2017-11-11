@@ -12,6 +12,7 @@ import moment from 'moment'
 import {PERMISSION_CODE} from '../../rolePermission'
 import * as authFuncs from '../Auth'
 import {recordOperation} from '../OperationLog'
+import {getUserRefundRequest, WITHDRAW_STATUS} from '../Withdraw'
 
 
 //设备状态
@@ -427,9 +428,14 @@ async function turnOnDeviceCheck(deviceNo, userId) {
     if(!userWalletInfo) {
       return errno.ERROR_NO_WALLET
     }
-    const {deposit, debt, process} = userWalletInfo
-    if(deposit ===0 || process === PingppFunc.WALLET_PROCESS_TYPE.REFUND_PROCESS) {
+    const {deposit, debt} = userWalletInfo
+    if(deposit ===0) {
       return errno.ERROR_NO_DEPOSIT
+    }
+    const withdrawApply = await getUserRefundRequest(userId)
+    console.log("withdrawApply:", withdrawApply)
+    if(withdrawApply && withdrawApply.status === WITHDRAW_STATUS.APPLYING) {
+      return errno.ERROR_REFUNDING
     }
     if(debt > 0) {
       return errno.ERROR_UNPAID_ORDER

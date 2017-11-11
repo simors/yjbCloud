@@ -153,6 +153,7 @@ export const ERROR_NO_DEPOSIT               = (ERROR_BASE_AUTH - 2)         /* �
 export const ERROR_NO_ENOUGH_BALANCE        = (ERROR_BASE_AUTH - 3)         /* 用户钱包余额不足 */
 export const ERROR_NO_USER                  = (ERROR_BASE_AUTH - 4)         /* 用户不存在 */
 export const ERROR_NO_WECHAT                = (ERROR_BASE_AUTH - 5)         /* 用户未绑定微信 */
+export const ERROR_REFUNDING                = (ERROR_BASE_AUTH - 6)         /* 用户押金退款处理中 */
 
 /* Device */
 export const ERROR_INVALID_STATUS           = (ERROR_BASE_DEVICE - 1)       /* 设备状态有误 */
