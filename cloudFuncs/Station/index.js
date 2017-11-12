@@ -118,9 +118,15 @@ function createStation(request, response) {
     var station = new Station()
     station.set('name', name)
     station.set('addr', addr)
-    station.set('province', province)
-    station.set('city', city)
-    station.set('area', area)
+    if(province){
+      station.set('province', province)
+    }
+    if(city){
+      station.set('city', city)
+    }
+    if(area){
+      station.set('area', area)
+    }
     station.set('unitPrice', unitPrice)
     station.set('deposit', deposit)
     station.set('powerUnitPrice', powerUnitPrice)
@@ -212,9 +218,15 @@ function updateStation(request, response) {
     }
     station.set('name', name)
     station.set('addr', addr)
-    station.set('province', province)
-    station.set('city', city)
-    station.set('area', area)
+    if(province){
+      station.set('province', province)
+    }
+    if(city){
+      station.set('city', city)
+    }
+    if(area){
+      station.set('area', area)
+    }
     station.set('unitPrice', unitPrice)
     station.set('deposit', deposit)
     station.set('powerUnitPrice', powerUnitPrice)
