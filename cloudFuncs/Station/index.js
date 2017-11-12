@@ -483,7 +483,7 @@ async function createPartner(request, response) {
     let prePartner = await query.first()
     let status = request.params.status
     if (prePartner) {
-      response.error(new Error('已经存在该分成方'))
+      response.error(new AV.Cloud.Error("已存在该服务单位",{code: errno.ERROR_STATION_PARTNERREPEAT}))
       return
     }
     let Partner = AV.Object.extend('ProfitSharing')
@@ -562,7 +562,7 @@ function createInvestor(request, response) {
   queryPre.equalTo('type', profitShareType.PROFIT_SHARE_INVESTOR)
   queryPre.first().then((item)=> {
     if (item) {
-      response.error(new Error("该服务点已有该投资人!"))
+      response.error(new AV.Cloud.Error("该服务点已有该投资人",{code: errno.ERROR_STATION_INVESTORREPEAT}))
     } else {
       investor.set('shareholder', user)
       investor.set('station', station)
