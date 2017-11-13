@@ -486,9 +486,6 @@ function updateRedEnvelopeStatus(activityId, openid, award) {
 
 var activityFunc = {
   createActivity: createActivity,
-  deleteActivity: deleteActivity,
-  getActivitiesList: getActivitiesList,
-  insertActivityMessage: insertActivityMessage,
   checkActivityRequest: checkActivityRequest,
   handleActivityMessage: handleActivityMessage,
   incrActivityPageView: incrActivityPageView,

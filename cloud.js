@@ -2,7 +2,6 @@ var AV = require('leanengine')
 var authFunc = require('./cloudFuncs/Auth')
 var userFunc = require('./cloudFuncs/Auth/User')
 var notificationFunc = require('./cloudFuncs/Notification')
-var activityFunc = require('./cloudFuncs/Activity')
 var deviceFunc = require('./cloudFuncs/Device')
 var PingppFunc = require('./cloudFuncs/Pingpp')
 var orderFunc = require('./cloudFuncs/Order')
@@ -81,11 +80,6 @@ AV.Cloud.define('stationFetchProfitSharebyUser', stationFunc.reqFetchProfitShare
 AV.Cloud.define('stationFetchStationStat', stationFunc.statStation)
 
 //营销活动
-AV.Cloud.define('activityIncrActivityPageView', activityFunc.incrActivityPageView)
-AV.Cloud.define('activityCreateActivity', activityFunc.createActivity)
-AV.Cloud.define('activityDeleteActivity', activityFunc.deleteActivity)
-AV.Cloud.define('activityGetActivitiesList', activityFunc.getActivitiesList)
-
 AV.Cloud.define('promCreatePromotion', promotionFunc.createPromotion)
 AV.Cloud.define('promFetchPromotions', promotionFunc.fetchPromotions)
 AV.Cloud.define('promFetchPromotionCategoryList', promotionFunc.fetchPromotionCategoryList)

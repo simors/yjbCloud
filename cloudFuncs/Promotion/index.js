@@ -457,7 +457,14 @@ async function getValidPromotionList(request) {
   if(results.length > 0) {
     for (let promotion of results) {
       let awards = promotion.attributes.awards
-      let userLimit =awards? awards.userLimit : undefined
+      let stat = promotion.attributes.stat
+      let category = promotion.attributes.category
+      if(category.attributes.type === PROMOTION_CATEGORY_TYPE_REDENVELOPE) {
+        if((stat.winAmount >= awards.awardAmount) || (stat.winCount >= awards.count)){
+          continue
+        }
+      }
+      let userLimit = awards? awards.userLimit : undefined
       let records = await getPromotionRecord(promotion.id, currentUser.id)
       if(!userLimit || records.length < userLimit) {
         promotionList.push(constructPromotionInfo(promotion, true, true))
@@ -739,9 +746,9 @@ async function checkPromotionRequest(promotionId, userId) {
   let stat = promotionAttr.stat
   let awards = promotionAttr.awards
   if(!category) {
-    return false
+    throw new AV.Cloud.Error('无效的活动类型', {code: errno.ERROR_INVALID_TYPE})
   }
-  switch (category.type) {
+  switch (category.attributes.type) {
     case PROMOTION_CATEGORY_TYPE_REDENVELOPE:
     {
       if(mathjs.chain(stat.winAmount).add(awards.awardMax).subtract(awards.awardAmount).done() > 0) {
@@ -752,7 +759,7 @@ async function checkPromotionRequest(promotionId, userId) {
       }
       let userRecordlist = await getPromotionRecord(promotionId, userId)
       if(userRecordlist.length >= awards.userLimit) {
-        throw new AV.Cloud.Error('用户参数次数限制', {code: errno.ERROT_PROM_LIMIT})
+        throw new AV.Cloud.Error('用户参数次数限制', {code: errno.ERROR_PROM_LIMIT})
       }
       break
     }
