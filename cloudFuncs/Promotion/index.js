@@ -965,6 +965,21 @@ async function exchangeGift(request) {
   return result
 }
 
+/**
+ * 获取有效的积分兑换活动
+ * @param request
+ */
+async function getValidScoreExProm(request) {
+  const { params } = request
+  const {userId} = params
+
+  if(!userId) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let promotion = await getValidPromotion(userId, PROMOTION_CATEGORY_TYPE_EXCHANGE_SCORE)
+  return promotion
+}
+
 async function promotionFuncTest(request) {
   const {currentUser, params} = request
   const {promotionId, userId} = params
@@ -1000,6 +1015,7 @@ var promotionFunc = {
   getScoreExchangePromotion: getScoreExchangePromotion,
   exchangeGift: exchangeGift,
   updateScorePromState: updateScorePromState,
+  getValidScoreExProm: getValidScoreExProm,
 }
 
 module.exports = promotionFunc

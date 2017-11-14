@@ -88,6 +88,7 @@ AV.Cloud.define('promGetValidPromotionList', promotionFunc.getValidPromotionList
 AV.Cloud.define('promFetchPromotionRecord', promotionFunc.fetchPromotionRecord)
 AV.Cloud.define('promGetScoreExchangePromotion', promotionFunc.getScoreExchangePromotion)
 AV.Cloud.define('promExchangeGift', promotionFunc.exchangeGift)
+AV.Cloud.define('promGetValidScoreExProm', promotionFunc.getValidScoreExProm)
 AV.Cloud.define('promotionFuncTest', promotionFunc.promotionFuncTest)
 
 //支付
