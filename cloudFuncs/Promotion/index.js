@@ -157,9 +157,18 @@ async function createPromotion(request) {
     }
     case PROMOTION_CATEGORY_TYPE_EXCHANGE_SCORE:
     {
+      let gifts = []
+      awards.gifts.forEach((value) => {
+        let gift = {}
+        gift.id = value.id
+        gift.stocks = value.stocks
+        gift.rest = value.stocks
+        gifts.push(gift)
+      })
       initStat = {
         participant: 0,       //参与量
         scoreAmount: 0,       //总兑换积分
+        gifts: gifts,         //兑换礼品剩余统计
       }
       break
     }
