@@ -939,12 +939,9 @@ async function getScoreExchangePromotion(request) {
  * @param request
  */
 async function exchangeGift(request) {
-  const {currentUser, params} = request
-  if(!currentUser) {
-    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
-  }
-  const {promotionId, giftId, phone, addr} = params
-  if(!promotionId || !giftId || !phone || !addr) {
+  const {params} = request
+  const {userId, promotionId, giftId, name, phone, addr} = params
+  if(userId || !promotionId || !giftId || !phone || !addr || !name) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
@@ -964,10 +961,11 @@ async function exchangeGift(request) {
     throw new AV.Cloud.Error('没找到该活动对象', {code: errno.ENODATA})
   }
   let subtractUserScore = require('../Score').subtractUserScore
-  await subtractUserScore(currentUser.id, gift.scores)
-  let result = await addPromotionRecord(promotionId, currentUser.id, {
+  await subtractUserScore(userId, gift.scores)
+  let result = await addPromotionRecord(promotionId, userId, {
     scores: gift.scores,
     gift: gift.title,
+    name: name,
     phone: phone,
     addr: addr})
   await updateScorePromState(promotionId, gift.scores)
