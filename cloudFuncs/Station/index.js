@@ -141,9 +141,9 @@ function createStation(request, response) {
       query.get(leanStation.id).then((stationInfo)=> {
         let stationDetail = constructStationInfo(stationInfo,true)
         OperationLog.recordOperation(currentUser, '创建服务点' + stationDetail.name +
-          '管理员为' +stationDetail.admin.nickname+'平台分成比例为'+stationDetail.platformProp +
-          '服务点地址为'+ stationDetail.province.label+stationDetail.city.label+stationDetail.addr+
-          '电费单价为 ' +stationDetail.powerUnitPrice+' 使用单价为 '+stationDetail.unitPrice+' 押金为 '+stationDetail.deposit
+          '，管理员为' +stationDetail.admin.nickname+'，平台分成比例为'+stationDetail.platformProp +
+          '，服务点地址为'+ stationDetail.province?stationDetail.province.label:undefined+stationDetail.city?stationDetail.city.label:undefined+stationDetail.area?stationDetail.area.label:undefined+stationDetail.addr+
+          '，电费单价为 ' +stationDetail.powerUnitPrice+' ，使用单价为 '+stationDetail.unitPrice+' ，押金为 '+stationDetail.deposit
         )
         response.success(stationDetail)
       })
@@ -242,9 +242,9 @@ function updateStation(request, response) {
       query.get(leanStation.id).then((stationInfo)=> {
         let stationDetail = constructStationInfo(stationInfo,true)
         OperationLog.recordOperation(currentUser, '更新服务点' + stationDetail.name +
-          '管理员为' +stationDetail.admin.nickname+'平台分成比例为'+stationDetail.platformProp +
-          '服务点地址为'+ stationDetail.province.label+stationDetail.city.label+stationDetail.addr+
-          '电费单价为 ' +stationDetail.powerUnitPrice+' 使用单价为 '+stationDetail.unitPrice+' 押金为 '+stationDetail.deposit
+          '，管理员为' +stationDetail.admin.nickname+'，平台分成比例为'+stationDetail.platformProp +
+          '，服务点地址为'+ stationDetail.province?stationDetail.province.label:undefined+stationDetail.city?stationDetail.city.label:undefined+stationDetail.area?stationDetail.area.label:undefined+stationDetail.addr+
+          '，电费单价为 ' +stationDetail.powerUnitPrice+' ，使用单价为 '+stationDetail.unitPrice+' ，押金为 '+stationDetail.deposit
         )
         response.success(stationDetail)
       })
@@ -613,7 +613,7 @@ function createInvestor(request, response) {
                       }
                       investors.push(constructProfitSharing(result,true,true))
                     })
-                    OperationLog.recordOperation(currentUser, '创建服务点'+investorInfo.attributes.station.attributes.name+'投资人'+investorInfo.attributes.shareholder.attributes.nickname+'投资金额为'+investorInfo.attributes.investment)
+                    OperationLog.recordOperation(currentUser, '创建服务点'+investorInfo.attributes.station.attributes.name+'，投资人为'+investorInfo.attributes.shareholder.attributes.nickname+'，投资金额为'+investorInfo.attributes.investment)
                     response.success(investors)
                   }
                 })
