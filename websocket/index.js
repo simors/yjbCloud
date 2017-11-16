@@ -3,7 +3,6 @@
  */
 var Promise = require('bluebird')
 var redis = require('redis')
-var activityFunc = require('../cloudFuncs/Activity')
 var turnOnDevice = require('../mqtt').turnOnDevice
 var turnOffDevice = require('../mqtt').turnOffDevice
 import promotionFunc from '../cloudFuncs/Promotion'

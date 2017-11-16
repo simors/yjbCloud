@@ -31,7 +31,7 @@ const WECHAT_MP_AESKEY_DEV = "mBQTyvW4OlskuxHYWv0261sYw1w8EZw4vj6cQ6gOWNw"
 const WECHAT_MP_APPSECRET_DEV = "7e053e63bc216611878697fdb5d8edc6"
 
 const MP_SERVER_DOMAIN_PRE = "http://yiijiabao-pre.leanapp.cn"
-const MP_CLIENT_DOMAIN_PRE = "http://dev.yiijiabao.com"
+const MP_CLIENT_DOMAIN_PRE = "http://stage.yiijiabao.com"
 const WECHAT_MP_TOKEN_PRE = "YiJiaBao2017pre"
 const WECHAT_MP_APPID_PRE = "wx792bf5a51051d512"
 const WECHAT_MP_AESKEY_PRE = "mBQTyvW4OlskuxHYWv0261sYw1w8EZw4vj6cQ6gOWNw"

@@ -157,9 +157,18 @@ async function createPromotion(request) {
     }
     case PROMOTION_CATEGORY_TYPE_EXCHANGE_SCORE:
     {
+      let gifts = []
+      awards.gifts.forEach((value) => {
+        let gift = {}
+        gift.id = value.id
+        gift.stocks = value.stocks
+        gift.rest = value.stocks
+        gifts.push(gift)
+      })
       initStat = {
         participant: 0,       //参与量
         scoreAmount: 0,       //总兑换积分
+        gifts: gifts,         //兑换礼品剩余统计
       }
       break
     }
@@ -457,7 +466,14 @@ async function getValidPromotionList(request) {
   if(results.length > 0) {
     for (let promotion of results) {
       let awards = promotion.attributes.awards
-      let userLimit =awards? awards.userLimit : undefined
+      let stat = promotion.attributes.stat
+      let category = promotion.attributes.category
+      if(category.attributes.type === PROMOTION_CATEGORY_TYPE_REDENVELOPE) {
+        if((stat.winAmount >= awards.awardAmount) || (stat.winCount >= awards.count)){
+          continue
+        }
+      }
+      let userLimit = awards? awards.userLimit : undefined
       let records = await getPromotionRecord(promotion.id, currentUser.id)
       if(!userLimit || records.length < userLimit) {
         promotionList.push(constructPromotionInfo(promotion, true, true))
@@ -739,9 +755,9 @@ async function checkPromotionRequest(promotionId, userId) {
   let stat = promotionAttr.stat
   let awards = promotionAttr.awards
   if(!category) {
-    return false
+    throw new AV.Cloud.Error('无效的活动类型', {code: errno.ERROR_INVALID_TYPE})
   }
-  switch (category.type) {
+  switch (category.attributes.type) {
     case PROMOTION_CATEGORY_TYPE_REDENVELOPE:
     {
       if(mathjs.chain(stat.winAmount).add(awards.awardMax).subtract(awards.awardAmount).done() > 0) {
@@ -752,7 +768,7 @@ async function checkPromotionRequest(promotionId, userId) {
       }
       let userRecordlist = await getPromotionRecord(promotionId, userId)
       if(userRecordlist.length >= awards.userLimit) {
-        throw new AV.Cloud.Error('用户参数次数限制', {code: errno.ERROT_PROM_LIMIT})
+        throw new AV.Cloud.Error('用户参数次数限制', {code: errno.ERROR_PROM_LIMIT})
       }
       break
     }
@@ -923,12 +939,9 @@ async function getScoreExchangePromotion(request) {
  * @param request
  */
 async function exchangeGift(request) {
-  const {currentUser, params} = request
-  if(!currentUser) {
-    throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
-  }
-  const {promotionId, giftId, phone, addr} = params
-  if(!promotionId || !giftId || !phone || !addr) {
+  const {params} = request
+  const {userId, promotionId, giftId, name, phone, addr} = params
+  if(userId || !promotionId || !giftId || !phone || !addr || !name) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
@@ -948,14 +961,30 @@ async function exchangeGift(request) {
     throw new AV.Cloud.Error('没找到该活动对象', {code: errno.ENODATA})
   }
   let subtractUserScore = require('../Score').subtractUserScore
-  await subtractUserScore(currentUser.id, gift.scores)
-  let result = await addPromotionRecord(promotionId, currentUser.id, {
+  await subtractUserScore(userId, gift.scores)
+  let result = await addPromotionRecord(promotionId, userId, {
     scores: gift.scores,
     gift: gift.title,
+    name: name,
     phone: phone,
     addr: addr})
   await updateScorePromState(promotionId, gift.scores)
   return result
+}
+
+/**
+ * 获取有效的积分兑换活动
+ * @param request
+ */
+async function getValidScoreExProm(request) {
+  const { params } = request
+  const {userId} = params
+
+  if(!userId) {
+    throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
+  }
+  let promotion = await getValidPromotion(userId, PROMOTION_CATEGORY_TYPE_EXCHANGE_SCORE)
+  return promotion
 }
 
 async function promotionFuncTest(request) {
@@ -993,6 +1022,7 @@ var promotionFunc = {
   getScoreExchangePromotion: getScoreExchangePromotion,
   exchangeGift: exchangeGift,
   updateScorePromState: updateScorePromState,
+  getValidScoreExProm: getValidScoreExProm,
 }
 
 module.exports = promotionFunc
