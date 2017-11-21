@@ -941,7 +941,7 @@ async function getScoreExchangePromotion(request) {
 async function exchangeGift(request) {
   const {params} = request
   const {userId, promotionId, giftId, name, phone, addr} = params
-  if(userId || !promotionId || !giftId || !phone || !addr || !name) {
+  if(!userId || !promotionId || !giftId || !phone || !addr || !name) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
