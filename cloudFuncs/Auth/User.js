@@ -156,7 +156,7 @@ async function authListEndUsers(req) {
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
 
-  const {skip=0, limit=10, mobilePhoneNumber, province, city, mpStatus} = params;
+  const {skip=0, limit=10, nickname, mobilePhoneNumber, province, city, mpStatus} = params;
 
   const jsonUsers = [];
 
@@ -165,6 +165,10 @@ async function authListEndUsers(req) {
   cql += ' where (type is not exists or type=? or type=?)';
   values.push(AUTH_USER_TYPE.END);
   values.push(AUTH_USER_TYPE.BOTH);
+  if (nickname) {
+    cql += ' and nickname=?';
+    values.push(nickname);
+  }
   if (mobilePhoneNumber) {
     cql += ' and mobilePhoneNumber=?';
     values.push(mobilePhoneNumber);
@@ -300,7 +304,7 @@ async function authFetchAdminsByRoles(req) {
     throw new AV.Cloud.Error('Permission denied, need to login first', {code: errno.EPERM});
   }
 
-  const {nicknameOrMobilePhoneNumber,nickname, mobilePhoneNumber, roles, status} = params;
+  const {nicknameOrMobilePhoneNumber,nickname, mobilePhoneNumber, roles, status=AUTH_USER_STATUS.ADMIN_NORMAL} = params;
 
   const jsonUsers = [];
 
@@ -319,14 +323,12 @@ async function authFetchAdminsByRoles(req) {
     cql += ' and roles in ?';
     values.push(roles);
   }
-  if (status) {
-    if (status === AUTH_USER_STATUS.ADMIN_DISABLED) {
-      cql += ' and status=?';
-      values.push(AUTH_USER_STATUS.ADMIN_DISABLED);
-    } else if (status === AUTH_USER_STATUS.ADMIN_NORMAL) {
-      cql += ' and (status is not exists or status=?)';
-      values.push(AUTH_USER_STATUS.ADMIN_NORMAL);
-    }
+  if (status === AUTH_USER_STATUS.ADMIN_DISABLED) {
+    cql += ' and status=?';
+    values.push(AUTH_USER_STATUS.ADMIN_DISABLED);
+  } else if (status === AUTH_USER_STATUS.ADMIN_NORMAL) {
+    cql += ' and (status is not exists or status=?)';
+    values.push(AUTH_USER_STATUS.ADMIN_NORMAL);
   }
 
   const kLimit = 100;
