@@ -21,7 +21,7 @@ var withdrawFunc = require('./cloudFuncs/Withdraw')
  * 云函数
  */
 //用户
-AV.Cloud.define('authFuncTest', authFunc.authFuncTest)
+AV.Cloud.define('authRequestUserInfo', authFunc.requestUserInfo)
 AV.Cloud.define('authFetchWalletInfo', authFunc.fetchWalletInfo)
 AV.Cloud.define('authVerifyIdName', authFunc.verifyIdName)
 AV.Cloud.define('authSetUserMobilePhone', authFunc.setUserMobilePhone)
