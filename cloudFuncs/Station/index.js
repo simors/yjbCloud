@@ -142,7 +142,7 @@ function createStation(request, response) {
         let stationDetail = constructStationInfo(stationInfo,true)
         OperationLog.recordOperation(currentUser, '创建服务点' + stationDetail.name +
           '，管理员为' +stationDetail.admin.nickname+'，平台分成比例为'+stationDetail.platformProp +
-          '，服务点地址为'+ stationDetail.province?stationDetail.province.label:undefined+stationDetail.city?stationDetail.city.label:undefined+stationDetail.area?stationDetail.area.label:undefined+stationDetail.addr+
+          '，服务点地址为'+ (stationDetail.province?stationDetail.province.label:'') +(stationDetail.city?stationDetail.city.label:'')+(stationDetail.area?stationDetail.area.label:'')+stationDetail.addr+
           '，电费单价为 ' +stationDetail.powerUnitPrice+' ，使用单价为 '+stationDetail.unitPrice+' ，押金为 '+stationDetail.deposit
         )
         response.success(stationDetail)
@@ -243,7 +243,7 @@ function updateStation(request, response) {
         let stationDetail = constructStationInfo(stationInfo,true)
         OperationLog.recordOperation(currentUser, '更新服务点' + stationDetail.name +
           '，管理员为' +stationDetail.admin.nickname+'，平台分成比例为'+stationDetail.platformProp +
-          '，服务点地址为'+ stationDetail.province?stationDetail.province.label:undefined+stationDetail.city?stationDetail.city.label:undefined+stationDetail.area?stationDetail.area.label:undefined+stationDetail.addr+
+          '，服务点地址为'+ (stationDetail.province?stationDetail.province.label:'')+(stationDetail.city?stationDetail.city.label:'')+(stationDetail.area?stationDetail.area.label:'')+stationDetail.addr+
           '，电费单价为 ' +stationDetail.powerUnitPrice+' ，使用单价为 '+stationDetail.unitPrice+' ，押金为 '+stationDetail.deposit
         )
         response.success(stationDetail)
