@@ -213,7 +213,7 @@ async function compositeDeviceQRcode(deviceNo) {
   })
   let buffer = await sharp(dataUriToBuffer(dataUri))
     .resize(200, 200)
-    .overlayWith(logo, {left: 80, top: 80})
+    .overlayWith(logo, {left: 70, top: 70})
     .toBuffer()
 
   buffer = await sharp({create: {width: 200, height: 240, channels: 3, background: '#fff'}})
@@ -225,7 +225,7 @@ async function compositeDeviceQRcode(deviceNo) {
     gm(buffer)
       .drawLine(0, 200, 200, 200)
       .fontSize(16)
-      .drawText(30, 230, "device No: " + deviceNo)
+      .drawText(30, 230, "No.: " + deviceNo)
       .toBuffer('PNG', function (err, buf) {
         if(err) {
           reject(err)
