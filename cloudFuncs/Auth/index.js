@@ -433,7 +433,7 @@ async function updateUserRegion(currentUser, remoteAddress) {
 
 
 
-async function authFuncTest(request, response) {
+async function requestUserInfo(request, response) {
   let userId = request.params.userId
   let userInfo = await getUserInfoById(userId)
   response.success(userInfo)
@@ -450,7 +450,7 @@ var authFunc = {
   authGetPermissionsByUser: authGetPermissionsByUser,
   authGetRoleIdsByUser: authGetRoleIdsByUser,
   authGetPermissionIdsByUser,
-  authFuncTest: authFuncTest,
+  requestUserInfo: requestUserInfo,
   isUserSignIn: isUserSignIn,
   fetchWalletInfo: fetchWalletInfo,
   verifyIdName: verifyIdName,

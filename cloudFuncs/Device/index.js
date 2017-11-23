@@ -15,6 +15,12 @@ import {recordOperation} from '../OperationLog'
 import {getUserRefundRequest, WITHDRAW_STATUS} from '../Withdraw'
 import {getUserInfoById} from '../Auth'
 import {AUTH_USER_STATUS} from '../Auth/User'
+import GLOBAL_CONFIG from '../../config'
+import qrcode from 'qrcode'
+import sharp from 'sharp'
+var gm = require('gm').subClass({imageMagick: true})
+import dataUriToBuffer from 'data-uri-to-buffer'
+
 
 
 //设备状态
@@ -38,6 +44,7 @@ function constructDeviceInfo(device, includeStation) {
   deviceInfo.usePower = device.attributes.usePower
   deviceInfo.createdAt = device.createdAt
   deviceInfo.updatedAt = device.updatedAt
+  deviceInfo.qrcode = device.attributes.qrcode
 
   let station = device.attributes.station
   deviceInfo.stationId = station? station.id : undefined
@@ -156,36 +163,81 @@ async function fetchDevices(request) {
  * @param {String}  deviceNo 设备编号
  * @param {Date}    onlineTime 上线时间
  */
-function createDevice(deviceNo, onlineTime) {
+async function createDevice(deviceNo, onlineTime) {
   var query = new AV.Query('Device')
   query.equalTo('deviceNo', deviceNo)
 
-  return query.first().then((device) => {
-    if(device) {
-      let currentStatus = device.attributes.status
-      if(currentStatus != DEVICE_STATUS_UNREGISTER) {
-        device.set('status', DEVICE_STATUS_IDLE)
-      }
-      device.set('updateTime', onlineTime)
-      return device.save()
-    } else {
-      var Device = AV.Object.extend('Device')
-      var device = new Device()
-      device.set('deviceNo', deviceNo)
-      device.set('onlineTime', onlineTime)
-      device.set('updateTime', onlineTime)
-      device.set('deviceAddr', "")
-      device.set('standbyPower', 1)
-      device.set('usePower', 10)
-      device.set('status', DEVICE_STATUS_UNREGISTER)
-
-      //TODO 通知管理平台新设备上线
-      return device.save()
+  let device = await query.first()
+  if(device) {
+    let currentStatus = device.attributes.status
+    if(currentStatus != DEVICE_STATUS_UNREGISTER) {
+      device.set('status', DEVICE_STATUS_IDLE)
     }
-  }).catch((error) => {
-    console.log("createDevice", error)
-    throw error
+    device.set('updateTime', onlineTime)
+    return await device.save()
+  } else {
+    var Device = AV.Object.extend('Device')
+    device = new Device()
+    device.set('deviceNo', deviceNo)
+    device.set('onlineTime', onlineTime)
+    device.set('updateTime', onlineTime)
+    device.set('deviceAddr', "")
+    device.set('standbyPower', 1)
+    device.set('usePower', 10)
+    device.set('status', DEVICE_STATUS_UNREGISTER)
+    let qrcode = await compositeDeviceQRcode(deviceNo)
+    device.set('qrcode', qrcode)
+    //TODO 通知管理平台新设备上线
+    return await device.save()
+  }
+}
+
+/**
+ * 合成设备二维码图片
+ * @param {String}  deviceNo 设备编号
+ */
+async function compositeDeviceQRcode(deviceNo) {
+  if(!deviceNo) {
+    return undefined
+  }
+  let deviceUrl = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/openDevice/' + deviceNo
+  let logo = './public/images/logo.png'
+  let dataUri = await new Promise((resolve, reject) => {
+    qrcode.toDataURL(deviceUrl, {version: 6}, function (err, url) {
+      if(err) {
+        reject(err)
+        return
+      }
+      resolve(url)
+    })
   })
+  let buffer = await sharp(dataUriToBuffer(dataUri))
+    .resize(200, 200)
+    .overlayWith(logo, {left: 70, top: 70})
+    .toBuffer()
+
+  buffer = await sharp({create: {width: 200, height: 240, channels: 3, background: '#fff'}})
+    .png()
+    .overlayWith(buffer, {left: 0, top: 0})
+    .toBuffer()
+
+  buffer = await new Promise((resolve, reject) => {
+    gm(buffer)
+      .drawLine(0, 200, 200, 200)
+      .fontSize(16)
+      .drawText(30, 230, "No.: " + deviceNo)
+      .toBuffer('PNG', function (err, buf) {
+        if(err) {
+          reject(err)
+          return
+        }
+        resolve(buf)
+      })
+  })
+
+  let image = new AV.File(deviceNo, buffer, 'image/png')
+  let file = await image.save()
+  return file.url()
 }
 
 /**
@@ -460,10 +512,10 @@ async function turnOnDeviceCheck(deviceNo, userId) {
   }
 }
 
-function deviceFuncTest(request, response) {
-  let stationId = request.params.stationId
-
-  response.success(getDevices(stationId))
+async function deviceFuncTest(request) {
+  let deviceNo = request.params.deviceNo
+  let qrcode = await compositeDeviceQRcode(deviceNo)
+  return qrcode
 }
 
 /**

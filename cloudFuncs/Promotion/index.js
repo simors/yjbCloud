@@ -432,17 +432,13 @@ async function isPromotionExist(categoryId, start, end, region) {
  * @param request
  */
 async function getValidPromotionList(request) {
-  const {currentUser, meta} = request
-  const remoteAddress = meta.remoteAddress
+  const {currentUser} = request
   if(!currentUser) {
     throw new AV.Cloud.Error('用户未登录', {code: errno.EPERM})
   }
-  if(!remoteAddress) {
-    throw new AV.Cloud.Error('获取用户ip失败', {code: errno.ERROR_PROM_NOIP})
-  }
 
-  let userAddrInfo = await utilFunc.getIpInfo(remoteAddress)
-  let userRegion = [userAddrInfo.region_id, userAddrInfo.city_id]
+  let userAttr = currentUser.attributes
+  let userRegion = [userAttr.province.value, userAttr.city.value]
   let timeQuery = new AV.Query('Promotion')
   timeQuery.greaterThan('end', new Date())
   timeQuery.lessThanOrEqualTo('start', new Date())
@@ -941,7 +937,7 @@ async function getScoreExchangePromotion(request) {
 async function exchangeGift(request) {
   const {params} = request
   const {userId, promotionId, giftId, name, phone, addr} = params
-  if(userId || !promotionId || !giftId || !phone || !addr || !name) {
+  if(!userId || !promotionId || !giftId || !phone || !addr || !name) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
