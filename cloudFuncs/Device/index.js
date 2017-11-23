@@ -203,7 +203,7 @@ async function compositeDeviceQRcode(deviceNo) {
   let deviceUrl = GLOBAL_CONFIG.MP_CLIENT_DOMAIN + '/openDevice/' + deviceNo
   let logo = './public/images/logo.png'
   let dataUri = await new Promise((resolve, reject) => {
-    qrcode.toDataURL(deviceUrl, function (err, url) {
+    qrcode.toDataURL(deviceUrl, {version: 6}, function (err, url) {
       if(err) {
         reject(err)
         return
