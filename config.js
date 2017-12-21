@@ -1,6 +1,9 @@
 /**
  * Created by wanpeng on 2017/8/7.
  */
+const uuidv4 = require('uuid/v4')
+const nodeID = uuidv4()
+
 
 //LeanCloud环境参数
 const LC_DEV_APP_ID = 'QApBtOkMNfNo0lGaHxKBSWXX-gzGzoHsz'       //开发环境
@@ -176,6 +179,7 @@ var GLOBAL_CONFIG = {
   LC_DEV_APP_ID: LC_DEV_APP_ID,
   LC_STAGE_APP_ID: LC_STAGE_APP_ID,
   LC_PRO_APP_ID: LC_PRO_APP_ID,
+  NODE_ID: nodeID,
 }
 
 module.exports = GLOBAL_CONFIG

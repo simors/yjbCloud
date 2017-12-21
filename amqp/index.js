@@ -49,9 +49,9 @@ function connectEvent(conn) {
       var socketId = message.socketId
       let promotionId = message.promotionId
       let userId = message.userId
-
+      let nodeId = message.nodeId
       namespace.clients((error, client) => {
-        if(client.indexOf(socketId) === -1) {
+        if(client.indexOf(socketId) === -1 || nodeId != GLOBAL_CONFIG.NODE_ID) {
           //doNothing 多节点情况下
         } else {
           promotionFunc.handlePromotionMessage(promotionId, userId).then((amount) => {

@@ -796,6 +796,7 @@ async function insertPromotionMessage(socketId, userId, promotionId) {
     userId: userId,
     socketId: socketId,
     promotionId: promotionId,
+    nodeId: GLOBAL_CONFIG.NODE_ID,
   }
   let categoryType = await getPromotionCategoryType(promotionId)
   switch (categoryType) {
@@ -814,6 +815,7 @@ async function insertPromotionMessage(socketId, userId, promotionId) {
       var ok = ch.assertExchange(ex, 'fanout', {durable: false})
 
       return ok.then(function() {
+        console.log("publish:", message)
         ch.publish(ex, '', Buffer.from(JSON.stringify(message)));
         return ch.close();
       });
@@ -941,7 +943,7 @@ async function getScoreExchangePromotion(request) {
 async function exchangeGift(request) {
   const {params} = request
   const {userId, promotionId, giftId, name, phone, addr} = params
-  if(userId || !promotionId || !giftId || !phone || !addr || !name) {
+  if(!userId || !promotionId || !giftId || !phone || !addr || !name) {
     throw new AV.Cloud.Error('参数错误', {code: errno.EINVAL})
   }
 
