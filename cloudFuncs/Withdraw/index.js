@@ -7,6 +7,8 @@ import mysqlUtil from '../Util/mysqlUtil'
 import moment from 'moment'
 import {authFetchUserByPhone} from '../Auth/User'
 import {getUserInfoById} from '../Auth'
+import PingppFunc from '../Pingpp'
+import profitFunc from '../Profit'
 
 const WITHDRAW_STATUS = {
   APPLYING: 1,      // 提交申请
@@ -35,6 +37,18 @@ async function createWithdrawApply(request) {
     throw new AV.Cloud.Error('用户未绑定微信号', {code: errno.ERROR_NO_WECHAT})
   }
   let {amount, applyType} = request.params
+  let errcode = 0
+  if(applyType === WITHDRAW_APPLY_TYPE.REFUND) {
+    errcode = await PingppFunc.isRefundAllowed(currentUser.id, amount)
+    if (0 != errcode) {
+      throw new AV.Cloud.Error('cann\'t refund', {code: errcode})
+    }
+  } else if(applyType === WITHDRAW_APPLY_TYPE.PROFIT) {
+    errcode = await profitFunc.isWithdrawAllowed(currentUser.id, amount)
+    if (0 != errcode) {
+      throw new AV.Cloud.Error('cann\'t withdraw', {code: errcode})
+    }
+  }
   try {
     conn = await mysqlUtil.getConnection()
     let iSql = 'INSERT INTO `WithdrawApply` (`userId`, `openid`, `amount`, `applyDate`, `status`, `applyType`) VALUES(?, ?, ?, ?, ?, ?)'
